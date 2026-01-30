@@ -1,0 +1,9 @@
+{
+  "name": "session_start_recovery",
+  "trigger": "SessionStart",
+  "command": "bash scripts/recovery/automated_recovery.sh",
+  "description": "Auto-detect and recover from context corruption at session start",
+  "priority": 1,
+  "enabled": true,
+  "version": "4.7.1"
+}

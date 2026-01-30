@@ -1,0 +1,3 @@
+export MCP_AVAILABLE="true"
+export MCP_MEMORY_AVAILABLE="true"
+export MCP_FILESYSTEM_AVAILABLE="true"

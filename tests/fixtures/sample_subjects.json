@@ -1,0 +1,71 @@
+[
+  {
+    "name": "Albert Einstein",
+    "birth_year": 1879,
+    "death_year": 1955,
+    "era": "20th Century",
+    "appearance_notes": [
+      "Gray wild hair",
+      "Thick mustache",
+      "Deep-set eyes",
+      "Formal dark suit"
+    ],
+    "historical_context": "Theoretical physicist, developed theory of relativity",
+    "reference_sources": [
+      "Wikipedia",
+      "Encyclop
+
+aedia Britannica"
+    ]
+  },
+  {
+    "name": "Marie Curie",
+    "birth_year": 1867,
+    "death_year": 1934,
+    "era": "19th-20th Century",
+    "appearance_notes": [
+      "Dark hair pulled back",
+      "Formal dress typical of era",
+      "Serious expression",
+      "High-necked clothing"
+    ],
+    "historical_context": "Pioneering physicist and chemist, first woman to win Nobel Prize",
+    "reference_sources": [
+      "Wikipedia",
+      "Nobel Prize archives"
+    ]
+  },
+  {
+    "name": "Ada Lovelace",
+    "birth_year": 1815,
+    "death_year": 1852,
+    "era": "Victorian Era",
+    "appearance_notes": [
+      "Victorian dress",
+      "Elaborate hairstyle",
+      "Formal portrait style",
+      "Elegant appearance"
+    ],
+    "historical_context": "Mathematician, first computer programmer",
+    "reference_sources": [
+      "Wikipedia",
+      "Computer History Museum"
+    ]
+  },
+  {
+    "name": "Geoffrey Hinton",
+    "birth_year": 1947,
+    "era": "20th-21st Century",
+    "appearance_notes": [
+      "Glasses",
+      "White hair and beard",
+      "Modern casual attire",
+      "Friendly expression"
+    ],
+    "historical_context": "Pioneer of deep learning and neural networks",
+    "reference_sources": [
+      "Wikipedia",
+      "Google Scholar"
+    ]
+  }
+]

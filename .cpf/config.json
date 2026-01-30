@@ -1,0 +1,86 @@
+{
+  "framework": {
+    "name": "Context-Preserving Framework",
+    "version": "4.3.0",
+    "enabled": true
+  },
+  "project": {
+    "name": "YourProject",
+    "type": "coding",
+    "description": "Project description",
+    "root_directory": "."
+  },
+  "context_management": {
+    "primary_threshold_percent": 65,
+    "emergency_threshold_percent": 75,
+    "checkpoint_on_module_complete": true,
+    "auto_summarize": true,
+    "summarization_ratio": 0.95
+  },
+  "state_tracking": {
+    "enabled": true,
+    "state_directory": ".cpf/state",
+    "log_directory": ".cpf/logs",
+    "progress_directory": ".cpf/progress",
+    "issues_directory": ".cpf/issues",
+    "auto_save": true,
+    "save_interval_seconds": 300
+  },
+  "enforcement": {
+    "enabled": true,
+    "rules_file": "docs/core/PROTOCOL_CORE_RULES.md",
+    "validation_checklist_points": 33,
+    "technical_enforcement_percent": 70,
+    "strict_mode": false
+  },
+  "testing": {
+    "required": true,
+    "minimum_coverage_percent": 80,
+    "require_all_passing": true,
+    "test_framework": "auto-detect"
+  },
+  "documentation": {
+    "auto_generate": true,
+    "required_types": [
+      "docstrings",
+      "README.md",
+      "API.md",
+      "ARCHITECTURE.md",
+      "CHANGELOG.md"
+    ]
+  },
+  "git": {
+    "auto_commit": false,
+    "commit_message_format": "standard",
+    "require_clean_before_checkpoint": true,
+    "co_author": "Claude <noreply@anthropic.com>"
+  },
+  "autonomous_mode": {
+    "enabled": false,
+    "config_file": ".cpf/AUTONOMOUS_MODE.md",
+    "require_explicit_activation": true
+  },
+  "mcp_servers": {
+    "enabled": true,
+    "memory_server": {
+      "enabled": true,
+      "storage_path": ".claude/memory",
+      "auto_save": true
+    },
+    "filesystem_server": {
+      "enabled": true,
+      "root_path": "."
+    }
+  },
+  "notifications": {
+    "checkpoint_display": true,
+    "progress_display": true,
+    "next_steps_display": true,
+    "verbose": false
+  },
+  "performance": {
+    "max_file_size_mb": 10,
+    "use_git_lfs": false,
+    "parallel_operations": false
+  }
+}
