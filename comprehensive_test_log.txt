@@ -30,3 +30,32 @@ Fact-checking returned None response
 2026-01-31 12:28:11.142 | WARNING  | portrait_generator.reference_finder:find_reference_images:120 - No reference images found for Allen Newell
 Verification response is None or empty, assuming valid
 Verification response is None or empty, assuming valid
+Visual coherence check returned None response
+Fact-checking returned None response
+Verification response is None or empty, assuming valid
+Verification response is None or empty, assuming valid
+Verification response is None or empty, assuming valid
+Fact-checking returned None response
+Verification response is None or empty, assuming valid
+Verification response is None or empty, assuming valid
+Fact-checking returned None response
+Verification response is None or empty, assuming valid
+Verification response is None or empty, assuming valid
+Verification response is None or empty, assuming valid
+Visual coherence check returned None response
+2026-01-31 12:36:05.950 | INFO     | portrait_generator.reference_finder:find_reference_images:104 - Finding reference images for Arthur Lee Samuel (max: 5)...
+2026-01-31 12:36:05.951 | DEBUG    | portrait_generator.reference_finder:_search_for_images:175 - Searching for images: Arthur Lee Samuel historical photograph
+2026-01-31 12:36:49.293 | DEBUG    | portrait_generator.reference_finder:_search_for_images:175 - Searching for images: Arthur Lee Samuel portrait 20th Century (Specifically spanning the transition from the Industrial Age to the Information Age/Early Computing Era).
+2026-01-31 12:36:56.725 | DEBUG    | portrait_generator.reference_finder:_parse_image_search_results:241 - Image search response is None or empty
+2026-01-31 12:36:56.725 | DEBUG    | portrait_generator.reference_finder:_search_for_images:175 - Searching for images: Arthur Lee Samuel photo 1901
+2026-01-31 12:37:01.768 | DEBUG    | portrait_generator.reference_finder:_parse_image_search_results:241 - Image search response is None or empty
+2026-01-31 12:37:01.768 | WARNING  | portrait_generator.reference_finder:find_reference_images:120 - No reference images found for Arthur Lee Samuel
+Verification response is None or empty, assuming valid
+Verification response is None or empty, assuming valid
+Fact-checking returned None response
+Verification response is None or empty, assuming valid
+Verification response is None or empty, assuming valid
+Visual coherence check returned None response
+Fact-checking returned None response
+Verification response is None or empty, assuming valid
+Verification response is None or empty, assuming valid

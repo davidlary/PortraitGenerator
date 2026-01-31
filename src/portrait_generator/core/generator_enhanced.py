@@ -11,6 +11,7 @@ import logging
 import time
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from PIL import Image
 
@@ -182,16 +183,18 @@ class EnhancedPortraitGenerator:
                 )
                 logger.info(f"Found {len(reference_images)} reference images")
 
-            # Step 3: Generate portraits for each style
+            # Step 3: Generate portraits for each style (PARALLEL OPTIMIZATION)
             files = {}
             prompts = {}
             evaluations = {}
 
-            for style in styles:
+            logger.info(f"Step 3: Generating {len(styles)} portraits in parallel...")
+
+            # Define worker function for parallel execution
+            def generate_and_evaluate_style(style, index):
+                """Generate and evaluate a single style (runs in thread)."""
                 try:
-                    logger.info(
-                        f"Step 3.{styles.index(style) + 1}: Generating {style} portrait..."
-                    )
+                    logger.info(f"  [{index+1}/{len(styles)}] Generating {style}...")
 
                     # Generate portrait with smart retry
                     file_path, prompt_path = self._generate_version_enhanced(
@@ -201,39 +204,56 @@ class EnhancedPortraitGenerator:
                         force_regenerate,
                     )
 
-                    files[style] = str(file_path)
-                    prompts[style] = str(prompt_path)
-
-                    # Step 4: Evaluate
-                    logger.info(
-                        f"Step 4.{styles.index(style) + 1}: Evaluating {style} portrait..."
-                    )
-
+                    # Evaluate
+                    logger.info(f"  [{index+1}/{len(styles)}] Evaluating {style}...")
                     image = Image.open(file_path)
                     evaluation = self.evaluator.evaluate_portrait(
                         image, subject_data, style
                     )
-                    evaluations[style] = evaluation
 
                     status = "PASSED" if evaluation.passed else "FAILED"
                     logger.info(
-                        f"{style} evaluation: {status} "
+                        f"  [{index+1}/{len(styles)}] {style}: {status} "
                         f"(score: {evaluation.overall_score:.2f})"
                     )
 
+                    return style, str(file_path), str(prompt_path), evaluation, None
+
                 except Exception as e:
                     error_msg = f"Failed to generate {style} portrait: {e}"
-                    logger.error(error_msg, exc_info=True)
-                    errors.append(error_msg)
+                    logger.error(f"  [{index+1}/{len(styles)}] {error_msg}", exc_info=True)
 
-                    # Add failed evaluation
-                    evaluations[style] = EvaluationResult(
+                    # Create failed evaluation
+                    failed_eval = EvaluationResult(
                         passed=False,
                         scores={},
                         feedback=[],
                         issues=[error_msg],
                         recommendations=["Retry generation"],
                     )
+
+                    return style, None, None, failed_eval, error_msg
+
+            # Execute parallel generation with max 4 workers (one per style)
+            max_workers = min(4, len(styles))
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                # Submit all generation tasks
+                futures = {
+                    executor.submit(generate_and_evaluate_style, style, i): style
+                    for i, style in enumerate(styles)
+                }
+
+                # Collect results as they complete
+                for future in as_completed(futures):
+                    style, file_path, prompt_path, evaluation, error = future.result()
+
+                    if error:
+                        errors.append(error)
+                    else:
+                        files[style] = file_path
+                        prompts[style] = prompt_path
+
+                    evaluations[style] = evaluation
 
             # Calculate total time
             generation_time = time.time() - start_time
