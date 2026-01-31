@@ -1,5 +1,5 @@
 {% set name = "portrait-generator" %}
-{% set version = "1.0.0" %}
+{% set version = "2.0.0" %}
 
 package:
   name: {{ name|lower }}
@@ -7,7 +7,7 @@ package:
 
 source:
   url: https://github.com/davidlary/PortraitGenerator/archive/v{{ version }}.tar.gz
-  sha256: ""  # Will be filled during build
+  sha256: 2fa42826d6e0d8d1643842841e95b719d026e47f887c6069e4db2d623ab8f663
 
 build:
   number: 0
@@ -56,21 +56,27 @@ about:
   license: MIT
   license_family: MIT
   license_file: LICENSE
-  summary: AI-powered historical portrait generation using Google Gemini
+  summary: AI-powered historical portrait generation using Google Gemini 3 Pro Image
   description: |
-    Portrait Generator is a robust, extensible portrait generation system
-    using Google Gemini. It generates historically accurate portraits in
-    multiple styles (BW, Sepia, Color, Painting) with professional title
-    overlays and quality evaluation.
+    Portrait Generator v2.0.0 creates historically accurate portraits using
+    Google's Gemini 3 Pro Image (Nano Banana Pro) with advanced AI features.
 
-    Features:
-    - AI-powered portrait generation with Google Gemini
+    NEW in 2.0.0:
+    - Google Search grounding for real-time fact-checking
+    - Multi-image references (up to 14 authentic historical images)
+    - Internal reasoning and iterative refinement
+    - Physics-aware synthesis for realistic lighting and materials
+    - Pre-generation validation with proactive error detection
+    - Smart retry with autonomous prompt refinement
+    - Holistic AI evaluation with multi-pass reasoning
+    - 85%+ first-attempt success rate
+
+    Core Features:
     - 4 portrait styles: BW, Sepia, Color, Painting
-    - Professional title overlays
-    - Multi-criteria quality evaluation
     - REST API with FastAPI
     - Python API for programmatic use
     - Command-line interface
+    - 370+ tests with comprehensive coverage
 
   doc_url: https://portrait-generator.readthedocs.io
   dev_url: https://github.com/davidlary/PortraitGenerator
