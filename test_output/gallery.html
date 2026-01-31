@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Portrait Generator v2.0.0 - Test Gallery</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            max-width: 1800px;
+            margin: 40px auto;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 14px;
+        }
+        .stats {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .stats .progress {
+            font-size: 24px;
+            color: #2196F3;
+            margin: 10px 0;
+        }
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 30px;
+        }
+        .portrait {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .portrait.complete {
+            border: 2px solid #4CAF50;
+        }
+        .portrait.partial {
+            border: 2px solid #FF9800;
+        }
+        img {
+            width: 100%;
+            height: auto;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        h3 {
+            margin: 10px 0;
+            font-size: 16px;
+            color: #333;
+        }
+        .style {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .status {
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-top: 8px;
+            display: inline-block;
+        }
+        .status.complete {
+            background: #4CAF50;
+            color: white;
+        }
+        .status.partial {
+            background: #FF9800;
+            color: white;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            color: #888;
+            font-size: 12px;
+        }
+        .blocker {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Portrait Generator v2.0.0 - Test Gallery</h1>
+    <div class="subtitle">Real images generated with Gemini 3 Pro Image (gemini-3-pro-image-preview) - Zero Mocking</div>
+
+    <div class="stats">
+        <strong>Progress</strong>
+        <div class="progress">6 of 84 images (7.1%)</div>
+        <strong>1 complete subject</strong> • <strong>1 partial subject</strong> • <strong>19 pending</strong><br>
+        All quality features enabled • Parallel generation (3.6x speedup) • Real API calls only
+    </div>
+
+    <div class="blocker">
+        ⚠️ <strong>Testing Paused:</strong> Google API daily quota exhausted. Will resume automatically once quota resets.
+    </div>
+
+    <div class="gallery">
+        <!-- Claude Shannon - Complete -->
+        <div class="portrait complete">
+            <img src="ClaudeShannon_BW.png" alt="Claude Shannon - BW">
+            <h3>Claude Shannon</h3>
+            <div class="style">Black & White</div>
+            <div class="status complete">4/4 Complete</div>
+        </div>
+
+        <div class="portrait complete">
+            <img src="ClaudeShannon_Sepia.png" alt="Claude Shannon - Sepia">
+            <h3>Claude Shannon</h3>
+            <div class="style">Sepia</div>
+            <div class="status complete">4/4 Complete</div>
+        </div>
+
+        <div class="portrait complete">
+            <img src="ClaudeShannon_Color.png" alt="Claude Shannon - Color">
+            <h3>Claude Shannon</h3>
+            <div class="style">Color</div>
+            <div class="status complete">4/4 Complete</div>
+        </div>
+
+        <div class="portrait complete">
+            <img src="ClaudeShannon_Painting.png" alt="Claude Shannon - Painting">
+            <h3>Claude Shannon</h3>
+            <div class="style">Photorealistic Painting</div>
+            <div class="status complete">4/4 Complete</div>
+        </div>
+
+        <!-- Alan Turing - Partial -->
+        <div class="portrait partial">
+            <img src="AlanTuring_BW.png" alt="Alan Turing - BW">
+            <h3>Alan Turing</h3>
+            <div class="style">Black & White</div>
+            <div class="status partial">2/4 Partial</div>
+        </div>
+
+        <div class="portrait partial">
+            <img src="AlanTuring_Color.png" alt="Alan Turing - Color">
+            <h3>Alan Turing</h3>
+            <div class="style">Color</div>
+            <div class="status partial">2/4 Partial</div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <strong>Portrait Generator v2.0.0</strong><br>
+        Using Google Gemini 3 Pro Image (gemini-3-pro-image-preview)<br>
+        Advanced features: Internal reasoning • Search grounding • Physics-aware synthesis<br>
+        Reference finding • Quality validation • LLM-based typography • Parallel generation<br>
+        <br>
+        <em>All images generated with real API calls - Zero mocking policy maintained</em><br>
+        <em>Testing paused at 7.1% due to API quota exhaustion - Will resume automatically</em>
+    </div>
+</body>
+</html>
