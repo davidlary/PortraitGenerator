@@ -9,3 +9,24 @@
 Warning: there are non-text parts in the response: ['inline_data'], returning concatenated text result from text parts. Check the full candidates.content.parts accessor to get the full model response.
 Visual coherence check returned None response
 Verification response is None or empty, assuming valid
+Validation failed: ['Fact-check failed: death_year'] (confidence: 0.55)
+Visual coherence check returned None response
+Fact-checking returned None response
+Verification response is None or empty, assuming valid
+Verification response is None or empty, assuming valid
+Verification response is None or empty, assuming valid
+Visual coherence check returned None response
+Fact-checking returned None response
+Verification response is None or empty, assuming valid
+Verification response is None or empty, assuming valid
+Verification response is None or empty, assuming valid
+Fact-checking returned None response
+2026-01-31 12:27:29.892 | INFO     | portrait_generator.reference_finder:find_reference_images:104 - Finding reference images for Allen Newell (max: 5)...
+2026-01-31 12:27:29.893 | DEBUG    | portrait_generator.reference_finder:_search_for_images:175 - Searching for images: Allen Newell historical photograph
+2026-01-31 12:27:41.260 | DEBUG    | portrait_generator.reference_finder:_parse_image_search_results:241 - Image search response is None or empty
+2026-01-31 12:27:41.261 | DEBUG    | portrait_generator.reference_finder:_search_for_images:175 - Searching for images: Allen Newell portrait 20th Century (specifically the Post-War era and the dawn of the Information Age)
+2026-01-31 12:28:03.594 | DEBUG    | portrait_generator.reference_finder:_search_for_images:175 - Searching for images: Allen Newell photo 1927
+2026-01-31 12:28:11.142 | DEBUG    | portrait_generator.reference_finder:_parse_image_search_results:241 - Image search response is None or empty
+2026-01-31 12:28:11.142 | WARNING  | portrait_generator.reference_finder:find_reference_images:120 - No reference images found for Allen Newell
+Verification response is None or empty, assuming valid
+Verification response is None or empty, assuming valid
