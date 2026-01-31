@@ -1,0 +1,36 @@
+# Include documentation
+include README.md
+include LICENSE
+include CHANGELOG.md
+include ImplementationPlan.md
+
+# Include configuration files
+include requirements.txt
+include requirements-dev.txt
+include pyproject.toml
+include setup.py
+include pytest.ini
+
+# Include example files
+recursive-include Examples *.jpg *.png *.md
+
+# Include test fixtures
+recursive-include tests/fixtures *.json *.png *.jpg
+
+# Include type stubs
+recursive-include src *.pyi py.typed
+
+# Exclude unnecessary files
+global-exclude __pycache__
+global-exclude *.py[co]
+global-exclude .DS_Store
+global-exclude *.so
+global-exclude *.dylib
+
+# Exclude test and dev files from distribution
+prune tests
+prune docs/_build
+prune htmlcov
+prune .pytest_cache
+prune .mypy_cache
+prune .ruff_cache

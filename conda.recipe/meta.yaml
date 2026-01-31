@@ -1,0 +1,80 @@
+{% set name = "portrait-generator" %}
+{% set version = "1.0.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/davidlary/PortraitGenerator/archive/v{{ version }}.tar.gz
+  sha256: ""  # Will be filled during build
+
+build:
+  number: 0
+  noarch: python
+  script: {{ PYTHON }} -m pip install . -vv
+  entry_points:
+    - portrait-generator = portrait_generator.cli:main
+    - portrait-gen = portrait_generator.cli:main
+
+requirements:
+  host:
+    - python >=3.10
+    - pip
+    - setuptools >=61.0
+    - wheel
+  run:
+    - python >=3.10
+    - google-genai >=1.0.0,<2.0.0
+    - pillow >=11.0.0,<12.0.0
+    - fastapi >=0.100.0,<1.0.0
+    - uvicorn >=0.27.0,<1.0.0
+    - pydantic >=2.6.0,<3.0.0
+    - pydantic-settings >=2.1.0,<3.0.0
+    - click >=8.0.0,<9.0.0
+    - httpx >=0.26.0,<1.0.0
+    - requests >=2.31.0,<3.0.0
+    - python-dotenv >=1.0.0,<2.0.0
+    - loguru >=0.7.0,<1.0.0
+
+test:
+  imports:
+    - portrait_generator
+    - portrait_generator.api
+    - portrait_generator.core
+    - portrait_generator.utils
+    - portrait_generator.config
+    - portrait_generator.client
+    - portrait_generator.cli
+  commands:
+    - portrait-generator --version
+    - portrait-generator --help
+    - portrait-gen --version
+
+about:
+  home: https://github.com/davidlary/PortraitGenerator
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+  summary: AI-powered historical portrait generation using Google Gemini
+  description: |
+    Portrait Generator is a robust, extensible portrait generation system
+    using Google Gemini. It generates historically accurate portraits in
+    multiple styles (BW, Sepia, Color, Painting) with professional title
+    overlays and quality evaluation.
+
+    Features:
+    - AI-powered portrait generation with Google Gemini
+    - 4 portrait styles: BW, Sepia, Color, Painting
+    - Professional title overlays
+    - Multi-criteria quality evaluation
+    - REST API with FastAPI
+    - Python API for programmatic use
+    - Command-line interface
+
+  doc_url: https://portrait-generator.readthedocs.io
+  dev_url: https://github.com/davidlary/PortraitGenerator
+
+extra:
+  recipe-maintainers:
+    - davidlary

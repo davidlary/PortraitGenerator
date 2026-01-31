@@ -1,24 +1,27 @@
-# Core Dependencies - All Explicit, No Optional
+# Core Dependencies for Portrait Generator
+# Version ranges allow bug fixes while preventing breaking changes
 
-# Google Gemini (CRITICAL: Image generation model)
-google-genai>=0.2.0
+# AI and Image Generation
+google-genai>=1.0.0,<2.0.0          # Google Gemini API client
+pillow>=11.0.0,<12.0.0               # Image processing
 
-# Image Processing
-pillow>=10.2.0
+# Web Framework (for REST API)
+fastapi>=0.100.0,<1.0.0              # FastAPI web framework
+uvicorn[standard]>=0.27.0,<1.0.0     # ASGI server
 
-# API Framework
-fastapi>=0.109.0
-uvicorn[standard]>=0.27.0
-pydantic>=2.6.0
-pydantic-settings>=2.1.0
+# Data Validation
+pydantic>=2.6.0,<3.0.0               # Data validation
+pydantic-settings>=2.1.0,<3.0.0      # Settings management
+
+# CLI
+click>=8.0.0,<9.0.0                  # Command-line interface
 
 # HTTP Client
-requests>=2.31.0
-httpx>=0.26.0
+httpx>=0.26.0,<1.0.0                 # Async HTTP client
+requests>=2.31.0,<3.0.0              # HTTP requests
 
-# Utilities
-python-dotenv>=1.0.0
-click>=8.1.0
+# Environment and Configuration
+python-dotenv>=1.0.0,<2.0.0          # .env file support
 
 # Logging
-loguru>=0.7.0
+loguru>=0.7.0,<1.0.0                 # Enhanced logging
