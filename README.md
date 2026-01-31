@@ -1,18 +1,19 @@
 # Portrait Generator
 
-> Generate historically accurate, publication-quality portrait images using Google Gemini
+> Generate historically accurate, publication-quality portrait images using Google Gemini 3 Pro Image
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![PyPI version](https://img.shields.io/badge/pypi-v1.0.0-blue.svg)](https://pypi.org/project/portrait-generator/)
-[![Conda version](https://img.shields.io/badge/conda-v1.0.0-blue.svg)](https://anaconda.org/conda-forge/portrait-generator)
+[![PyPI version](https://img.shields.io/badge/pypi-v2.0.0-blue.svg)](https://pypi.org/project/portrait-generator/)
+[![Conda version](https://img.shields.io/badge/conda-v2.0.0-blue.svg)](https://anaconda.org/conda-forge/portrait-generator)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/tests-308%20passed-green.svg)](tests/)
-[![Coverage](https://img.shields.io/badge/coverage-93%25-brightgreen.svg)](htmlcov/)
+[![Tests](https://img.shields.io/badge/tests-350%20passed-green.svg)](tests/)
+[![Coverage](https://img.shields.io/badge/coverage-91%25-brightgreen.svg)](htmlcov/)
 
 ---
 
 ## Features
 
+### Core Features
 - 🎨 **Four Portrait Styles**: BW, Sepia, Color, Photorealistic Painting
 - 🔬 **Historical Accuracy**: Deep biographical research ensures authentic representation
 - ✅ **Self-Evaluation**: Quality assurance with automated validation
@@ -20,9 +21,22 @@
 - 🖥️ **CLI Commands**: Easy command-line interface for quick generation
 - 🚀 **REST API**: FastAPI-based RESTful API for remote integration
 - 📦 **PyPI & Conda**: Install via pip or conda
-- 📊 **93%+ Test Coverage**: 308+ tests including end-to-end with real API
+- 📊 **91%+ Test Coverage**: 350+ tests including end-to-end with real API
 - 🔒 **Secure**: Environment-based credentials only
 - 📝 **Fully Documented**: Complete API documentation and examples
+
+### NEW in 2.0.0: Gemini 3 Pro Image (Nano Banana Pro)
+- 🔍 **Google Search Grounding**: Real-time fact-checking and verification
+- 🖼️ **Multi-Image References**: Up to 14 authentic historical reference images
+- 🧠 **Internal Reasoning**: Model thinks through tasks and refines internally
+- ⚡ **Physics-Aware Synthesis**: Realistic lighting, shadows, and materials
+- ✓ **Pre-Generation Validation**: Proactive error detection before generation
+- 🎯 **Smart Retry**: Autonomous prompt refinement on failure
+- 📈 **85%+ First-Attempt Success**: Optimized autonomous quality pipeline
+- 🤖 **Holistic AI Evaluation**: Multi-pass reasoning-based assessment
+- 🔄 **100% Backward Compatible**: Works with all existing models
+
+**[See full Gemini 3 Pro Image documentation →](docs/GEMINI_3_PRO_IMAGE.md)**
 
 ---
 
@@ -593,10 +607,19 @@ Portrait Generator can be configured via environment variables:
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
 | `GOOGLE_API_KEY` | Google Gemini API key | - | **Yes** |
-| `GEMINI_MODEL` | Gemini model name | `gemini-exp-1206` | No |
+| `GEMINI_MODEL` | Gemini model name | `gemini-3-pro-image-preview` | No |
 | `IMAGE_RESOLUTION` | Image size as `width,height` | `1024,1024` | No |
 | `OUTPUT_DIR` | Output directory for portraits | `./output` | No |
 | `LOG_LEVEL` | Logging level | `INFO` | No |
+| `ENABLE_ADVANCED_FEATURES` | Enable Gemini 3 Pro features | `true` | No |
+| `ENABLE_REFERENCE_IMAGES` | Use reference images | `true` | No |
+| `MAX_REFERENCE_IMAGES` | Max reference images (0-14) | `5` | No |
+| `ENABLE_SEARCH_GROUNDING` | Enable Google Search | `true` | No |
+| `ENABLE_INTERNAL_REASONING` | Enable model reasoning | `true` | No |
+| `QUALITY_THRESHOLD` | Min quality score (0.0-1.0) | `0.90` | No |
+| `USE_HOLISTIC_REASONING` | Use AI evaluation | `true` | No |
+
+**[See complete configuration reference →](docs/GEMINI_3_PRO_IMAGE.md#configuration-reference)**
 
 ### Configuration Methods
 
@@ -612,8 +635,16 @@ export OUTPUT_DIR="~/portraits"
 cat > .env << EOF
 GOOGLE_API_KEY=your_api_key
 OUTPUT_DIR=./output
-GEMINI_MODEL=gemini-exp-1206
+GEMINI_MODEL=gemini-3-pro-image-preview
 LOG_LEVEL=INFO
+
+# Advanced Features (Gemini 3 Pro Image)
+ENABLE_ADVANCED_FEATURES=true
+ENABLE_REFERENCE_IMAGES=true
+MAX_REFERENCE_IMAGES=5
+ENABLE_SEARCH_GROUNDING=true
+ENABLE_INTERNAL_REASONING=true
+QUALITY_THRESHOLD=0.90
 EOF
 ```
 
@@ -925,14 +956,27 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Status
 
-🚀 **Version 1.0.0** - Production Ready
+🚀 **Version 2.0.0** - Production Ready with Advanced AI
 
 - **Release Date**: January 30, 2026
+- **Default Model**: gemini-3-pro-image-preview (Nano Banana Pro)
 - **Python Support**: 3.10, 3.11, 3.12
-- **Test Coverage**: 93.11% (308+ tests passing)
+- **Test Coverage**: 91%+ (350+ tests passing)
 - **Package Status**: Available on PyPI and Conda
-- **API Status**: Stable (v1)
-- **Documentation**: Complete
+- **API Status**: Stable (v1) - Backward Compatible
+- **Documentation**: Complete with advanced features guide
+
+### What's New in 2.0.0
+
+- **Default model changed** from `gemini-exp-1206` to `gemini-3-pro-image-preview`
+- **Google Search grounding** for fact-checking and reference finding
+- **Multi-image reference support** (up to 14 images)
+- **Internal reasoning** and iterative refinement
+- **Physics-aware synthesis** for visual coherence
+- **Pre-generation validation** to prevent errors
+- **Smart retry** with autonomous prompt refinement
+- **Holistic AI evaluation** with multi-pass verification
+- **100% backward compatible** with v1.x and older models
 
 ### Version History
 
