@@ -1,6 +1,8 @@
-# Context-Preserving Framework
-.cpf/state/
-.cpf/logs/
+# Context-Preserving Framework (CPF) and Claude directories
+.cpf/
+.claude/
+.claude.backup/
+cpf/
 
 # Python
 __pycache__/

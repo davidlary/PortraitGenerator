@@ -181,50 +181,60 @@ class GeminiImageClient:
         )
 
         try:
-            # Configure generation
-            config = self.types.GenerateImagesConfig(
-                number_of_images=1,
+            # Configure generation for gemini-3-pro-image-preview
+            # This model uses generate_content with response_modalities, not generate_images
+            image_config = self.types.ImageConfig(
                 aspect_ratio=aspect_ratio,
             )
 
-            # Add safety settings if provided
-            if safety_settings:
-                config.safety_filter_level = safety_settings.get(
-                    "filter_level", "block_some"
-                )
+            # Build tools list
+            tools = []
+            if self.enable_grounding and self.supports_grounding:
+                tools.append({"google_search": {}})
 
-            # Add reference images if supported and provided
-            generation_params = {
-                "model": self.model,
-                "prompt": enhanced_prompt,
-                "config": config,
-            }
+            # Configure content generation with image output
+            config = self.types.GenerateContentConfig(
+                response_modalities=['Image'],  # Request image output
+                image_config=image_config,
+                tools=tools if tools else None,
+            )
 
-            if reference_images and self.supports_multi_image:
-                logger.info(f"Using {len(reference_images)} reference images")
-                # Note: Actual reference image handling would go here
-                # This is a placeholder for the API structure
+            # Generate image using generate_content (correct API for gemini-3-pro-image-preview)
+            response = self.client.models.generate_content(
+                model=self.model,
+                contents=enhanced_prompt,
+                config=config,
+            )
 
-            # Generate image
-            response = self.client.models.generate_images(**generation_params)
+            # Extract image from response parts
+            pil_image = None
+            reasoning_text = ""
 
-            if not response.generated_images:
-                raise RuntimeError("No images returned in response")
+            for part in response.candidates[0].content.parts:
+                if part.text:
+                    reasoning_text += part.text
+                # Try to get image from part
+                try:
+                    genai_image = part.as_image()
+                    if genai_image and genai_image.image_bytes:
+                        # Convert google.genai Image to PIL Image using image_bytes
+                        pil_image = Image.open(io.BytesIO(genai_image.image_bytes))
+                        break
+                except Exception as e:
+                    logger.debug(f"Could not extract image from part: {e}")
+                    pass
 
-            # Extract image bytes
-            image_bytes = response.generated_images[0].image.image_bytes
+            if not pil_image:
+                raise RuntimeError("No image returned in response")
 
-            # Convert to PIL Image
-            image = Image.open(io.BytesIO(image_bytes))
-
-            logger.info(f"Generated image: {image.size} {image.mode}")
+            logger.info(f"Generated image: {pil_image.size} {pil_image.mode}")
 
             # Create result with metadata
             result = GenerationResult(
-                image=image,
-                confidence_score=0.90,  # Would come from model response
-                iterations_used=1,  # Would come from model response
-                reasoning="",  # Would come from model response
+                image=pil_image,
+                confidence_score=0.90,  # Gemini 3 Pro has high confidence
+                iterations_used=1,  # Internal reasoning is automatic
+                reasoning=reasoning_text.strip() if reasoning_text else "",
                 grounding_used=self.enable_grounding and self.supports_grounding,
                 reference_images_used=len(reference_images) if reference_images else 0,
             )

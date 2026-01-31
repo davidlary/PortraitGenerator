@@ -7,10 +7,10 @@ Your API key has **TWO issues**:
 ### Issue 1: Wrong Format ❌
 ```bash
 # Current (WRONG):
-GOOGLE_API_KEY=google_api_key: AIzaSyC0h2RlxkEtHRYsfRbXCtCl_BArMBNvTzE
+GOOGLE_API_KEY=google_api_key: AIzaSy...
 
 # Should be (CORRECT):
-GOOGLE_API_KEY=AIzaSyC0h2RlxkEtHRYsfRbXCtCl_BArMBNvTzE
+GOOGLE_API_KEY=AIzaSy...
 ```
 
 The prefix `google_api_key:` should NOT be there!
@@ -43,9 +43,9 @@ export GOOGLE_API_KEY="AIzaSy..."  # Your actual new key here
 ```
 
 **IMPORTANT:** The key should be **just the key**, nothing else:
-- ✅ Correct: `AIzaSyC0h2RlxkEt...`
-- ❌ Wrong: `google_api_key: AIzaSyC0h2RlxkEt...`
-- ❌ Wrong: `google_api_key:AIzaSyC0h2RlxkEt...`
+- ✅ Correct: `AIzaSy...`
+- ❌ Wrong: `google_api_key: AIzaSy...`
+- ❌ Wrong: `google_api_key:AIzaSy...`
 
 ### Step 3: Verify it Works
 

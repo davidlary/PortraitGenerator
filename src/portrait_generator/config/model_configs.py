@@ -244,14 +244,14 @@ MODEL_PROFILES: Dict[str, ModelProfile] = {
         ),
     ),
 
-    "gemini-2.0-flash-exp": ModelProfile(
-        model_name="gemini-2.0-flash-exp",
-        display_name="Gemini 2.0 Flash Experimental",
+    "gemini-2.5-flash": ModelProfile(
+        model_name="gemini-2.5-flash",
+        display_name="Gemini 2.5 Flash",
         description=(
-            "Fast experimental model with native image generation. Good for quick iterations "
-            "but lacks advanced reasoning capabilities."
+            "Fast model with native image generation. Good for quick iterations "
+            "with improved capabilities over 2.0."
         ),
-        release_date="2025-12",
+        release_date="2026-01",
         is_recommended=False,
         capabilities=ModelCapabilities(
             google_search_grounding=False,

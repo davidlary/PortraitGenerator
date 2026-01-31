@@ -11,8 +11,7 @@ Reason: API_KEY_INVALID
 ```
 
 **Current key in environment:**
-- Format: `AIzaSyC0h2RlxkEtHRYsfRbXCtCl_BArMBNvTzE`
-- Length: 39 characters
+- Format: `AIzaSy...` (39 characters)
 - Status: **EXPIRED** (according to Google's servers)
 
 ---

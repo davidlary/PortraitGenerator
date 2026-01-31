@@ -190,9 +190,9 @@ Be historically accurate and specific.
             # Create client
             client = genai.Client(api_key=self.gemini_client.api_key)
 
-            # Generate text response
+            # Generate text response - use gemini-3-pro-image-preview for consistency
             response = client.models.generate_content(
-                model="gemini-2.0-flash-exp",
+                model="gemini-3-pro-image-preview",
                 contents=prompt,
             )
 
@@ -222,18 +222,18 @@ Be historically accurate and specific.
             ValueError: If response cannot be parsed
         """
         try:
-            # Extract birth year
+            # Extract birth year - handle both inline and multi-line formats
             birth_match = re.search(
-                r"BIRTH YEAR[:\s]+(\d+)", response, re.IGNORECASE
+                r"BIRTH YEAR[:\s]*\**\s*\n*\s*(\d+)", response, re.IGNORECASE
             )
             if not birth_match:
                 raise ValueError("Could not extract birth year from response")
             birth_year = int(birth_match.group(1))
 
-            # Extract death year
+            # Extract death year - handle both inline and multi-line formats
             death_year = None
             death_match = re.search(
-                r"DEATH YEAR[:\s]+(\d+|Present|present|living|alive)",
+                r"DEATH YEAR[:\s]*\**\s*\n*\s*(\d+|Present|present|living|alive)",
                 response,
                 re.IGNORECASE,
             )
@@ -243,9 +243,9 @@ Be historically accurate and specific.
                     death_year = int(death_str)
                 # Otherwise, leave as None (still alive)
 
-            # Extract era
+            # Extract era - handle both inline and multi-line formats
             era_match = re.search(
-                r"ERA[:\s]+([^\n]+)", response, re.IGNORECASE
+                r"ERA[:\s]*\**\s*\n*\s*([^\n]+)", response, re.IGNORECASE
             )
             era = era_match.group(1).strip() if era_match else "Unknown Era"
 
