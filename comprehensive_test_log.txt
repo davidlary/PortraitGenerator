@@ -59,3 +59,67 @@ Visual coherence check returned None response
 Fact-checking returned None response
 Verification response is None or empty, assuming valid
 Verification response is None or empty, assuming valid
+Visual coherence check returned None response
+Fact-checking returned None response
+Verification response is None or empty, assuming valid
+Verification response is None or empty, assuming valid
+Verification response is None or empty, assuming valid
+Fact-checking returned None response
+Failed to parse research response: Could not extract birth year from response
+Traceback (most recent call last):
+  File "/Users/davidlary/Dropbox/Environments/Code/PortraitGenerator/src/portrait_generator/core/researcher.py", line 230, in _parse_research_response
+    raise ValueError("Could not extract birth year from response")
+ValueError: Could not extract birth year from response
+Research failed for Ashish Vaswani: Failed to parse research response: Could not extract birth year from response
+Traceback (most recent call last):
+  File "/Users/davidlary/Dropbox/Environments/Code/PortraitGenerator/src/portrait_generator/core/researcher.py", line 230, in _parse_research_response
+    raise ValueError("Could not extract birth year from response")
+ValueError: Could not extract birth year from response
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/davidlary/Dropbox/Environments/Code/PortraitGenerator/src/portrait_generator/core/researcher.py", line 57, in research_subject
+    subject_data = self._parse_research_response(name, response)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/davidlary/Dropbox/Environments/Code/PortraitGenerator/src/portrait_generator/core/researcher.py", line 320, in _parse_research_response
+    raise ValueError(f"Failed to parse research response: {e}") from e
+ValueError: Failed to parse research response: Could not extract birth year from response
+Portrait generation failed: Failed to research subject 'Ashish Vaswani': Failed to parse research response: Could not extract birth year from response
+Traceback (most recent call last):
+  File "/Users/davidlary/Dropbox/Environments/Code/PortraitGenerator/src/portrait_generator/core/researcher.py", line 230, in _parse_research_response
+    raise ValueError("Could not extract birth year from response")
+ValueError: Could not extract birth year from response
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/davidlary/Dropbox/Environments/Code/PortraitGenerator/src/portrait_generator/core/researcher.py", line 57, in research_subject
+    subject_data = self._parse_research_response(name, response)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/davidlary/Dropbox/Environments/Code/PortraitGenerator/src/portrait_generator/core/researcher.py", line 320, in _parse_research_response
+    raise ValueError(f"Failed to parse research response: {e}") from e
+ValueError: Failed to parse research response: Could not extract birth year from response
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/davidlary/Dropbox/Environments/Code/PortraitGenerator/src/portrait_generator/core/generator_enhanced.py", line 170, in generate_portrait
+    logger.info("Step 1: Researching subject...")
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/davidlary/Dropbox/Environments/Code/PortraitGenerator/src/portrait_generator/core/researcher.py", line 68, in research_subject
+    raise RuntimeError(f"Failed to research subject '{name}': {e}") from e
+RuntimeError: Failed to research subject 'Ashish Vaswani': Failed to parse research response: Could not extract birth year from response
+2026-01-31 12:44:15.199 | INFO     | portrait_generator.reference_finder:find_reference_images:104 - Finding reference images for Augustus De Morgan (max: 5)...
+2026-01-31 12:44:15.199 | DEBUG    | portrait_generator.reference_finder:_search_for_images:175 - Searching for images: Augustus De Morgan historical photograph
+2026-01-31 12:44:18.487 | DEBUG    | portrait_generator.reference_finder:_parse_image_search_results:241 - Image search response is None or empty
+2026-01-31 12:44:18.488 | DEBUG    | portrait_generator.reference_finder:_search_for_images:175 - Searching for images: Augustus De Morgan portrait 19th Century (Victorian Era)
+2026-01-31 12:44:22.440 | DEBUG    | portrait_generator.reference_finder:_parse_image_search_results:241 - Image search response is None or empty
+2026-01-31 12:44:22.441 | DEBUG    | portrait_generator.reference_finder:_search_for_images:175 - Searching for images: Augustus De Morgan photo 1806
+2026-01-31 12:44:25.435 | DEBUG    | portrait_generator.reference_finder:_parse_image_search_results:241 - Image search response is None or empty
+2026-01-31 12:44:25.435 | WARNING  | portrait_generator.reference_finder:find_reference_images:120 - No reference images found for Augustus De Morgan
+Verification response is None or empty, assuming valid
+Verification response is None or empty, assuming valid
+Verification response is None or empty, assuming valid
+Fact-checking returned None response
+Verification response is None or empty, assuming valid
