@@ -69,65 +69,82 @@ def mock_generator():
 class TestPortraitClientInit:
     """Tests for PortraitClient initialization."""
 
-    @patch("portrait_generator.client.GeminiImageClient")
-    @patch("portrait_generator.client.PortraitGenerator")
+    @patch("portrait_generator.client.IntelligenceCoordinator")
     def test_init_with_api_key(
-        self, mock_pg, mock_gc, mock_api_key, temp_output_dir
+        self, mock_coordinator_class, mock_api_key, temp_output_dir, mock_generator
     ):
         """Test initialization with explicit API key."""
+        # Setup mock coordinator
+        mock_coordinator = Mock()
+        mock_coordinator.generator = mock_generator
+        mock_coordinator_class.return_value = mock_coordinator
+
         client = PortraitClient(
             api_key=mock_api_key,
             output_dir=temp_output_dir,
         )
 
-        assert client.api_key == mock_api_key
-        assert client.output_dir == temp_output_dir
-        assert client.model == "gemini-exp-1206"
+        # Verify settings were created with correct values
+        assert client.settings.google_api_key == mock_api_key
+        assert client.settings.output_dir == temp_output_dir
 
-        # Verify Gemini client was created
-        mock_gc.assert_called_once()
+        # Verify IntelligenceCoordinator was created
+        mock_coordinator_class.assert_called_once()
+        assert client.generator == mock_generator
 
-    @patch("portrait_generator.client.GeminiImageClient")
-    @patch("portrait_generator.client.PortraitGenerator")
-    @patch("portrait_generator.client.get_settings")
+    @patch("portrait_generator.client.IntelligenceCoordinator")
     def test_init_from_settings(
-        self, mock_settings, mock_pg, mock_gc, mock_api_key, temp_output_dir
+        self, mock_coordinator_class, mock_api_key, temp_output_dir, mock_generator
     ):
         """Test initialization reads from settings when no API key provided."""
-        # Mock settings
-        settings = Mock()
-        settings.google_api_key = mock_api_key
-        settings.output_dir = str(temp_output_dir)
-        mock_settings.return_value = settings
+        # Setup mock coordinator
+        mock_coordinator = Mock()
+        mock_coordinator.generator = mock_generator
+        mock_coordinator_class.return_value = mock_coordinator
+
+        # Set environment variable for API key
+        import os
+        os.environ['GOOGLE_API_KEY'] = mock_api_key
 
         client = PortraitClient()
 
-        assert client.api_key == mock_api_key
+        # Verify settings used env var
+        assert client.settings.google_api_key == mock_api_key
 
-    @patch("portrait_generator.client.GeminiImageClient")
-    @patch("portrait_generator.client.PortraitGenerator")
+        # Cleanup
+        del os.environ['GOOGLE_API_KEY']
+
+    @patch("portrait_generator.client.IntelligenceCoordinator")
     def test_init_custom_model(
-        self, mock_pg, mock_gc, mock_api_key, temp_output_dir
+        self, mock_coordinator_class, mock_api_key, temp_output_dir, mock_generator
     ):
         """Test initialization with custom model."""
+        # Setup mock coordinator
+        mock_coordinator = Mock()
+        mock_coordinator.generator = mock_generator
+        mock_coordinator_class.return_value = mock_coordinator
+
         client = PortraitClient(
             api_key=mock_api_key,
             output_dir=temp_output_dir,
             model="custom-model",
         )
 
-        assert client.model == "custom-model"
+        assert client.settings.gemini_model == "custom-model"
 
 
 class TestPortraitClientGenerate:
     """Tests for PortraitClient.generate method."""
 
-    @patch("portrait_generator.client.PortraitGenerator")
+    @patch("portrait_generator.client.IntelligenceCoordinator")
     def test_generate_success(
-        self, mock_pg_class, mock_api_key, temp_output_dir, mock_generator
+        self, mock_coordinator_class, mock_api_key, temp_output_dir, mock_generator
     ):
         """Test successful portrait generation."""
-        mock_pg_class.return_value = mock_generator
+        # Setup mock coordinator
+        mock_coordinator = Mock()
+        mock_coordinator.generator = mock_generator
+        mock_coordinator_class.return_value = mock_coordinator
 
         client = PortraitClient(
             api_key=mock_api_key,
@@ -147,12 +164,15 @@ class TestPortraitClientGenerate:
             styles=None,
         )
 
-    @patch("portrait_generator.client.PortraitGenerator")
+    @patch("portrait_generator.client.IntelligenceCoordinator")
     def test_generate_with_styles(
-        self, mock_pg_class, mock_api_key, temp_output_dir, mock_generator
+        self, mock_coordinator_class, mock_api_key, temp_output_dir, mock_generator
     ):
         """Test generation with specific styles."""
-        mock_pg_class.return_value = mock_generator
+        # Setup mock coordinator
+        mock_coordinator = Mock()
+        mock_coordinator.generator = mock_generator
+        mock_coordinator_class.return_value = mock_coordinator
 
         client = PortraitClient(
             api_key=mock_api_key,
@@ -167,12 +187,15 @@ class TestPortraitClientGenerate:
             styles=["BW", "Sepia"],
         )
 
-    @patch("portrait_generator.client.PortraitGenerator")
+    @patch("portrait_generator.client.IntelligenceCoordinator")
     def test_generate_force_regenerate(
-        self, mock_pg_class, mock_api_key, temp_output_dir, mock_generator
+        self, mock_coordinator_class, mock_api_key, temp_output_dir, mock_generator
     ):
         """Test generation with force regenerate."""
-        mock_pg_class.return_value = mock_generator
+        # Setup mock coordinator
+        mock_coordinator = Mock()
+        mock_coordinator.generator = mock_generator
+        mock_coordinator_class.return_value = mock_coordinator
 
         client = PortraitClient(
             api_key=mock_api_key,
@@ -191,12 +214,15 @@ class TestPortraitClientGenerate:
 class TestPortraitClientBatch:
     """Tests for PortraitClient.generate_batch method."""
 
-    @patch("portrait_generator.client.PortraitGenerator")
+    @patch("portrait_generator.client.IntelligenceCoordinator")
     def test_generate_batch_success(
-        self, mock_pg_class, mock_api_key, temp_output_dir, mock_generator
+        self, mock_coordinator_class, mock_api_key, temp_output_dir, mock_generator
     ):
         """Test successful batch generation."""
-        mock_pg_class.return_value = mock_generator
+        # Setup mock coordinator
+        mock_coordinator = Mock()
+        mock_coordinator.generator = mock_generator
+        mock_coordinator_class.return_value = mock_coordinator
 
         client = PortraitClient(
             api_key=mock_api_key,
@@ -217,12 +243,15 @@ class TestPortraitClientBatch:
 class TestPortraitClientStatus:
     """Tests for PortraitClient.check_status method."""
 
-    @patch("portrait_generator.client.PortraitGenerator")
+    @patch("portrait_generator.client.IntelligenceCoordinator")
     def test_check_status(
-        self, mock_pg_class, mock_api_key, temp_output_dir, mock_generator
+        self, mock_coordinator_class, mock_api_key, temp_output_dir, mock_generator
     ):
         """Test checking portrait status."""
-        mock_pg_class.return_value = mock_generator
+        # Setup mock coordinator
+        mock_coordinator = Mock()
+        mock_coordinator.generator = mock_generator
+        mock_coordinator_class.return_value = mock_coordinator
 
         client = PortraitClient(
             api_key=mock_api_key,

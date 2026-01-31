@@ -15,7 +15,7 @@ Simple Python API Examples:
     >>> result = client.generate("Marie Curie", styles=["BW", "Color"])
 """
 
-__version__ = "1.0.0"
+__version__ = "2.0.0"
 __author__ = "Dr. David Lary"
 __copyright__ = "Copyright 2026, University of Texas at Dallas"
 __license__ = "MIT"

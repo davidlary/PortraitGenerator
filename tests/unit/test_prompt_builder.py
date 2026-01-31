@@ -146,6 +146,14 @@ class TestPromptBuilder:
         """Test building style sections for all styles."""
         styles = ["BW", "Sepia", "Color", "Painting"]
 
+        # Expected keywords in each style output
+        style_keywords = {
+            "BW": "Black & White",
+            "Sepia": "Sepia",
+            "Color": "Color",
+            "Painting": "Painting"
+        }
+
         for style in styles:
             context = PromptContext(
                 subject_data=sample_subject_data,
@@ -156,7 +164,10 @@ class TestPromptBuilder:
             section = prompt_builder._build_style_section(context)
 
             assert len(section) > 0
-            assert style in section or style.lower() in section.lower()
+            assert "STYLE:" in section
+            # Check for expected keyword instead of exact style name
+            expected_keyword = style_keywords[style]
+            assert expected_keyword in section
 
     def test_build_composition_section(self, prompt_builder, sample_subject_data):
         """Test building composition section."""

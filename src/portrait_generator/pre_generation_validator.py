@@ -237,13 +237,13 @@ class PreGenerationValidator:
         """
         response_lower = response.lower()
 
+        # Look for negative indicators FIRST (to catch "incorrect" before "correct")
+        if any(word in response_lower for word in ["incorrect", "inaccurate", "false", "no", "wrong"]):
+            return False
+
         # Look for affirmative indicators
         if any(word in response_lower for word in ["correct", "accurate", "verified", "yes", "confirmed"]):
             return True
-
-        # Look for negative indicators
-        if any(word in response_lower for word in ["incorrect", "inaccurate", "false", "no", "wrong"]):
-            return False
 
         # Uncertain - assume valid to avoid false positives
         return True

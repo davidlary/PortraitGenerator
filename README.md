@@ -6,8 +6,8 @@
 [![PyPI version](https://img.shields.io/badge/pypi-v2.0.0-blue.svg)](https://pypi.org/project/portrait-generator/)
 [![Conda version](https://img.shields.io/badge/conda-v2.0.0-blue.svg)](https://anaconda.org/conda-forge/portrait-generator)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/tests-350%20passed-green.svg)](tests/)
-[![Coverage](https://img.shields.io/badge/coverage-91%25-brightgreen.svg)](htmlcov/)
+[![Tests](https://img.shields.io/badge/tests-370%20passed-green.svg)](tests/)
+[![Coverage](https://img.shields.io/badge/coverage-73%25-orange.svg)](htmlcov/)
 
 ---
 
@@ -21,7 +21,7 @@
 - 🖥️ **CLI Commands**: Easy command-line interface for quick generation
 - 🚀 **REST API**: FastAPI-based RESTful API for remote integration
 - 📦 **PyPI & Conda**: Install via pip or conda
-- 📊 **91%+ Test Coverage**: 350+ tests including end-to-end with real API
+- 📊 **370+ Tests**: 370+ tests including end-to-end with real API
 - 🔒 **Secure**: Environment-based credentials only
 - 📝 **Fully Documented**: Complete API documentation and examples
 

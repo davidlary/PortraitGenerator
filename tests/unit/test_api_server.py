@@ -12,7 +12,7 @@ def test_create_app():
 
     assert app is not None
     assert app.title == "Portrait Generator API"
-    assert app.version == "1.0.0"
+    assert app.version == "2.0.0"
 
 
 def test_health_check():
@@ -27,7 +27,7 @@ def test_health_check():
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "healthy"
-    assert data["version"] == "1.0.0"
+    assert data["version"] == "2.0.0"
     assert "gemini_configured" in data
     assert "output_dir_writable" in data
     assert "timestamp" in data

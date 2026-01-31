@@ -571,6 +571,26 @@ Please address this issue and ensure:
 
         return filename
 
+    def check_existing_portraits(self, subject_name: str) -> Dict[str, bool]:
+        """Check which portraits already exist for a subject.
+
+        Args:
+            subject_name: Subject name
+
+        Returns:
+            Dictionary of style -> exists (bool)
+        """
+        results = {}
+
+        for style in self.STYLES:
+            filename = self._create_filename(subject_name, style)
+            image_path = self.output_dir / f"{filename}.png"
+            results[style] = image_path.exists()
+
+        logger.debug(f"Existing portraits for {subject_name}: {results}")
+
+        return results
+
     def generate_batch(
         self,
         subject_names: List[str],

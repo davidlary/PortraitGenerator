@@ -13,11 +13,7 @@ from .models import (
     HealthCheckResponse,
     StatusResponse,
 )
-from ..core.generator import PortraitGenerator
-from ..core.researcher import BiographicalResearcher
-from ..core.overlay import TitleOverlayEngine
-from ..core.evaluator import QualityEvaluator
-from ..utils.gemini_client import GeminiImageClient
+from ..intelligence_coordinator import IntelligenceCoordinator
 from ..config.settings import get_settings
 
 logger = logging.getLogger(__name__)
@@ -28,27 +24,17 @@ router = APIRouter()
 settings = get_settings()
 
 
-def get_generator() -> PortraitGenerator:
-    """Create and return PortraitGenerator instance."""
-    # Initialize components
-    gemini_client = GeminiImageClient(
-        api_key=settings.google_api_key,
-        model=settings.gemini_model,
-    )
+def get_generator():
+    """Create and return portrait generator (enhanced or basic based on model).
 
-    researcher = BiographicalResearcher(gemini_client)
-    overlay_engine = TitleOverlayEngine()
-    evaluator = QualityEvaluator(gemini_client)
+    Uses IntelligenceCoordinator for automatic component selection.
+    Returns generator that matches model capabilities.
+    """
+    # Use IntelligenceCoordinator for identical machinery as Python API
+    coordinator = IntelligenceCoordinator(settings=settings)
 
-    generator = PortraitGenerator(
-        gemini_client=gemini_client,
-        researcher=researcher,
-        overlay_engine=overlay_engine,
-        evaluator=evaluator,
-        output_dir=Path(settings.output_dir),
-    )
-
-    return generator
+    # Return generator (enhanced or basic, automatically selected)
+    return coordinator.generator
 
 
 @router.get("/health", response_model=HealthCheckResponse)
@@ -74,7 +60,7 @@ async def health_check():
 
     return HealthCheckResponse(
         status="healthy",
-        version="1.0.0",
+        version="2.0.0",
         gemini_configured=gemini_configured,
         output_dir_writable=output_dir_writable,
         timestamp=datetime.now().isoformat(),
@@ -84,7 +70,7 @@ async def health_check():
 @router.post("/generate", response_model=PortraitResult)
 async def generate_portrait(
     request: PortraitRequest,
-    generator: PortraitGenerator = Depends(get_generator),
+    generator = Depends(get_generator),
 ):
     """
     Generate portrait(s) for a subject.
@@ -132,7 +118,7 @@ async def generate_portrait(
 @router.post("/batch", response_model=List[PortraitResult])
 async def generate_batch(
     requests: List[PortraitRequest],
-    generator: PortraitGenerator = Depends(get_generator),
+    generator = Depends(get_generator),
 ):
     """
     Generate portraits for multiple subjects.
@@ -190,7 +176,7 @@ async def generate_batch(
 @router.get("/status/{subject_name}", response_model=StatusResponse)
 async def check_status(
     subject_name: str,
-    generator: PortraitGenerator = Depends(get_generator),
+    generator = Depends(get_generator),
 ):
     """
     Check if portraits exist for a subject.
@@ -232,7 +218,7 @@ async def check_status(
 async def download_portrait(
     subject_name: str,
     style: str,
-    generator: PortraitGenerator = Depends(get_generator),
+    generator = Depends(get_generator),
 ):
     """
     Download a generated portrait.

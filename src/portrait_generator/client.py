@@ -7,13 +7,10 @@ import logging
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
-from .core.generator import PortraitGenerator
-from .core.researcher import BiographicalResearcher
-from .core.overlay import TitleOverlayEngine
-from .core.evaluator import QualityEvaluator
-from .utils.gemini_client import GeminiImageClient
+from .intelligence_coordinator import IntelligenceCoordinator
 from .api.models import PortraitResult
-from .config.settings import get_settings
+from .config.settings import get_settings, Settings
+from .config.model_configs import get_recommended_model
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +38,7 @@ class PortraitClient:
         self,
         api_key: Optional[str] = None,
         output_dir: Optional[Union[str, Path]] = None,
-        model: str = "gemini-exp-1206",
+        model: Optional[str] = None,
     ):
         """
         Initialize Portrait Generator client.
@@ -49,54 +46,40 @@ class PortraitClient:
         Args:
             api_key: Google Gemini API key. If not provided, reads from environment.
             output_dir: Directory for output files. Defaults to './output'.
-            model: Gemini model for image generation.
+            model: Gemini model for image generation. If not provided, uses recommended model.
 
         Raises:
             ValueError: If API key is invalid or missing.
         """
-        # Get settings
+        # Build settings with overrides
+        settings_kwargs = {}
+
         if api_key:
-            # Override settings with provided API key
-            self.api_key = api_key
-        else:
-            settings = get_settings()
-            self.api_key = settings.google_api_key
+            settings_kwargs['google_api_key'] = api_key
 
-        # Set output directory
         if output_dir:
-            self.output_dir = Path(output_dir)
+            settings_kwargs['output_dir'] = Path(output_dir)
+
+        # Use data-driven model selection
+        if model:
+            settings_kwargs['gemini_model'] = model
         else:
-            settings = get_settings()
-            self.output_dir = Path(settings.output_dir)
+            # Use recommended model from model_configs (data-driven)
+            settings_kwargs['gemini_model'] = get_recommended_model()
+            logger.info(f"Using recommended model: {settings_kwargs['gemini_model']}")
 
-        self.model = model
+        # Create settings object
+        self.settings = Settings(**settings_kwargs)
 
-        # Initialize components
-        self._initialize_components()
+        # Use IntelligenceCoordinator for automatic component selection
+        # This provides both enhanced and basic generator based on model capabilities
+        self.coordinator = IntelligenceCoordinator(settings=self.settings)
 
-        logger.info("PortraitClient initialized")
+        # Get generator from coordinator (enhanced or basic, depending on model)
+        self.generator = self.coordinator.generator
 
-    def _initialize_components(self):
-        """Initialize internal components."""
-        # Initialize Gemini client
-        self.gemini_client = GeminiImageClient(
-            api_key=self.api_key,
-            model=self.model,
-        )
+        logger.info("PortraitClient initialized with IntelligenceCoordinator")
 
-        # Initialize components
-        self.researcher = BiographicalResearcher(self.gemini_client)
-        self.overlay_engine = TitleOverlayEngine()
-        self.evaluator = QualityEvaluator(self.gemini_client)
-
-        # Initialize generator
-        self.generator = PortraitGenerator(
-            gemini_client=self.gemini_client,
-            researcher=self.researcher,
-            overlay_engine=self.overlay_engine,
-            evaluator=self.evaluator,
-            output_dir=self.output_dir,
-        )
 
     def generate(
         self,
