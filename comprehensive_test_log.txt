@@ -1,0 +1,10 @@
+2026-01-31 11:56:15.399 | INFO     | portrait_generator.reference_finder:find_reference_images:104 - Finding reference images for Alexey Chervonenkis (max: 5)...
+2026-01-31 11:56:15.399 | DEBUG    | portrait_generator.reference_finder:_search_for_images:175 - Searching for images: Alexey Chervonenkis historical photograph
+2026-01-31 11:56:20.486 | WARNING  | portrait_generator.reference_finder:_search_for_images:220 - Image search failed for 'Alexey Chervonenkis historical photograph': expected string or bytes-like object, got 'NoneType'
+2026-01-31 11:56:20.486 | DEBUG    | portrait_generator.reference_finder:_search_for_images:175 - Searching for images: Alexey Chervonenkis portrait Late 20th to early 21st Century (Cold War Era / Post-Soviet Era)
+2026-01-31 11:56:31.047 | WARNING  | portrait_generator.reference_finder:_search_for_images:220 - Image search failed for 'Alexey Chervonenkis portrait Late 20th to early 21st Century (Cold War Era / Post-Soviet Era)': expected string or bytes-like object, got 'NoneType'
+2026-01-31 11:56:31.048 | DEBUG    | portrait_generator.reference_finder:_search_for_images:175 - Searching for images: Alexey Chervonenkis photo 1938
+2026-01-31 11:56:36.212 | WARNING  | portrait_generator.reference_finder:_search_for_images:220 - Image search failed for 'Alexey Chervonenkis photo 1938': expected string or bytes-like object, got 'NoneType'
+2026-01-31 11:56:36.213 | WARNING  | portrait_generator.reference_finder:find_reference_images:120 - No reference images found for Alexey Chervonenkis
+Fact-checking failed: 'NoneType' object has no attribute 'lower'
+Validation failed: ['Fact-check failed: birth_year', 'Fact-check failed: error'] (confidence: 0.20)

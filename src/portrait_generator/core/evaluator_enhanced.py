@@ -340,6 +340,10 @@ RECOMMENDATIONS: [Suggested improvements]
         all_recommendations = []
 
         for response in responses:
+            # Skip None or empty responses
+            if not response:
+                continue
+
             # Extract scores
             quality_match = re.search(r'QUALITY_SCORE:\s*([0-9.]+)', response)
             if quality_match:
@@ -439,6 +443,11 @@ ISSUES: [Any physics violations or incoherence]
 
             response = self.gemini_client._query_model_text(prompt)
 
+            # Check for None response
+            if not response:
+                logger.warning("Visual coherence check returned None response")
+                return result
+
             # Parse response
             import re
             score_match = re.search(r'COHERENCE_SCORE:\s*([0-9.]+)', response)
@@ -504,6 +513,11 @@ CONCERNS: [Any inaccuracies or anachronisms]
 """
 
             response = self.gemini_client.query_with_grounding(query)
+
+            # Check for None response
+            if not response:
+                logger.warning("Fact-checking returned None response")
+                return result
 
             # Parse response
             import re

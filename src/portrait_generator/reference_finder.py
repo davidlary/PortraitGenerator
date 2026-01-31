@@ -236,6 +236,11 @@ Focus on images from {subject_data.era} showing {subject_data.name}'s face clear
         """
         images = []
 
+        # Handle None or empty response
+        if not response:
+            logger.debug("Image search response is None or empty")
+            return images
+
         # Simple parsing logic (in production, would be more sophisticated)
         # Look for URLs in the response
         url_pattern = r'https?://[^\s<>"]+\.(?:jpg|jpeg|png|gif)'
