@@ -41,7 +41,7 @@ Specific limit: 0 (ZERO)
 
 **Details to Provide**:
 
-1. **API Key**: AIzaSyDL--KJcWsf0NK_eS4L9FZYHvqkQk3gL68
+1. **API Key**: AIzaSy...REDACTED
 
 2. **Prepaid Credits Status**: Active (confirmed by customer)
 
@@ -166,7 +166,7 @@ Unfortunately, there are NO workarounds because:
 
 1. **Contact Google Support immediately** with the information above
 2. **Reference this document** when explaining the issue
-3. **Provide API key**: AIzaSyDL--KJcWsf0NK_eS4L9FZYHvqkQk3gL68
+3. **Provide API key**: AIzaSy...REDACTED
 4. **Emphasize**: Prepaid credits not applying to specific model
 5. **Request**: Quota configuration fix for gemini-3-pro-image-preview
 

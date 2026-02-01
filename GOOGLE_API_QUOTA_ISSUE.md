@@ -2,7 +2,7 @@
 
 **Date**: January 31, 2026
 **Time**: 13:10:06 (1:10 PM PST)
-**API Key Used**: AIzaSyDL--KJcWsf0NK_eS4L9FZYHvqkQk3gL68
+**API Key Used**: AIzaSy...REDACTED
 
 ---
 
@@ -89,7 +89,7 @@ At 13:10:06 during parallel generation attempt for Alan Turing's remaining style
    - Should reflect prepaid credits quota
 
 2. **Are prepaid credits properly applied?**
-   - API key: AIzaSyDL--KJcWsf0NK_eS4L9FZYHvqkQk3gL68
+   - API key: AIzaSy...REDACTED
    - Expected: Higher daily quota with prepaid plan
 
 3. **Is this a per-model quota?**
@@ -162,7 +162,7 @@ Please investigate why:
 
 ## Contact Information
 
-**API Key**: AIzaSyDL--KJcWsf0NK_eS4L9FZYHvqkQk3gL68
+**API Key**: AIzaSy...REDACTED
 **Project**: Portrait Generator v2.0.0
 **Use Case**: Automated portrait generation using gemini-3-pro-image-preview
 **Prepaid Credits**: Yes (confirmed by customer)
