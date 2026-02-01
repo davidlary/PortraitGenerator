@@ -93,7 +93,7 @@ class PortraitClient:
         Args:
             subject_name: Full name of the subject
             force_regenerate: Force regeneration even if files exist
-            styles: List of styles to generate (defaults to all 4)
+            styles: List of styles to generate (defaults to ["Painting"] for best quality)
 
         Returns:
             PortraitResult with generated files and metadata

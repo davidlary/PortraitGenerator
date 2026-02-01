@@ -2,17 +2,19 @@
 Portrait Generator - AI-powered historical portrait generation.
 
 A robust, extensible portrait generation system using Google Gemini.
-Generates historically accurate portraits in multiple styles (BW, Sepia, Color, Painting).
+Generates historically accurate portraits - defaults to Painting style (best quality).
+Supports multiple styles: BW, Sepia, Color, and Painting (photorealistic).
 
 Simple Python API Examples:
     >>> from portrait_generator import generate_portrait
     >>> result = generate_portrait("Alan Turing", api_key="your_key")
-    >>> print(f"Generated {len(result.files)} portraits")
+    >>> print(f"Generated {len(result.files)} portraits")  # Defaults to Painting style
 
     >>> # Or use the client for more control
     >>> from portrait_generator import PortraitClient
     >>> client = PortraitClient(api_key="your_key")
-    >>> result = client.generate("Marie Curie", styles=["BW", "Color"])
+    >>> result = client.generate("Marie Curie")  # Painting style (default)
+    >>> result = client.generate("Ada Lovelace", styles=["BW", "Color"])  # Multiple styles
 """
 
 __version__ = "2.0.0"

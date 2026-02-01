@@ -38,6 +38,7 @@ class EnhancedPortraitGenerator:
     """
 
     STYLES = ["BW", "Sepia", "Color", "Painting"]
+    DEFAULT_STYLE = ["Painting"]  # Default to Painting (best quality output)
 
     def __init__(
         self,
@@ -138,7 +139,7 @@ class EnhancedPortraitGenerator:
         Args:
             subject_name: Full name of subject
             force_regenerate: If True, regenerate even if files exist
-            styles: List of styles to generate (defaults to all 4)
+            styles: List of styles to generate (defaults to ["Painting"] for best quality)
 
         Returns:
             PortraitResult with all generated files and evaluations
@@ -151,7 +152,7 @@ class EnhancedPortraitGenerator:
             raise ValueError("Subject name cannot be empty")
 
         if styles is None:
-            styles = self.STYLES.copy()
+            styles = self.DEFAULT_STYLE.copy()  # Default to Painting only (best quality)
         else:
             # Validate styles
             invalid = set(styles) - set(self.STYLES)

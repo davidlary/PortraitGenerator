@@ -14,7 +14,8 @@
 ## Features
 
 ### Core Features
-- 🎨 **Four Portrait Styles**: BW, Sepia, Color, Photorealistic Painting
+- 🎨 **Painting Style (Default)**: Photorealistic paintings for best quality output
+- 🖼️ **Multiple Styles Available**: BW, Sepia, Color, and Painting (photorealistic)
 - 🔬 **Historical Accuracy**: Deep biographical research ensures authentic representation
 - ✅ **Self-Evaluation**: Quality assurance with automated validation
 - 🐍 **Python API**: Simple, high-level API for programmatic use
@@ -83,14 +84,15 @@ OUTPUT_DIR=./output
 ```python
 from portrait_generator import generate_portrait
 
-# Generate all 4 styles
+# Generate painting portrait (default - best quality)
 result = generate_portrait("Albert Einstein")
 
 # Check results
 print(f"Success: {result.success}")
-print(f"Generated {len(result.files)} portraits:")
-for style, filepath in result.files.items():
-    print(f"  {style}: {filepath}")
+print(f"Generated: {result.files['Painting']}")
+
+# Generate all 4 styles explicitly
+result = generate_portrait("Marie Curie", styles=["BW", "Sepia", "Color", "Painting"])
 ```
 
 **Using the client:**
@@ -103,31 +105,34 @@ client = PortraitClient(
     output_dir="./portraits"
 )
 
+# Generate painting portrait (default - best quality)
+result = client.generate("Marie Curie")
+
 # Generate specific styles
 result = client.generate(
-    "Marie Curie",
+    "Ada Lovelace",
     styles=["BW", "Color"]
 )
 
-# Batch generation
-subjects = ["Alan Turing", "Ada Lovelace", "Grace Hopper"]
-results = client.generate_batch(subjects, styles=["BW"])
+# Batch generation (paintings by default)
+subjects = ["Alan Turing", "Grace Hopper", "Claude Shannon"]
+results = client.generate_batch(subjects)
 
 # Check status
 status = client.check_status("Albert Einstein")
-print(f"BW exists: {status['BW']}")
+print(f"Painting exists: {status['Painting']}")
 ```
 
 ### CLI Usage
 
-**Generate a portrait:**
+**Generate a painting portrait (default):**
 ```bash
 portrait-generator generate "Alan Turing"
 ```
 
 **Generate specific styles:**
 ```bash
-portrait-generator generate "Claude Shannon" --styles BW Sepia
+portrait-generator generate "Claude Shannon" --styles BW Sepia Color Painting
 ```
 
 **Batch generation:**
