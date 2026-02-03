@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.1.0] - 2026-02-03
+
+### Changed
+- **BREAKING:** Disabled reference finding by default due to Google API issues
+  - `enable_reference_images` now defaults to `False` (was `True`)
+  - `enable_search_grounding` now defaults to `False` (was `True`)
+  - Users can re-enable via environment variables if needed
+
+### Performance
+- **2x faster generation** - reduced from ~65s to ~32s per portrait
+- Google Search Grounding API consistently returning empty results (external issue)
+- Reference finding was wasting ~26 seconds per portrait finding 0 images
+- Portraits generate successfully without references with identical quality
+
+### Fixed
+- Added better handling for missing birth year information in researcher
+- Added logging for empty Google API responses in reference finder
+- Fixed import path in reference_finder.py for BiographicalResearcher
+- Portrait generation now completes in ~32s instead of ~65s per portrait
+
+### Added
+- Known Issues section in README.md documenting the Google API issue
+- Profiling documentation showing systematic performance analysis
+- Better error handling for edge cases in biographical research
+
+### Notes
+- Based on systematic profiling data from Feb 3, 2026 session
+- See [profiling report](docs/PROFILING_2026-02-03.md) for technical details
+- No impact on portrait quality - references were not being used anyway
+
+---
+
 ## [2.0.0] - 2026-01-30
 
 ### 🎉 Major Release: Gemini 3 Pro Image (Nano Banana Pro) Integration

@@ -3,8 +3,8 @@
 > Generate historically accurate, publication-quality portrait images using Google Gemini 3 Pro Image
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![PyPI version](https://img.shields.io/badge/pypi-v2.0.0-blue.svg)](https://pypi.org/project/portrait-generator/)
-[![Conda version](https://img.shields.io/badge/conda-v2.0.0-blue.svg)](https://anaconda.org/conda-forge/portrait-generator)
+[![PyPI version](https://img.shields.io/badge/pypi-v2.1.0-blue.svg)](https://pypi.org/project/portrait-generator/)
+[![Conda version](https://img.shields.io/badge/conda-v2.1.0-blue.svg)](https://anaconda.org/conda-forge/portrait-generator)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://img.shields.io/badge/tests-370%20passed-green.svg)](tests/)
 [![Coverage](https://img.shields.io/badge/coverage-73%25-orange.svg)](htmlcov/)
@@ -171,6 +171,45 @@ curl -X POST "http://localhost:8000/api/v1/generate" \
   -H "Content-Type: application/json" \
   -d '{"subject_name": "Marie Curie"}'
 ```
+
+---
+
+## Known Issues
+
+### Google Search Grounding (Disabled by Default as of v2.1.0)
+
+**Issue:** Google Search Grounding API currently returns empty results consistently, affecting reference image finding functionality.
+
+**Impact:**
+- Reference image finding was taking ~26 seconds per portrait
+- All searches returned 0 images (100% failure rate)
+- Generated portraits worked fine without references
+
+**Resolution:** As of v2.1.0, we've disabled reference finding by default for **2x faster generation**:
+- `enable_reference_images = False` (was `True` in v2.0.0)
+- `enable_search_grounding = False` (was `True` in v2.0.0)
+
+**Performance Improvement:**
+```
+Before (v2.0.0): ~65 seconds per portrait
+After (v2.1.0):  ~32 seconds per portrait (2x faster!)
+```
+
+**Quality Impact:** None - portraits generate successfully without reference images, with identical quality.
+
+**To Re-enable** (if Google fixes the API in the future):
+```bash
+export ENABLE_REFERENCE_IMAGES=true
+export ENABLE_SEARCH_GROUNDING=true
+```
+
+Or in your `.env` file:
+```bash
+ENABLE_REFERENCE_IMAGES=true
+ENABLE_SEARCH_GROUNDING=true
+```
+
+**Technical Details:** See [profiling report](docs/PROFILING_2026-02-03.md) for systematic performance analysis.
 
 ---
 

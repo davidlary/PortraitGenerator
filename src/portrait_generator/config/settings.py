@@ -45,7 +45,7 @@ class Settings(BaseSettings):
         description="Enable advanced features for capable models",
     )
     enable_reference_images: bool = Field(
-        default=True,
+        default=False,  # Changed to False in v2.1.0 - Google API returns empty results
         description="Enable reference image finding and usage",
     )
     max_reference_images: int = Field(
@@ -55,7 +55,7 @@ class Settings(BaseSettings):
         description="Maximum reference images to use (0-14)",
     )
     enable_search_grounding: bool = Field(
-        default=True,
+        default=False,  # Changed to False in v2.1.0 - Google API returns empty results
         description="Enable Google Search fact-checking and grounding",
     )
     enable_internal_reasoning: bool = Field(

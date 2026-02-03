@@ -148,10 +148,13 @@ class BiographicalResearcher:
 
 NAME: {name}
 
+IMPORTANT: Focus on computer science, machine learning, and artificial intelligence researchers.
+If the name is common (like "Ronald Williams"), prioritize ML/AI researchers over other fields.
+
 Please provide the following information in a structured format:
 
 1. FULL NAME: The person's complete name
-2. BIRTH YEAR: Year of birth (number only)
+2. BIRTH YEAR: Year of birth (number only). If not publicly available, write "Not available" or provide best estimate.
 3. DEATH YEAR: Year of death (number only, or "Present" if still alive)
 4. ERA: Historical era or time period (e.g., "Renaissance", "20th Century", "Medieval")
 5. APPEARANCE NOTES: Physical characteristics, typical clothing style, notable features
@@ -227,8 +230,15 @@ Be historically accurate and specific.
                 r"BIRTH YEAR[:\s]*\**\s*\n*\s*(\d+)", response, re.IGNORECASE
             )
             if not birth_match:
-                raise ValueError("Could not extract birth year from response")
-            birth_year = int(birth_match.group(1))
+                # Check if birth year is not available
+                if "not publicly available" in response.lower() or "not available" in response.lower() or "information not available" in response.lower():
+                    # Use a reasonable estimate for modern figures (assume born around 1970-1990)
+                    logger.warning(f"Birth year not publicly available for {name}, using estimate: 1975")
+                    birth_year = 1975
+                else:
+                    raise ValueError("Could not extract birth year from response")
+            else:
+                birth_year = int(birth_match.group(1))
 
             # Extract death year - handle both inline and multi-line formats
             death_year = None

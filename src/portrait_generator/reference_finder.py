@@ -207,9 +207,14 @@ Focus on images from {subject_data.era} showing {subject_data.name}'s face clear
                 response = self.gemini_client.query_with_grounding(prompt)
             else:
                 # Fallback to regular query
-                from .researcher import BiographicalResearcher
+                from .core.researcher import BiographicalResearcher
                 researcher = BiographicalResearcher(self.gemini_client)
                 response = researcher._query_gemini(prompt)
+
+            # Check if response is None or empty
+            if not response or not response.strip():
+                logger.debug(f"Empty response from Gemini for query: {query[:50]}...")
+                return []
 
             # Parse response to extract image information
             images = self._parse_image_search_results(response, subject_data)
