@@ -100,7 +100,7 @@ class TitleOverlayEngine:
 
         # Measure text block dimensions for vertical layout
         _LINE_GAP = 3     # pixels between wrapped name lines
-        _YEARS_GAP = 5    # pixels between last name line and years
+        _YEARS_GAP = 12   # pixels between last name line and years
         _BAR_PADDING = 8  # minimum vertical padding inside bar
 
         name_sample_bbox = draw.textbbox((0, 0), name_lines[0], font=name_font)
