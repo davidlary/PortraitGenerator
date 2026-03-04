@@ -40,18 +40,17 @@
 
 ---
 
-### NEW in 2.0.0: Gemini 3 Pro Image (Nano Banana Pro)
+### Also supported: gemini-3-pro-image-preview (Nano Banana Pro) and gemini-exp-1206 (legacy)
 - 🔍 **Google Search Grounding**: Real-time fact-checking and verification
 - 🖼️ **Multi-Image References**: Up to 14 authentic historical reference images
 - 🧠 **Internal Reasoning**: Model thinks through tasks and refines internally
 - ⚡ **Physics-Aware Synthesis**: Realistic lighting, shadows, and materials
 - ✓ **Pre-Generation Validation**: Proactive error detection before generation
 - 🎯 **Smart Retry**: Autonomous prompt refinement on failure
-- 📈 **85%+ First-Attempt Success**: Optimized autonomous quality pipeline
 - 🤖 **Holistic AI Evaluation**: Multi-pass reasoning-based assessment
 - 🔄 **100% Backward Compatible**: Works with all existing models
 
-**[See full Gemini 3 Pro Image documentation →](docs/GEMINI_3_PRO_IMAGE.md)**
+**[See full model documentation →](docs/GEMINI_3_PRO_IMAGE.md)**
 
 ---
 
@@ -274,7 +273,7 @@ from portrait_generator import PortraitClient
 client = PortraitClient(
     api_key="your_api_key",
     output_dir="./portraits",
-    model="gemini-exp-1206"     # Optional: specify model
+    model="gemini-3.1-flash-image-preview"     # Optional: override default model
 )
 
 # Generate portrait
@@ -705,14 +704,14 @@ export OUTPUT_DIR="~/portraits"
 cat > .env << EOF
 GOOGLE_API_KEY=your_api_key
 OUTPUT_DIR=./output
-GEMINI_MODEL=gemini-3-pro-image-preview
+GEMINI_MODEL=gemini-3.1-flash-image-preview
 LOG_LEVEL=INFO
 
-# Advanced Features (Gemini 3 Pro Image)
+# Advanced Features
 ENABLE_ADVANCED_FEATURES=true
-ENABLE_REFERENCE_IMAGES=true
+ENABLE_REFERENCE_IMAGES=false
 MAX_REFERENCE_IMAGES=5
-ENABLE_SEARCH_GROUNDING=true
+ENABLE_SEARCH_GROUNDING=false
 ENABLE_INTERNAL_REASONING=true
 QUALITY_THRESHOLD=0.90
 EOF
@@ -725,7 +724,7 @@ from portrait_generator import PortraitClient
 client = PortraitClient(
     api_key="your_api_key",
     output_dir="~/portraits",
-    model="gemini-exp-1206"
+    model="gemini-3.1-flash-image-preview"
 )
 ```
 
@@ -736,7 +735,7 @@ from portrait_generator.config import Settings
 settings = Settings(
     google_api_key="your_api_key",
     output_dir="~/portraits",
-    gemini_model="gemini-exp-1206"
+    gemini_model="gemini-3.1-flash-image-preview"
 )
 ```
 
@@ -1026,26 +1025,23 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Status
 
-🚀 **Version 2.0.0** - Production Ready with Advanced AI
+🚀 **Version 2.2.0** - Production Ready
 
-- **Release Date**: January 30, 2026
-- **Default Model**: gemini-3-pro-image-preview (Nano Banana Pro)
+- **Release Date**: March 4, 2026
+- **Default Model**: gemini-3.1-flash-image-preview (Nano Banana 2)
 - **Python Support**: 3.10, 3.11, 3.12
-- **Test Coverage**: 91%+ (350+ tests passing)
+- **Test Coverage**: 66% (399+ tests passing)
 - **Package Status**: Available on PyPI and Conda
 - **API Status**: Stable (v1) - Backward Compatible
 - **Documentation**: Complete with advanced features guide
 
-### What's New in 2.0.0
+### What's New in 2.2.0
 
-- **Default model changed** from `gemini-exp-1206` to `gemini-3-pro-image-preview`
-- **Google Search grounding** for fact-checking and reference finding
-- **Multi-image reference support** (up to 14 images)
-- **Internal reasoning** and iterative refinement
-- **Physics-aware synthesis** for visual coherence
-- **Pre-generation validation** to prevent errors
-- **Smart retry** with autonomous prompt refinement
-- **Holistic AI evaluation** with multi-pass verification
+- **Default model changed** from `gemini-3-pro-image-preview` to `gemini-3.1-flash-image-preview` (~22s vs ~45s)
+- **Zero mock code**: All tests use real objects; API tests skip gracefully without `GOOGLE_API_KEY`
+- **Long name overlay fix**: Auto-wraps or shrinks font so names like "Nicolas-Théodore de Saussure" never clip
+- **Reference image finding disabled** by default (Google API returns empty results)
+- **Search grounding disabled** by default (Google API returns empty results)
 - **100% backward compatible** with v1.x and older models
 
 ### Version History

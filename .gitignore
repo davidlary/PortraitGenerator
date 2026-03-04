@@ -64,9 +64,11 @@ paintings_output/
 !tests/fixtures/**/*.jpg
 !Examples/*.jpg
 
-# Session artifacts
+# Session artifacts and generated scripts
 final_test_log.txt
 test_failures.py
+generate_*.py
+test_output/
 
 # Secrets (CRITICAL - Never commit)
 .env
