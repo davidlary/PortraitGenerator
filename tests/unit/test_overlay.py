@@ -1,7 +1,7 @@
 """Unit tests for TitleOverlayEngine."""
 
 import pytest
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from portrait_generator.core.overlay import TitleOverlayEngine
 
@@ -473,3 +473,108 @@ class TestIntegration:
         assert isinstance(result, Image.Image)
         assert result.size == (768, 1024)
         assert engine.validate_overlay(result)
+
+
+class TestFitNameText:
+    """Tests for _fit_name_text — ensures no name ever overflows the overlay bar."""
+
+    @pytest.fixture
+    def draw(self):
+        """Create a PIL ImageDraw for text measurement."""
+        img = Image.new("RGBA", (800, 1000), (0, 0, 0, 0))
+        return ImageDraw.Draw(img)
+
+    def test_short_name_returns_single_line(self, engine, draw):
+        """Short name should be returned unchanged as a single line."""
+        lines, font, _ = engine._fit_name_text(draw, "Alan Turing", 60, 700)
+        assert lines == ["Alan Turing"]
+
+    def test_all_lines_fit_within_max_width(self, engine, draw):
+        """Every returned line must fit within the specified max_width."""
+        long_name = "Nicolas-Théodore de Saussure"
+        max_width = 700
+        lines, font, _ = engine._fit_name_text(draw, long_name, 60, max_width)
+        for line in lines:
+            w = draw.textbbox((0, 0), line, font=font)[2]
+            assert w <= max_width, f"Line '{line}' (width {w}px) exceeds {max_width}px"
+
+    def test_no_empty_lines_returned(self, engine, draw):
+        """No empty strings should appear in the returned lines list."""
+        lines, font, _ = engine._fit_name_text(
+            draw, "Johann Wolfgang von Goethe", 50, 400
+        )
+        for line in lines:
+            assert line.strip(), f"Empty line found in result: {lines}"
+
+    def test_returns_at_most_two_lines(self, engine, draw):
+        """Implementation never returns more than two lines."""
+        long_name = "Nicolas-Théodore de Saussure"
+        lines, font, _ = engine._fit_name_text(draw, long_name, 60, 700)
+        assert len(lines) <= 2
+
+    def test_single_word_handled_gracefully(self, engine, draw):
+        """A single very-long word (no split points) still returns a valid result."""
+        lines, font, _ = engine._fit_name_text(
+            draw, "Pneumonoultramicroscopicsilicovolcanoconiosis", 60, 300
+        )
+        assert len(lines) >= 1
+        assert all(line.strip() for line in lines)
+
+    def test_actual_font_size_is_positive(self, engine, draw):
+        """Returned actual_font_size is always a positive integer."""
+        _, _, actual_size = engine._fit_name_text(
+            draw, "Nicolas-Théodore de Saussure", 60, 700
+        )
+        assert actual_size > 0
+
+    def test_narrow_max_width_still_returns_result(self, engine, draw):
+        """Even with a very tight max_width, a non-empty result is returned."""
+        lines, font, _ = engine._fit_name_text(draw, "Alan Turing", 60, 50)
+        assert len(lines) >= 1
+        assert all(line.strip() for line in lines)
+
+
+class TestAddOverlayLongNames:
+    """Integration tests ensuring long names render correctly end-to-end."""
+
+    def test_accented_long_name(self, engine):
+        """Nicolas-Théodore de Saussure renders without clipping."""
+        img = Image.new("RGB", (800, 1000), color=(100, 100, 100))
+        result = engine.add_overlay(
+            img, name="Nicolas-Théodore de Saussure", years="1767-1845"
+        )
+        assert isinstance(result, Image.Image)
+        assert result.size == (800, 1000)
+        assert engine.validate_overlay(result)
+
+    def test_long_multi_part_name(self, engine):
+        """Long multi-part name renders without error."""
+        img = Image.new("RGB", (800, 1000), color=(80, 80, 80))
+        result = engine.add_overlay(
+            img,
+            name="Carl Friedrich Gauss von Braunschweig",
+            years="1777-1855",
+        )
+        assert isinstance(result, Image.Image)
+        assert engine.validate_overlay(result)
+
+    def test_hyphenated_name_on_narrow_image(self, engine):
+        """Hyphenated long name renders cleanly on a narrow (400px) image."""
+        img = Image.new("RGB", (400, 600), color=(70, 70, 70))
+        result = engine.add_overlay(
+            img,
+            name="Nicolas-Théodore de Saussure",
+            years="1767-1845",
+        )
+        assert isinstance(result, Image.Image)
+        assert result.size == (400, 600)
+
+    def test_image_size_preserved_for_long_names(self, engine):
+        """Image dimensions are never changed regardless of name length."""
+        img = Image.new("RGB", (768, 1024), color=(90, 90, 90))
+        result = engine.add_overlay(
+            img,
+            name="Gottfried Wilhelm Leibniz von Hannover",
+            years="1646-1716",
+        )
+        assert result.size == (768, 1024)

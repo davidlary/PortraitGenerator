@@ -81,9 +81,45 @@ class TitleOverlayEngine:
         overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
         draw = ImageDraw.Draw(overlay)
 
-        # Calculate bar dimensions
+        # Calculate initial bar dimensions and font sizes before drawing bar
         width, height = image.size
-        bar_height = int(height * bar_height_ratio)
+        initial_bar_height = int(height * bar_height_ratio)
+
+        # Calculate initial font sizes based on default bar height
+        name_font_size, _ = self.calculate_font_size(height, bar_height_ratio)
+
+        # Fit name text within available width (wraps or shrinks font if needed)
+        max_name_width = int(width * 0.92)
+        name_lines, name_font, actual_name_size = self._fit_name_text(
+            draw, name, name_font_size, max_name_width
+        )
+
+        # Years font proportional to the actual name font size used
+        years_font_size = max(10, int(actual_name_size * 0.70))
+        years_font = self._load_font(years_font_size)
+
+        # Measure text block dimensions for vertical layout
+        _LINE_GAP = 3     # pixels between wrapped name lines
+        _YEARS_GAP = 5    # pixels between last name line and years
+        _BAR_PADDING = 8  # minimum vertical padding inside bar
+
+        name_sample_bbox = draw.textbbox((0, 0), name_lines[0], font=name_font)
+        line_h = name_sample_bbox[3] - name_sample_bbox[1]
+        years_bbox = draw.textbbox((0, 0), years, font=years_font)
+        years_h = years_bbox[3] - years_bbox[1]
+        years_w = years_bbox[2] - years_bbox[0]
+
+        num_lines = len(name_lines)
+        total_text_h = (
+            line_h * num_lines
+            + _LINE_GAP * (num_lines - 1)
+            + _YEARS_GAP
+            + years_h
+        )
+
+        # Expand bar height if text block needs more space; cap at 35% of image
+        bar_height = max(initial_bar_height, total_text_h + _BAR_PADDING * 2)
+        bar_height = min(bar_height, int(height * 0.35))
         bar_top = height - bar_height
 
         # Draw semi-transparent bar
@@ -94,43 +130,29 @@ class TitleOverlayEngine:
             fill=bar_color,
         )
 
-        # Calculate font sizes
-        name_font_size, years_font_size = self.calculate_font_size(
-            height, bar_height_ratio
-        )
+        # Center text block vertically within bar
+        text_start_y = bar_top + (bar_height - total_text_h) // 2
+        text_start_y = max(bar_top + _BAR_PADDING // 2, text_start_y)
 
-        # Load fonts
-        try:
-            name_font = self._load_font(name_font_size)
-            years_font = self._load_font(years_font_size)
-        except Exception as e:
-            logger.warning(f"Failed to load custom font: {e}. Using default.")
-            name_font = ImageFont.load_default()
-            years_font = ImageFont.load_default()
+        # Draw name lines (one or two)
+        y = text_start_y
+        for i, line in enumerate(name_lines):
+            line_bbox = draw.textbbox((0, 0), line, font=name_font)
+            line_w = line_bbox[2] - line_bbox[0]
+            line_x = (width - line_w) // 2
+            draw.text(
+                (line_x, y),
+                line,
+                font=name_font,
+                fill=(*self.DEFAULT_NAME_COLOR, 255),
+            )
+            y += line_h
+            if i < num_lines - 1:
+                y += _LINE_GAP
 
-        # Calculate text positions (centered)
-        name_bbox = draw.textbbox((0, 0), name, font=name_font)
-        name_width = name_bbox[2] - name_bbox[0]
-        name_x = (width - name_width) // 2
-
-        years_bbox = draw.textbbox((0, 0), years, font=years_font)
-        years_width = years_bbox[2] - years_bbox[0]
-        years_x = (width - years_width) // 2
-
-        # Calculate vertical positions
-        # Name at 25% from top of bar
-        name_y = bar_top + int(bar_height * 0.25)
-        # Years below name with small gap
-        years_y = name_y + (name_bbox[3] - name_bbox[1]) + 5
-
-        # Draw text
-        draw.text(
-            (name_x, name_y),
-            name,
-            font=name_font,
-            fill=(*self.DEFAULT_NAME_COLOR, 255),
-        )
-
+        # Draw years below name block
+        years_y = y + _YEARS_GAP
+        years_x = (width - years_w) // 2
         draw.text(
             (years_x, years_y),
             years,
@@ -245,6 +267,81 @@ class TitleOverlayEngine:
         except Exception as e:
             logger.error(f"Validation failed with error: {e}", exc_info=True)
             return False
+
+    def _fit_name_text(
+        self,
+        draw: ImageDraw.ImageDraw,
+        name: str,
+        font_size: int,
+        max_width: int,
+    ) -> Tuple[list, ImageFont.FreeTypeFont, int]:
+        """Fit name text within max_width using font shrinking or two-line wrapping.
+
+        Strategy (applied in priority order):
+        1. Single line at the calculated font size.
+        2. Single line with font progressively shrunk to 70% of original.
+        3. Two-line wrap at the most balanced word/hyphen boundary, trying font
+           sizes from original down to the minimum.
+        4. Emergency single-line shrink below 70%.
+
+        Args:
+            draw: PIL ImageDraw for text measurement
+            name: Subject name string
+            font_size: Starting (maximum) font size in points
+            max_width: Maximum allowed text width in pixels
+
+        Returns:
+            Tuple of (lines, font, actual_size) where lines is a list of strings
+            to render sequentially and actual_size is the font size used.
+        """
+        _MIN_FONT_SIZE = 10
+
+        # 1. Single line at full calculated size
+        font = self._load_font(font_size)
+        if draw.textbbox((0, 0), name, font=font)[2] <= max_width:
+            return [name], font, font_size
+
+        # 2. Single line with font shrunk down to 70%
+        min_shrunk = max(_MIN_FONT_SIZE, int(font_size * 0.70))
+        for sz in range(font_size - 1, min_shrunk - 1, -1):
+            font = self._load_font(sz)
+            if draw.textbbox((0, 0), name, font=font)[2] <= max_width:
+                return [name], font, sz
+
+        # 3. Two-line wrap — collect word/hyphen split positions
+        candidates: list[int] = []
+        for i, ch in enumerate(name):
+            if ch == " ":
+                candidates.append(i)
+            elif ch == "-" and 0 < i < len(name) - 1:
+                candidates.append(i + 1)  # split immediately after hyphen
+
+        if candidates:
+            mid = len(name) // 2
+            # Prefer splits closest to the middle of the string (most balanced)
+            candidates.sort(key=lambda p: abs(p - mid))
+
+            for sz in range(font_size, _MIN_FONT_SIZE - 1, -1):
+                font = self._load_font(sz)
+                for pos in candidates:
+                    line1 = name[:pos].rstrip()
+                    line2 = name[pos:].lstrip()
+                    if not line1 or not line2:
+                        continue
+                    w1 = draw.textbbox((0, 0), line1, font=font)[2]
+                    w2 = draw.textbbox((0, 0), line2, font=font)[2]
+                    if w1 <= max_width and w2 <= max_width:
+                        return [line1, line2], font, sz
+
+        # 4. Emergency: keep shrinking single line below 70%
+        for sz in range(min_shrunk - 1, 0, -1):
+            font = self._load_font(sz)
+            if draw.textbbox((0, 0), name, font=font)[2] <= max_width:
+                return [name], font, sz
+
+        # Absolute last resort
+        font = self._load_font(_MIN_FONT_SIZE)
+        return [name], font, _MIN_FONT_SIZE
 
     def _load_font(self, size: int) -> ImageFont.FreeTypeFont:
         """
