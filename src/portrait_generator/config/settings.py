@@ -23,8 +23,8 @@ class Settings(BaseSettings):
 
     # Gemini Model Configuration
     gemini_model: str = Field(
-        default="gemini-3-pro-image-preview",
-        description="Gemini model for image generation (default: gemini-3-pro-image-preview)",
+        default="gemini-3.1-flash-image-preview",
+        description="Gemini model for image generation (default: gemini-3.1-flash-image-preview)",
     )
 
     # Image Settings

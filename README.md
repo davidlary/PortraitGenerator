@@ -682,9 +682,9 @@ Portrait Generator can be configured via environment variables:
 | `OUTPUT_DIR` | Output directory for portraits | `./output` | No |
 | `LOG_LEVEL` | Logging level | `INFO` | No |
 | `ENABLE_ADVANCED_FEATURES` | Enable Gemini 3 Pro features | `true` | No |
-| `ENABLE_REFERENCE_IMAGES` | Use reference images | `true` | No |
+| `ENABLE_REFERENCE_IMAGES` | Use reference images | `false` | No |
 | `MAX_REFERENCE_IMAGES` | Max reference images (0-14) | `5` | No |
-| `ENABLE_SEARCH_GROUNDING` | Enable Google Search | `true` | No |
+| `ENABLE_SEARCH_GROUNDING` | Enable Google Search | `false` | No |
 | `ENABLE_INTERNAL_REASONING` | Enable model reasoning | `true` | No |
 | `QUALITY_THRESHOLD` | Min quality score (0.0-1.0) | `0.90` | No |
 | `USE_HOLISTIC_REASONING` | Use AI evaluation | `true` | No |

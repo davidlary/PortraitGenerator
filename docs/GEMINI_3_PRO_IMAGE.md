@@ -1,6 +1,7 @@
-## Gemini 3 Pro Image (Nano Banana Pro) - Advanced Features Guide
+## Gemini Image Models - Advanced Features Guide
 
-**Version 2.0.0** | **Default Model: gemini-3-pro-image-preview**
+**Version 2.2.0** | **Default Model: gemini-3.1-flash-image-preview (Nano Banana 2)**
+> Also supports: gemini-3-pro-image-preview (maximum quality) and gemini-exp-1206 (legacy)
 
 ---
 

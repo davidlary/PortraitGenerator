@@ -17,7 +17,7 @@ Simple Python API Examples:
     >>> result = client.generate("Ada Lovelace", styles=["BW", "Color"])  # Multiple styles
 """
 
-__version__ = "2.0.0"
+__version__ = "2.2.0"
 __author__ = "Dr. David Lary"
 __copyright__ = "Copyright 2026, University of Texas at Dallas"
 __license__ = "MIT"
