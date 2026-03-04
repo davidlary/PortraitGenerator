@@ -54,6 +54,7 @@ htmlcov/
 
 # Project-specific - Generated portraits (exclude from git)
 output/
+paintings_output/
 *.png
 *.jpg
 *.jpeg
@@ -62,6 +63,10 @@ output/
 !tests/fixtures/**/*.png
 !tests/fixtures/**/*.jpg
 !Examples/*.jpg
+
+# Session artifacts
+final_test_log.txt
+test_failures.py
 
 # Secrets (CRITICAL - Never commit)
 .env

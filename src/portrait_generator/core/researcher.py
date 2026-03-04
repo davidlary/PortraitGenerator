@@ -173,9 +173,9 @@ Be historically accurate and specific.
         """
         Query Gemini for research information.
 
-        Note: This uses the text generation capability of Gemini.
-        For now, this is a simplified implementation that would need
-        to use the actual Gemini text API.
+        Uses the existing gemini_client's text generation capability for
+        consistency and testability. The Flash model (Nano Banana 2) provides
+        enhanced reasoning for accurate biographical extraction with low latency.
 
         Args:
             prompt: Research prompt
@@ -184,28 +184,22 @@ Be historically accurate and specific.
             Response text from Gemini
 
         Raises:
-            RuntimeError: If query fails
+            RuntimeError: If query fails or returns empty response
         """
         try:
-            # Import the Gemini client
-            import google.genai as genai
+            # Reuse the existing client's text generation - avoids extra connection
+            # overhead and keeps all API calls through one authenticated client
+            response_text = self.gemini_client._query_model_text(prompt)
 
-            # Create client
-            client = genai.Client(api_key=self.gemini_client.api_key)
-
-            # Generate text response - use gemini-3-pro-image-preview for consistency
-            response = client.models.generate_content(
-                model="gemini-3-pro-image-preview",
-                contents=prompt,
-            )
-
-            if not response or not response.text:
+            if not response_text:
                 raise RuntimeError("Empty response from Gemini")
 
-            logger.debug(f"Gemini response length: {len(response.text)} chars")
+            logger.debug(f"Gemini response length: {len(response_text)} chars")
 
-            return response.text
+            return response_text
 
+        except RuntimeError:
+            raise
         except Exception as e:
             logger.error(f"Gemini query failed: {e}", exc_info=True)
             raise RuntimeError(f"Gemini query failed: {e}") from e

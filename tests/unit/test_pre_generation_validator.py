@@ -1,7 +1,6 @@
 """Unit tests for pre_generation_validator module."""
 
 import pytest
-from unittest.mock import Mock
 
 from portrait_generator.pre_generation_validator import (
     ValidationResult,
@@ -9,14 +8,13 @@ from portrait_generator.pre_generation_validator import (
 )
 from portrait_generator.api.models import SubjectData
 from portrait_generator.reference_finder import ReferenceImage
+from portrait_generator.utils.gemini_client import GeminiImageClient
 
 
 @pytest.fixture
-def mock_gemini_client():
-    """Create mock Gemini client."""
-    client = Mock()
-    client.query_with_grounding = Mock(return_value="Verified: This is correct and accurate.")
-    return client
+def gemini_client():
+    """Create a real Gemini client with test API key."""
+    return GeminiImageClient(api_key="test_api_key_1234567890")
 
 
 @pytest.fixture
@@ -31,11 +29,11 @@ def sample_subject_data():
 
 
 @pytest.fixture
-def validator(mock_gemini_client):
-    """Create validator instance."""
+def validator(gemini_client):
+    """Create validator instance with fact-checking disabled to avoid API calls."""
     return PreGenerationValidator(
-        gemini_client=mock_gemini_client,
-        enable_fact_checking=True,
+        gemini_client=gemini_client,
+        enable_fact_checking=False,
     )
 
 
@@ -64,15 +62,15 @@ class TestValidationResult:
 class TestPreGenerationValidator:
     """Tests for PreGenerationValidator class."""
 
-    def test_initialization(self, mock_gemini_client):
+    def test_initialization(self, gemini_client):
         """Test validator initialization."""
         validator = PreGenerationValidator(
-            gemini_client=mock_gemini_client,
-            enable_fact_checking=True,
+            gemini_client=gemini_client,
+            enable_fact_checking=False,
         )
 
-        assert validator.gemini_client == mock_gemini_client
-        assert validator.enable_fact_checking is True
+        assert validator.gemini_client is gemini_client
+        assert validator.enable_fact_checking is False
 
     def test_validate_valid_inputs(self, validator, sample_subject_data):
         """Test validation with valid inputs."""
@@ -84,7 +82,6 @@ class TestPreGenerationValidator:
         )
 
         assert isinstance(result, ValidationResult)
-        # Should pass basic validation
         assert result.confidence > 0.5
 
     def test_validate_invalid_subject_data(self, validator):

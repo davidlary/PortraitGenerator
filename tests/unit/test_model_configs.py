@@ -105,15 +105,52 @@ class TestEvaluationConfig:
 class TestModelProfile:
     """Tests for ModelProfile operations."""
 
-    def test_get_model_profile_gemini_3(self):
-        """Test getting gemini-3-pro-image-preview profile."""
+    def test_get_model_profile_flash(self):
+        """Test getting gemini-3.1-flash-image-preview profile (Nano Banana 2)."""
+        profile = get_model_profile("gemini-3.1-flash-image-preview")
+
+        assert profile.model_name == "gemini-3.1-flash-image-preview"
+        assert profile.is_recommended is True
+        assert profile.capabilities.google_search_grounding is True
+        assert profile.capabilities.image_search_grounding is True
+        assert profile.capabilities.thinking_mode is True
+        assert profile.capabilities.multi_image_reference is True
+        assert profile.capabilities.max_reference_images == 14
+        assert profile.capabilities.supports_batch is True
+        assert profile.capabilities.accuracy_tier == "high"
+        assert profile.generation.quality_threshold == 0.90
+        # Flash should be significantly faster than Pro
+        assert profile.capabilities.typical_generation_time < 30.0
+
+    def test_get_model_profile_flash_extended_ratios(self):
+        """Test Flash model has extended aspect ratio support."""
+        profile = get_model_profile("gemini-3.1-flash-image-preview")
+
+        assert "1:4" in profile.capabilities.supported_aspect_ratios
+        assert "4:1" in profile.capabilities.supported_aspect_ratios
+        assert "1:8" in profile.capabilities.supported_aspect_ratios
+        assert "8:1" in profile.capabilities.supported_aspect_ratios
+
+    def test_get_model_profile_flash_resolutions(self):
+        """Test Flash model supports 0.5K through 4K resolutions."""
+        profile = get_model_profile("gemini-3.1-flash-image-preview")
+
+        resolutions = profile.capabilities.supported_resolutions
+        assert "512x512" in resolutions    # 0.5K
+        assert "1024x1024" in resolutions  # 1K
+        assert "2048x2048" in resolutions  # 2K
+        assert "4096x4096" in resolutions  # 4K
+
+    def test_get_model_profile_gemini_3_pro(self):
+        """Test getting gemini-3-pro-image-preview profile (Nano Banana Pro)."""
         profile = get_model_profile("gemini-3-pro-image-preview")
 
         assert profile.model_name == "gemini-3-pro-image-preview"
-        assert profile.is_recommended is True
+        assert profile.is_recommended is False  # Flash is now recommended
         assert profile.capabilities.google_search_grounding is True
         assert profile.capabilities.multi_image_reference is True
         assert profile.capabilities.max_reference_images == 14
+        assert profile.capabilities.accuracy_tier == "maximum"
         assert profile.generation.quality_threshold == 0.90
 
     def test_get_model_profile_legacy(self):
@@ -123,6 +160,7 @@ class TestModelProfile:
         assert profile.model_name == "gemini-exp-1206"
         assert profile.is_recommended is False
         assert profile.capabilities.google_search_grounding is False
+        assert profile.capabilities.thinking_mode is False
         assert profile.capabilities.multi_image_reference is False
         assert profile.generation.quality_threshold == 0.80
 
@@ -132,34 +170,43 @@ class TestModelProfile:
             get_model_profile("invalid-model-name")
 
     def test_get_recommended_model(self):
-        """Test getting recommended model."""
+        """Test getting recommended model returns Flash (Nano Banana 2)."""
         model = get_recommended_model()
 
-        assert model == "gemini-3-pro-image-preview"
+        # Flash is now recommended for best speed+accuracy balance
+        assert model == "gemini-3.1-flash-image-preview"
 
     def test_list_available_models(self):
         """Test listing available models."""
         models = list_available_models()
 
         assert len(models) >= 3
+        assert "gemini-3.1-flash-image-preview" in models
         assert "gemini-3-pro-image-preview" in models
         assert "gemini-exp-1206" in models
-        assert "gemini-2.0-flash-exp" in models
+
+    def test_model_supports_feature_flash(self):
+        """Test Flash model feature support."""
+        # Flash supports all advanced features
+        assert model_supports_feature("gemini-3.1-flash-image-preview", "google_search_grounding") is True
+        assert model_supports_feature("gemini-3.1-flash-image-preview", "image_search_grounding") is True
+        assert model_supports_feature("gemini-3.1-flash-image-preview", "thinking_mode") is True
+        assert model_supports_feature("gemini-3.1-flash-image-preview", "supports_batch") is True
 
     def test_model_supports_feature(self):
         """Test checking if model supports feature."""
-        # Advanced model supports grounding
-        assert model_supports_feature("gemini-3-pro-image-preview", "google_search_grounding") is True
+        # Flash model supports grounding
+        assert model_supports_feature("gemini-3.1-flash-image-preview", "google_search_grounding") is True
 
         # Legacy model doesn't support grounding
         assert model_supports_feature("gemini-exp-1206", "google_search_grounding") is False
 
         # Unknown feature
-        assert model_supports_feature("gemini-3-pro-image-preview", "unknown_feature") is False
+        assert model_supports_feature("gemini-3.1-flash-image-preview", "unknown_feature") is False
 
     def test_get_optimal_config_no_overrides(self):
         """Test getting optimal config without overrides."""
-        profile = get_optimal_config_for_model("gemini-3-pro-image-preview")
+        profile = get_optimal_config_for_model("gemini-3.1-flash-image-preview")
 
         assert profile.generation.quality_threshold == 0.90
         assert profile.evaluation.reasoning_passes == 2
@@ -167,7 +214,7 @@ class TestModelProfile:
     def test_get_optimal_config_with_generation_overrides(self):
         """Test getting optimal config with generation overrides."""
         profile = get_optimal_config_for_model(
-            "gemini-3-pro-image-preview",
+            "gemini-3.1-flash-image-preview",
             override_generation={"quality_threshold": 0.95, "max_generation_attempts": 3},
         )
 
@@ -177,7 +224,7 @@ class TestModelProfile:
     def test_get_optimal_config_with_evaluation_overrides(self):
         """Test getting optimal config with evaluation overrides."""
         profile = get_optimal_config_for_model(
-            "gemini-3-pro-image-preview",
+            "gemini-3.1-flash-image-preview",
             override_evaluation={"reasoning_passes": 3},
         )
 
@@ -195,3 +242,10 @@ class TestModelProfile:
             assert profile.generation is not None
             assert profile.evaluation is not None
             assert isinstance(profile.is_recommended, bool)
+
+    def test_flash_faster_than_pro(self):
+        """Test Flash model has lower generation time than Pro model."""
+        flash = get_model_profile("gemini-3.1-flash-image-preview")
+        pro = get_model_profile("gemini-3-pro-image-preview")
+
+        assert flash.capabilities.typical_generation_time < pro.capabilities.typical_generation_time

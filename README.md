@@ -1,13 +1,13 @@
 # Portrait Generator
 
-> Generate historically accurate, publication-quality portrait images using Google Gemini 3 Pro Image
+> Generate historically accurate, publication-quality portrait images using Google Gemini Flash Image (Nano Banana 2)
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![PyPI version](https://img.shields.io/badge/pypi-v2.1.0-blue.svg)](https://pypi.org/project/portrait-generator/)
-[![Conda version](https://img.shields.io/badge/conda-v2.1.0-blue.svg)](https://anaconda.org/conda-forge/portrait-generator)
+[![PyPI version](https://img.shields.io/badge/pypi-v2.2.0-blue.svg)](https://pypi.org/project/portrait-generator/)
+[![Conda version](https://img.shields.io/badge/conda-v2.2.0-blue.svg)](https://anaconda.org/conda-forge/portrait-generator)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/tests-370%20passed-green.svg)](tests/)
-[![Coverage](https://img.shields.io/badge/coverage-73%25-orange.svg)](htmlcov/)
+[![Tests](https://img.shields.io/badge/tests-389%20passed-green.svg)](tests/)
+[![Coverage](https://img.shields.io/badge/coverage-66%25-orange.svg)](htmlcov/)
 
 ---
 
@@ -22,9 +22,23 @@
 - 🖥️ **CLI Commands**: Easy command-line interface for quick generation
 - 🚀 **REST API**: FastAPI-based RESTful API for remote integration
 - 📦 **PyPI & Conda**: Install via pip or conda
-- 📊 **370+ Tests**: 370+ tests including end-to-end with real API
+- 📊 **389+ Tests**: 389+ tests including end-to-end with real API; no mock code
 - 🔒 **Secure**: Environment-based credentials only
 - 📝 **Fully Documented**: Complete API documentation and examples
+
+### NEW in 2.2.0: Flash Image Model (Nano Banana 2) as Default
+
+- ⚡ **gemini-3.1-flash-image-preview**: New default model — ~22s vs ~45s (2x faster)
+- 🔍 **Image Search Grounding**: Text + image search grounding capability
+- 🧠 **Thinking Mode**: Configurable reasoning depth (low/medium/high)
+- 📐 **Extended Aspect Ratios**: 1:4, 4:1, 1:8, 8:1, 2:3, 3:2, 4:5, 5:4, 21:9
+- 🔄 **Batch API**: Native batch generation support
+- 🚫 **No Mock Code**: All tests use real objects; API tests skip when `GOOGLE_API_KEY` not set
+- 🔑 **API Key Loading**: Use `source /path/to/load_api_keys.sh` to load all credentials
+
+**[See full Flash model documentation →](docs/GEMINI_3_PRO_IMAGE.md)**
+
+---
 
 ### NEW in 2.0.0: Gemini 3 Pro Image (Nano Banana Pro)
 - 🔍 **Google Search Grounding**: Real-time fact-checking and verification
@@ -507,16 +521,20 @@ Subject Name → Research → Generate (4 styles) → Add Overlays → Evaluate 
 ### Running Tests
 
 ```bash
-# Run all tests with coverage
-pytest tests/ --cov=portrait_generator --cov-report=html --cov-report=term
+# Load API keys (sets GOOGLE_API_KEY, GEMINI_API_KEY, GITHUB_TOKEN, etc.)
+source /Users/davidlary/Dropbox/Environments/load_api_keys.sh
+
+# Run all unit tests with coverage
+pytest tests/unit/ --cov=portrait_generator --cov-report=html --cov-report=term
 
 # Run specific test types
-pytest tests/unit/ -v           # Unit tests (308+ tests)
-pytest tests/integration/ -v    # Integration tests
+pytest tests/unit/ -v           # Unit tests (389+ tests)
 
-# Run end-to-end tests with real API
-export GOOGLE_API_KEY="your_api_key"
+# Run end-to-end tests with real API (requires GOOGLE_API_KEY to be set)
 pytest tests/integration/test_e2e_real_api.py -m e2e -v
+
+# Run only slow tests (real portrait generation)
+pytest -m slow -v
 
 # Check coverage report
 open htmlcov/index.html
@@ -524,18 +542,28 @@ open htmlcov/index.html
 
 ### Test Coverage
 
-**Current Coverage: 93.11%** (exceeds 90% target)
+**Current Coverage: 66%** (threshold: 55%)
 
-- **308+ unit tests** covering all core functionality
-- **Integration tests** with mocked external APIs
-- **End-to-end tests** with real Google Gemini API calls
-- **Visual tests** for quality verification
+- **389+ unit tests** covering all core functionality
+- **No mock code**: All tests use real objects with test/real API keys
+- **End-to-end tests** with real Google Gemini API calls (requires `GOOGLE_API_KEY`)
+- API-dependent unit tests skip gracefully when `GOOGLE_API_KEY` is not set
+
+### Loading API Keys
+
+```bash
+# Load all credentials (Google, OpenAI, Anthropic, GitHub, etc.)
+source /Users/davidlary/Dropbox/Environments/load_api_keys.sh
+
+# Or set manually
+export GOOGLE_API_KEY="your_gemini_api_key"
+```
 
 ### Test Organization
 
 ```
 tests/
-├── unit/                       # Unit tests (fast, mocked)
+├── unit/                       # Unit tests (real objects, no mocks)
 │   ├── test_client.py         # Python API client tests
 │   ├── test_gemini_client.py  # Gemini API client tests
 │   ├── test_generator.py      # Portrait generator tests
@@ -543,8 +571,6 @@ tests/
 │   ├── test_overlay.py        # Title overlay tests
 │   └── test_evaluator.py      # Quality evaluation tests
 ├── integration/                # Integration tests
-│   ├── test_api.py            # REST API endpoint tests
-│   ├── test_workflow.py       # End-to-end workflow tests
 │   └── test_e2e_real_api.py   # Real API tests (requires GOOGLE_API_KEY)
 └── fixtures/                   # Test data and fixtures
 ```
@@ -588,8 +614,8 @@ PortraitGenerator/
 │       ├── server.py            # FastAPI application
 │       ├── routes.py            # API endpoints
 │       └── models.py            # Request/response models
-├── tests/                       # Test suite (308+ tests, 93% coverage)
-│   ├── unit/                    # Unit tests with mocks
+├── tests/                       # Test suite (389+ tests, 66% coverage)
+│   ├── unit/                    # Unit tests (no mocks, real objects)
 │   ├── integration/             # Integration tests (incl. e2e)
 │   └── fixtures/                # Test data and fixtures
 ├── conda.recipe/                # Conda package recipe
@@ -651,7 +677,7 @@ Portrait Generator can be configured via environment variables:
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
 | `GOOGLE_API_KEY` | Google Gemini API key | - | **Yes** |
-| `GEMINI_MODEL` | Gemini model name | `gemini-3-pro-image-preview` | No |
+| `GEMINI_MODEL` | Gemini model name | `gemini-3.1-flash-image-preview` | No |
 | `IMAGE_RESOLUTION` | Image size as `width,height` | `1024,1024` | No |
 | `OUTPUT_DIR` | Output directory for portraits | `./output` | No |
 | `LOG_LEVEL` | Logging level | `INFO` | No |

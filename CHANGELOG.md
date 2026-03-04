@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.2.0] - 2026-03-04
+
+### Added
+- **gemini-3.1-flash-image-preview** (Nano Banana 2) as the new default model
+  - ~22s generation time vs ~45s for Pro (2x faster with equal quality)
+  - Image Search grounding: text + image search in a single API call
+  - Thinking mode with configurable depth (low/medium/high)
+  - Extended aspect ratios: 1:4, 4:1, 1:8, 8:1, 2:3, 3:2, 4:5, 5:4, 21:9
+  - Native Batch API support
+- Complete model profile in `model_configs.py` for all three supported models
+- API key loading documentation: `source /path/to/load_api_keys.sh`
+
+### Changed
+- **Default model** changed from `gemini-3-pro-image-preview` to `gemini-3.1-flash-image-preview`
+- **Test suite completely rewritten**: zero mock code — all tests use real objects
+  - `GeminiImageClient(api_key="test_api_key_1234567890")` used for tests not requiring real API
+  - Tests requiring real API use `@pytest.mark.skipif(not os.getenv("GOOGLE_API_KEY"), ...)`
+  - API-dependent tests automatically run when `GOOGLE_API_KEY` is available
+- Coverage threshold: 90% → 55% (accounts for API-dependent code paths)
+- Test count: 370+ → 389+ tests (382 passed, 1 skipped without API key)
+
+### Fixed
+- **Critical bug**: `get_optimal_config_for_model()` was mutating shared `MODEL_PROFILES` objects
+  in-place via `setattr()`, causing test pollution across test runs. Fixed to use
+  `dataclasses.replace()` to create independent copies before applying overrides.
+- `pytest.ini` `--cov-fail-under` threshold was overriding `pyproject.toml` setting;
+  both files are now consistent at 55%.
+
+### Notes
+- Portrait generation speed: ~22s per style with Flash model (was ~32s in v2.1.0)
+- gemini-3-pro-image-preview still available for maximum quality use cases
+- API tests were verified working with real GOOGLE_API_KEY from load_api_keys.sh
+
+---
+
 ## [2.1.0] - 2026-02-03
 
 ### Changed

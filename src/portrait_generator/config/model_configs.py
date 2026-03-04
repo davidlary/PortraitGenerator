@@ -4,11 +4,17 @@ This module defines capabilities and optimal parameters for different Gemini mod
 All configurations are data-driven with no hard-coded thresholds in the main code.
 
 Supported Models:
-- gemini-3-pro-image-preview: Latest model with advanced reasoning (Nano Banana Pro)
+- gemini-3.1-flash-image-preview: Fast, high-efficiency image model (Nano Banana 2) [RECOMMENDED]
+- gemini-3-pro-image-preview: Highest quality image model (Nano Banana Pro)
 - gemini-exp-1206: Previous experimental model (legacy)
-- gemini-2.0-flash-exp: Fast generation model
+
+Model Selection Guide:
+- Use gemini-3.1-flash-image-preview (default) for best speed + accuracy balance
+- Use gemini-3-pro-image-preview for maximum quality on complex subjects
+- Use gemini-exp-1206 for legacy compatibility only
 """
 
+import dataclasses
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, field
 
@@ -21,6 +27,9 @@ class ModelCapabilities:
     google_search_grounding: bool = False
     """Support for real-time Google Search fact-checking"""
 
+    image_search_grounding: bool = False
+    """Support for Image Search grounding (text + image search results)"""
+
     multi_image_reference: bool = False
     """Support for multiple reference images in generation"""
 
@@ -30,28 +39,45 @@ class ModelCapabilities:
     internal_reasoning: bool = False
     """Model has internal reasoning/thinking capabilities"""
 
+    thinking_mode: bool = False
+    """Explicit thinking mode with configurable depth (minimal/low/medium/high)"""
+
     physics_aware_synthesis: bool = False
     """Built-in physics-aware visual synthesis"""
 
     native_text_rendering: bool = False
     """LLM-based text rendering (vs pixel drawing)"""
 
+    international_text_rendering: bool = False
+    """Enhanced international/multilingual text rendering"""
+
     iterative_refinement: bool = False
     """Support for internal iteration before final render"""
 
     # Output capabilities
-    supported_resolutions: List[str] = field(default_factory=lambda: ["1024x1024"])
+    supported_resolutions: List[str] = field(
+        default_factory=lambda: ["1024x1024"]
+    )
     """Supported output resolutions"""
 
     max_resolution: str = "1024x1024"
     """Maximum resolution available"""
+
+    supported_aspect_ratios: List[str] = field(
+        default_factory=lambda: ["1:1", "3:4", "4:3", "9:16", "16:9"]
+    )
+    """Supported aspect ratios"""
 
     # Performance characteristics
     typical_generation_time: float = 30.0
     """Typical generation time in seconds"""
 
     supports_batch: bool = False
-    """Support for batch generation in single API call"""
+    """Support for batch generation via Batch API"""
+
+    # Accuracy characteristics
+    accuracy_tier: str = "standard"
+    """Accuracy tier: 'standard', 'high', 'maximum'"""
 
 
 @dataclass
@@ -157,28 +183,99 @@ class ModelProfile:
 
 # Model profile definitions
 MODEL_PROFILES: Dict[str, ModelProfile] = {
+    "gemini-3.1-flash-image-preview": ModelProfile(
+        model_name="gemini-3.1-flash-image-preview",
+        display_name="Gemini 3.1 Flash Image (Nano Banana 2)",
+        description=(
+            "Google's high-efficiency image generation model with best speed/accuracy balance. "
+            "Nano Banana 2 delivers 4K studio-quality portraits at ~50% faster generation speed "
+            "vs Nano Banana Pro. Features Image Search grounding, thinking mode for enhanced "
+            "accuracy, improved international text rendering, and new aspect ratios. "
+            "Updated February 2026 with improved image quality and aspect ratio adherence. "
+            "Optimized for high-volume, production workloads."
+        ),
+        release_date="2026-02",
+        is_recommended=True,
+        capabilities=ModelCapabilities(
+            google_search_grounding=True,
+            image_search_grounding=True,
+            multi_image_reference=True,
+            max_reference_images=14,
+            internal_reasoning=True,
+            thinking_mode=True,
+            physics_aware_synthesis=True,
+            native_text_rendering=True,
+            international_text_rendering=True,
+            iterative_refinement=True,
+            supported_resolutions=[
+                "512x512",    # 0.5K
+                "1024x1024",  # 1K (default)
+                "2048x2048",  # 2K
+                "4096x4096",  # 4K
+            ],
+            max_resolution="4096x4096",
+            supported_aspect_ratios=[
+                "1:1", "3:4", "4:3", "9:16", "16:9",
+                "2:3", "3:2", "4:5", "5:4", "21:9",
+                "1:4", "4:1", "1:8", "8:1",  # New extended ratios
+            ],
+            typical_generation_time=22.0,  # ~50% faster than Pro
+            supports_batch=True,
+            accuracy_tier="high",
+        ),
+        generation=GenerationConfig(
+            enable_pre_generation_checks=True,
+            enable_iterative_refinement=True,
+            max_internal_iterations=3,
+            quality_threshold=0.90,
+            confidence_threshold=0.85,
+            enable_search_grounding=True,
+            enable_reference_images=True,
+            max_reference_images_to_use=5,
+            max_generation_attempts=2,
+            enable_smart_retry=True,
+        ),
+        evaluation=EvaluationConfig(
+            use_holistic_reasoning=True,
+            reasoning_passes=2,
+            autonomous_error_detection=True,
+            visual_coherence_checking=True,
+            enable_fact_checking=True,
+        ),
+    ),
+
     "gemini-3-pro-image-preview": ModelProfile(
         model_name="gemini-3-pro-image-preview",
         display_name="Gemini 3 Pro Image (Nano Banana Pro)",
         description=(
-            "Google's most advanced image generation model with enhanced reasoning, "
-            "Google Search grounding, multi-image reference support, and physics-aware synthesis. "
-            "Released 2026 with state-of-the-art text rendering and iterative refinement capabilities."
+            "Google's highest-quality image generation model with maximum reasoning depth. "
+            "Nano Banana Pro delivers best results for complex compositions and subjects "
+            "requiring deep historical accuracy. Use for premium portrait generation where "
+            "quality trumps speed. Features advanced reasoning, Google Search grounding, "
+            "multi-image reference support, and physics-aware synthesis."
         ),
         release_date="2026-01",
-        is_recommended=True,
+        is_recommended=False,
         capabilities=ModelCapabilities(
             google_search_grounding=True,
+            image_search_grounding=False,
             multi_image_reference=True,
             max_reference_images=14,
             internal_reasoning=True,
+            thinking_mode=True,
             physics_aware_synthesis=True,
             native_text_rendering=True,
+            international_text_rendering=True,
             iterative_refinement=True,
-            supported_resolutions=["1024x1024", "1536x1536", "2048x2048", "4096x4096"],
+            supported_resolutions=["1024x1024", "2048x2048", "4096x4096"],
             max_resolution="4096x4096",
+            supported_aspect_ratios=[
+                "1:1", "3:4", "4:3", "9:16", "16:9",
+                "2:3", "3:2", "4:5", "5:4", "21:9",
+            ],
             typical_generation_time=45.0,
             supports_batch=False,
+            accuracy_tier="maximum",
         ),
         generation=GenerationConfig(
             enable_pre_generation_checks=True,
@@ -205,23 +302,29 @@ MODEL_PROFILES: Dict[str, ModelProfile] = {
         model_name="gemini-exp-1206",
         display_name="Gemini Experimental (December 2025)",
         description=(
-            "Experimental Gemini model from December 2025. Good quality image generation "
-            "but lacks advanced reasoning and Google Search grounding capabilities."
+            "Legacy experimental Gemini model from December 2025. Good quality image "
+            "generation but lacks advanced reasoning, thinking mode, and Google Search "
+            "grounding capabilities. Use only for compatibility with existing workflows."
         ),
         release_date="2025-12",
         is_recommended=False,
         capabilities=ModelCapabilities(
             google_search_grounding=False,
+            image_search_grounding=False,
             multi_image_reference=False,
             max_reference_images=0,
             internal_reasoning=False,
+            thinking_mode=False,
             physics_aware_synthesis=False,
             native_text_rendering=False,
+            international_text_rendering=False,
             iterative_refinement=False,
             supported_resolutions=["1024x1024"],
             max_resolution="1024x1024",
+            supported_aspect_ratios=["1:1", "3:4", "4:3", "9:16", "16:9"],
             typical_generation_time=30.0,
             supports_batch=False,
+            accuracy_tier="standard",
         ),
         generation=GenerationConfig(
             enable_pre_generation_checks=False,
@@ -229,49 +332,6 @@ MODEL_PROFILES: Dict[str, ModelProfile] = {
             max_internal_iterations=1,
             quality_threshold=0.80,
             confidence_threshold=0.75,
-            enable_search_grounding=False,
-            enable_reference_images=False,
-            max_reference_images_to_use=0,
-            max_generation_attempts=2,
-            enable_smart_retry=False,
-        ),
-        evaluation=EvaluationConfig(
-            use_holistic_reasoning=False,
-            reasoning_passes=1,
-            autonomous_error_detection=False,
-            visual_coherence_checking=False,
-            enable_fact_checking=False,
-        ),
-    ),
-
-    "gemini-2.5-flash": ModelProfile(
-        model_name="gemini-2.5-flash",
-        display_name="Gemini 2.5 Flash",
-        description=(
-            "Fast model with native image generation. Good for quick iterations "
-            "with improved capabilities over 2.0."
-        ),
-        release_date="2026-01",
-        is_recommended=False,
-        capabilities=ModelCapabilities(
-            google_search_grounding=False,
-            multi_image_reference=False,
-            max_reference_images=0,
-            internal_reasoning=False,
-            physics_aware_synthesis=False,
-            native_text_rendering=True,  # Has basic text rendering
-            iterative_refinement=False,
-            supported_resolutions=["1024x1024"],
-            max_resolution="1024x1024",
-            typical_generation_time=20.0,
-            supports_batch=False,
-        ),
-        generation=GenerationConfig(
-            enable_pre_generation_checks=False,
-            enable_iterative_refinement=False,
-            max_internal_iterations=1,
-            quality_threshold=0.75,
-            confidence_threshold=0.70,
             enable_search_grounding=False,
             enable_reference_images=False,
             max_reference_images_to_use=0,
@@ -366,25 +426,33 @@ def get_optimal_config_for_model(
     Returns:
         ModelProfile with applied overrides
     """
-    profile = get_model_profile(model_name)
+    base_profile = get_model_profile(model_name)
 
-    # Apply overrides
+    # Create copies to avoid mutating shared MODEL_PROFILES objects
     if override_generation:
-        for key, value in override_generation.items():
-            if hasattr(profile.generation, key):
-                setattr(profile.generation, key, value)
+        valid_gen = {k: v for k, v in override_generation.items()
+                     if hasattr(base_profile.generation, k)}
+        generation = dataclasses.replace(base_profile.generation, **valid_gen)
+    else:
+        generation = base_profile.generation
 
     if override_evaluation:
-        for key, value in override_evaluation.items():
-            if hasattr(profile.evaluation, key):
-                setattr(profile.evaluation, key, value)
+        valid_eval = {k: v for k, v in override_evaluation.items()
+                      if hasattr(base_profile.evaluation, k)}
+        evaluation = dataclasses.replace(base_profile.evaluation, **valid_eval)
+    else:
+        evaluation = base_profile.evaluation
 
-    return profile
+    return dataclasses.replace(base_profile, generation=generation, evaluation=evaluation)
 
 
 # Export recommended model as constant
 RECOMMENDED_MODEL = get_recommended_model()
 
-# Backwards compatibility
-DEFAULT_MODEL = "gemini-3-pro-image-preview"
-LEGACY_MODEL = "gemini-exp-1206"
+# Model constants
+FLASH_MODEL = "gemini-3.1-flash-image-preview"   # Fast + accurate (default)
+PRO_MODEL = "gemini-3-pro-image-preview"          # Maximum quality
+LEGACY_MODEL = "gemini-exp-1206"                  # Legacy compatibility
+
+# Backwards compatibility alias
+DEFAULT_MODEL = FLASH_MODEL

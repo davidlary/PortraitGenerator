@@ -1,7 +1,6 @@
 """Unit tests for prompt_builder module."""
 
 import pytest
-from unittest.mock import Mock
 
 from portrait_generator.prompt_builder import (
     PromptBuilder,

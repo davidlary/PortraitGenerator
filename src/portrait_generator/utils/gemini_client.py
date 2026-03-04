@@ -1,13 +1,17 @@
 """Google Gemini API client for image generation with advanced capabilities.
 
-This module provides an enhanced client for Gemini 3 Pro Image (Nano Banana Pro)
-with support for:
-- Google Search grounding for fact-checking
-- Multi-image reference composition (up to 14 images)
-- Internal reasoning and iterative refinement
-- Physics-aware synthesis
-- Native LLM-based text rendering
-- Autonomous quality prediction
+This module provides an enhanced client supporting both:
+- Gemini 3.1 Flash Image (Nano Banana 2) - RECOMMENDED: best speed+accuracy balance
+  * ~22s generation time (vs ~45s for Pro)
+  * Image Search grounding (text + image search results)
+  * Thinking mode for enhanced accuracy
+  * New resolutions: 0.5K, 1K, 2K, 4K
+  * New aspect ratios: 1:4, 4:1, 1:8, 8:1 + standard set
+  * Improved international text rendering
+  * Batch API support
+- Gemini 3 Pro Image (Nano Banana Pro) - for maximum quality workloads
+  * Deepest reasoning and physics-aware synthesis
+  * Highest accuracy for complex/obscure historical subjects
 """
 
 import io
@@ -67,24 +71,34 @@ class PreGenerationCheck:
 class GeminiImageClient:
     """Enhanced client for Google Gemini image generation API.
 
-    Supports advanced features of gemini-3-pro-image-preview including
-    Google Search grounding, multi-image references, and internal reasoning.
+    Default model is gemini-3.1-flash-image-preview (Nano Banana 2) which
+    provides the best combination of speed and accuracy:
+    - ~22s generation vs ~45s for Pro
+    - Image Search grounding (text + image results)
+    - Thinking mode for accuracy-critical generations
+    - 4K resolution support with extended aspect ratios
+    - Batch API support for high-volume use
+
+    For maximum quality on complex historical subjects, use
+    gemini-3-pro-image-preview (Nano Banana Pro) instead.
     """
 
     def __init__(
         self,
         api_key: str,
-        model: str = "gemini-3-pro-image-preview",
+        model: str = "gemini-3.1-flash-image-preview",
         enable_grounding: bool = True,
         enable_reasoning: bool = True,
+        thinking_level: str = "medium",
     ) -> None:
         """Initialize Gemini client with advanced capabilities.
 
         Args:
             api_key: Google API key
-            model: Gemini model name (default: gemini-3-pro-image-preview)
-            enable_grounding: Enable Google Search grounding
+            model: Gemini model name (default: gemini-3.1-flash-image-preview)
+            enable_grounding: Enable Google Search / Image Search grounding
             enable_reasoning: Enable internal reasoning capabilities
+            thinking_level: Thinking depth for accuracy (minimal/low/medium/high)
 
         Raises:
             ImportError: If google-genai package not installed
@@ -100,6 +114,7 @@ class GeminiImageClient:
         self.model = model
         self.enable_grounding = enable_grounding
         self.enable_reasoning = enable_reasoning
+        self.thinking_level = thinking_level
 
         try:
             import google.genai as genai
@@ -121,15 +136,32 @@ class GeminiImageClient:
 
     def _detect_capabilities(self) -> None:
         """Detect capabilities of the configured model."""
-        # Determine model capabilities based on model name
-        self.supports_grounding = "gemini-3" in self.model or "nano-banana" in self.model
-        self.supports_multi_image = "gemini-3" in self.model
-        self.supports_reasoning = "gemini-3" in self.model or "gemini-2" in self.model
-        self.supports_native_text = "gemini-3" in self.model or "gemini-2" in self.model
+        # Flash model (Nano Banana 2) - recommended for speed + accuracy
+        is_flash = "3.1-flash" in self.model or "nano-banana-2" in self.model
+        # Pro model (Nano Banana Pro) - maximum quality
+        is_pro = "3-pro" in self.model or "nano-banana-pro" in self.model
+        # Any Gemini 3.x generation
+        is_gemini3 = "gemini-3" in self.model or is_flash or is_pro
+        # Legacy or Gemini 2.x
+        is_gemini2 = "gemini-2" in self.model and not is_gemini3
 
-        logger.debug(f"Model capabilities: grounding={self.supports_grounding}, "
-                    f"multi_image={self.supports_multi_image}, "
-                    f"reasoning={self.supports_reasoning}")
+        self.supports_grounding = is_gemini3
+        self.supports_image_grounding = is_flash  # Flash adds Image Search grounding
+        self.supports_multi_image = is_gemini3
+        self.supports_reasoning = is_gemini3 or is_gemini2
+        self.supports_native_text = is_gemini3 or is_gemini2
+        self.supports_thinking_mode = is_gemini3  # Both Flash and Pro support thinking
+        self.supports_batch = is_flash  # Flash supports Batch API
+        self.supports_extended_aspect_ratios = is_flash  # Flash adds 1:4, 4:1, 1:8, 8:1
+
+        logger.debug(
+            f"Model capabilities: grounding={self.supports_grounding}, "
+            f"image_grounding={self.supports_image_grounding}, "
+            f"thinking={self.supports_thinking_mode}, "
+            f"multi_image={self.supports_multi_image}, "
+            f"reasoning={self.supports_reasoning}, "
+            f"extended_ratios={self.supports_extended_aspect_ratios}"
+        )
 
     def generate_image(
         self,
@@ -163,11 +195,20 @@ class GeminiImageClient:
         if not prompt.strip():
             raise ValueError("Prompt cannot be only whitespace")
 
-        valid_ratios = {"1:1", "3:4", "4:3", "9:16", "16:9"}
+        # Base ratios supported by all models
+        base_ratios = {"1:1", "3:4", "4:3", "9:16", "16:9"}
+        # Extended ratios for Flash model (Nano Banana 2) - improved adherence
+        extended_ratios = {"2:3", "3:2", "4:5", "5:4", "21:9", "1:4", "4:1", "1:8", "8:1"}
+
+        if self.supports_extended_aspect_ratios:
+            valid_ratios = base_ratios | extended_ratios
+        else:
+            valid_ratios = base_ratios
+
         if aspect_ratio not in valid_ratios:
             raise ValueError(
                 f"Invalid aspect_ratio '{aspect_ratio}'. "
-                f"Must be one of: {', '.join(valid_ratios)}"
+                f"Must be one of: {', '.join(sorted(valid_ratios))}"
             )
 
         logger.info(f"Generating image with aspect ratio: {aspect_ratio}")
@@ -253,6 +294,11 @@ class GeminiImageClient:
     ) -> str:
         """Enhance prompt with reasoning and quality instructions.
 
+        For gemini-3.1-flash-image-preview (Nano Banana 2), thinking mode
+        provides enhanced accuracy while maintaining speed advantage. The model
+        reasons through historical details, composition, and visual coherence
+        before generating.
+
         Args:
             prompt: Original prompt
             enable_iteration: Whether to enable iteration
@@ -263,8 +309,14 @@ class GeminiImageClient:
         """
         enhancements = []
 
-        # Add reasoning instructions if supported
-        if self.enable_reasoning and self.supports_reasoning:
+        # Add thinking-enhanced accuracy instructions (Flash and Pro)
+        if self.enable_reasoning and self.supports_thinking_mode:
+            enhancements.append(
+                "Apply thinking mode to reason through historical accuracy, "
+                "compositional details, and visual coherence before generating. "
+                "Verify all depicted details are historically correct."
+            )
+        elif self.enable_reasoning and self.supports_reasoning:
             enhancements.append(
                 "Use your internal reasoning to ensure accuracy and quality. "
                 "Think through the composition before finalizing."
@@ -277,8 +329,13 @@ class GeminiImageClient:
                 "if needed to achieve high quality."
             )
 
-        # Add grounding instructions if supported
-        if self.enable_grounding and self.supports_grounding:
+        # Add Image Search grounding for Flash (includes both text and image results)
+        if self.enable_grounding and self.supports_image_grounding:
+            enhancements.append(
+                "Use Image Search grounding to incorporate real historical visual references "
+                "and verify accuracy of depicted appearance, clothing, and era-specific details."
+            )
+        elif self.enable_grounding and self.supports_grounding:
             enhancements.append(
                 "Use Google Search to verify historical accuracy and facts."
             )
@@ -496,12 +553,17 @@ RECOMMENDATIONS: [list suggestions]
             "capabilities": {
                 "image_generation": True,
                 "google_search_grounding": self.supports_grounding,
+                "image_search_grounding": self.supports_image_grounding,
                 "multi_image_reference": self.supports_multi_image,
                 "internal_reasoning": self.supports_reasoning,
+                "thinking_mode": self.supports_thinking_mode,
                 "native_text_rendering": self.supports_native_text,
+                "extended_aspect_ratios": self.supports_extended_aspect_ratios,
+                "batch_api": self.supports_batch,
             },
             "settings": {
                 "grounding_enabled": self.enable_grounding,
                 "reasoning_enabled": self.enable_reasoning,
+                "thinking_level": self.thinking_level,
             },
         }
