@@ -127,6 +127,15 @@ class PromptBuilder:
             Subject section text
         """
         data = context.subject_data
+        gender = getattr(data, "gender", "unknown")
+
+        # Calculate approximate portrait age
+        portrait_year = data.birth_year + (
+            (data.death_year - data.birth_year) // 2
+            if data.death_year
+            else 40
+        )
+        portrait_age = portrait_year - data.birth_year
 
         section = f"""Generate a historically accurate {context.style} portrait of {data.name}.
 
@@ -139,13 +148,28 @@ SUBJECT INFORMATION:
         if data.death_year:
             section += f"\n- Death Year: {data.death_year}"
 
+        section += f"\n- Approximate age at portrait time: {portrait_age} years old"
+
+        # Gender — inject explicitly so AI cannot default to stereotypes
+        if gender != "unknown":
+            section += f"""
+
+SUBJECT GENDER: {gender.upper()} — The portrait MUST depict a {gender} person.
+This is non-negotiable. Do not depict this subject as any other gender."""
+        else:
+            section += """
+
+GENDER: Research the subject carefully and depict the correct gender."""
+
         # Add appearance details if available
-        if hasattr(data, 'appearance_details') and data.appearance_details:
-            section += f"\n- Physical Appearance: {data.appearance_details}"
+        if hasattr(data, "appearance_notes") and data.appearance_notes:
+            section += "\n\nAPPEARANCE DETAILS:"
+            for note in data.appearance_notes:
+                section += f"\n- {note}"
 
         # Add historical context if available
-        if hasattr(data, 'historical_context') and data.historical_context:
-            section += f"\n- Historical Context: {data.historical_context}"
+        if hasattr(data, "historical_context") and data.historical_context:
+            section += f"\n\nHISTORICAL CONTEXT: {data.historical_context}"
 
         return section
 

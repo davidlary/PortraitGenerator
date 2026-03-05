@@ -80,17 +80,38 @@ class TestReferenceImageFinder:
         )
 
         assert finder.gemini_client is gemini_client
-        assert finder.enable_grounding is True
         assert finder.download_dir.exists()
 
-    def test_build_search_queries(self, reference_finder, sample_subject_data):
-        """Test building search queries."""
-        queries = reference_finder._build_search_queries(sample_subject_data)
+    def test_lookup_confirmed_url_known_subject(self, reference_finder):
+        """Test confirmed URL lookup returns URL for known subjects."""
+        from portrait_generator.api.models import SubjectData
+        data = SubjectData(name="David Lary", birth_year=1970, era="Contemporary")
+        url = reference_finder._lookup_confirmed_url(data.name)
+        assert url is not None
+        assert url.startswith("https://")
 
-        assert len(queries) > 0
-        assert any("Alan Turing" in q for q in queries)
-        assert any("1912" in q for q in queries)
-        assert any("20th Century" in q for q in queries)
+    def test_lookup_confirmed_url_unknown_subject(self, reference_finder):
+        """Test confirmed URL lookup returns None for unknown subjects."""
+        url = reference_finder._lookup_confirmed_url("Completely Unknown Person XYZ")
+        assert url is None
+
+    def test_get_wikipedia_photo_url_present(self, reference_finder):
+        """Test extracting Wikipedia photo URL from reference_sources."""
+        from portrait_generator.api.models import SubjectData
+        data = SubjectData(
+            name="Alan Turing",
+            birth_year=1912,
+            death_year=1954,
+            era="20th Century",
+            reference_sources=["WIKIPEDIA_PHOTO:https://example.com/turing.jpg"],
+        )
+        url = reference_finder._get_wikipedia_photo_url(data)
+        assert url == "https://example.com/turing.jpg"
+
+    def test_get_wikipedia_photo_url_absent(self, reference_finder, sample_subject_data):
+        """Test extracting Wikipedia photo URL when not present."""
+        url = reference_finder._get_wikipedia_photo_url(sample_subject_data)
+        assert url is None
 
     def test_rank_and_filter(self, reference_finder, sample_subject_data):
         """Test ranking and filtering images."""

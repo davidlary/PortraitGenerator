@@ -5,6 +5,7 @@ import re
 from typing import Optional
 
 from ..api.models import SubjectData
+from ..utils.ground_truth import GroundTruthVerifier
 
 logger = logging.getLogger(__name__)
 
@@ -56,9 +57,29 @@ class BiographicalResearcher:
             # Parse response into structured data
             subject_data = self._parse_research_response(name, response)
 
+            # Cross-validate and enrich with Wikipedia/Wikidata ground truth
+            try:
+                verifier = GroundTruthVerifier()
+                ground_truth = verifier.fetch(name)
+                if ground_truth.confidence > 0.5:
+                    conflicts = verifier.cross_validate(subject_data, ground_truth)
+                    if conflicts:
+                        logger.warning(
+                            f"Ground truth conflicts for '{name}': {conflicts}"
+                        )
+                    subject_data = verifier.enrich_subject_data(
+                        subject_data, ground_truth
+                    )
+                    logger.info(
+                        f"Ground truth enriched: gender={subject_data.gender}, "
+                        f"birth={subject_data.birth_year}"
+                    )
+            except Exception as gt_err:
+                logger.debug(f"Ground truth lookup skipped for '{name}': {gt_err}")
+
             logger.info(
                 f"Research complete: {subject_data.name} "
-                f"({subject_data.formatted_years})"
+                f"({subject_data.formatted_years}, gender={subject_data.gender})"
             )
 
             return subject_data
@@ -148,21 +169,23 @@ class BiographicalResearcher:
 
 NAME: {name}
 
-IMPORTANT: Focus on computer science, machine learning, and artificial intelligence researchers.
-If the name is common (like "Ronald Williams"), prioritize ML/AI researchers over other fields.
+IMPORTANT: Identify the correct person by cross-checking multiple facts.
+If this is a scientist or researcher, confirm the field and institution.
+If the name could match multiple people, specify which one and why.
 
 Please provide the following information in a structured format:
 
 1. FULL NAME: The person's complete name
 2. BIRTH YEAR: Year of birth (number only). If not publicly available, write "Not available" or provide best estimate.
 3. DEATH YEAR: Year of death (number only, or "Present" if still alive)
-4. ERA: Historical era or time period (e.g., "Renaissance", "20th Century", "Medieval")
-5. APPEARANCE NOTES: Physical characteristics, typical clothing style, notable features
+4. GENDER: The person's gender (male, female, or unknown)
+5. ERA: Historical era or time period (e.g., "Renaissance", "20th Century", "Medieval")
+6. APPEARANCE NOTES: Physical characteristics, typical clothing style, notable features
    - List 3-5 specific details about their appearance
    - Include era-appropriate clothing and hairstyle
    - Mention any distinctive features
-6. HISTORICAL CONTEXT: Brief description of their time period and cultural context
-7. REFERENCE SOURCES: Key sources of information (e.g., "Historical records", "Contemporary accounts")
+7. HISTORICAL CONTEXT: Brief description of their time period and cultural context
+8. REFERENCE SOURCES: Key sources of information (e.g., "Historical records", "Contemporary accounts")
 
 Format your response clearly with each section labeled.
 Be historically accurate and specific.
@@ -283,6 +306,20 @@ Be historically accurate and specific.
                 else f"Historical figure from {era}"
             )
 
+            # Extract gender
+            gender = "unknown"
+            gender_match = re.search(
+                r"GENDER[:\s]*\**\s*\n*\s*(male|female|non-binary|unknown)",
+                response,
+                re.IGNORECASE,
+            )
+            if gender_match:
+                gender_str = gender_match.group(1).lower()
+                if "female" in gender_str or "woman" in gender_str:
+                    gender = "female"
+                elif "male" in gender_str or "man" in gender_str:
+                    gender = "male"
+
             # Extract reference sources
             reference_sources = []
             sources_section = re.search(
@@ -309,13 +346,14 @@ Be historically accurate and specific.
                 appearance_notes=appearance_notes[:5],  # Limit to 5
                 historical_context=historical_context,
                 reference_sources=reference_sources[:3],  # Limit to 3
+                gender=gender,
             )
 
             # Validate
             if not self.validate_data(subject_data):
                 raise ValueError("Parsed data failed validation")
 
-            logger.debug(f"Parsed subject data: {subject_data.name}")
+            logger.debug(f"Parsed subject data: {subject_data.name}, gender={gender}")
 
             return subject_data
 

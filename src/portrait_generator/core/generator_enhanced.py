@@ -23,6 +23,7 @@ from ..pre_generation_validator import PreGenerationValidator
 from .researcher import BiographicalResearcher
 from .overlay import TitleOverlayEngine
 from .evaluator import QualityEvaluator
+from .portrait_verifier import PortraitVerifier
 
 logger = logging.getLogger(__name__)
 
@@ -256,6 +257,20 @@ class EnhancedPortraitGenerator:
 
                     evaluations[style] = evaluation
 
+            # MD5 duplicate detection — catches caching bugs that copy one portrait to all
+            if len(files) > 1:
+                all_output_paths = [Path(p) for p in files.values() if p]
+                duplicates = PortraitVerifier.check_md5_unique(all_output_paths)
+                if duplicates:
+                    dup_names = [
+                        [str(p.name) for p in paths]
+                        for paths in duplicates.values()
+                    ]
+                    logger.error(
+                        f"DUPLICATE PORTRAITS DETECTED (caching bug): {dup_names}"
+                    )
+                    errors.append(f"Duplicate portraits detected: {dup_names}")
+
             # Calculate total time
             generation_time = time.time() - start_time
 
@@ -389,6 +404,45 @@ class EnhancedPortraitGenerator:
                     # Save image
                     final_image.save(image_path, "PNG", quality=95)
                     logger.info(f"Saved image: {image_path}")
+
+                    # Post-generation verification
+                    enable_verify = (
+                        self.settings is not None
+                        and getattr(self.settings, "enable_portrait_verification", True)
+                    )
+                    if enable_verify:
+                        min_kb = getattr(
+                            self.settings,
+                            "portrait_verification_min_size_kb",
+                            300,
+                        )
+                        verifier = PortraitVerifier(
+                            gemini_client=self.gemini_client,
+                            min_size_kb=min_kb,
+                        )
+                        verification = verifier.run_full_verification(
+                            image_path,
+                            subject_data,
+                            reference_paths if reference_paths else [],
+                        )
+                        if not verification.passed:
+                            logger.warning(
+                                f"Portrait verification FAILED for {style}: "
+                                f"{verification.failures}"
+                            )
+                            if attempt < max_attempts - 1:
+                                logger.info(
+                                    f"Retrying due to verification failure "
+                                    f"(attempt {attempt+1}/{max_attempts})"
+                                )
+                                image_path.unlink(missing_ok=True)
+                                continue  # retry loop
+                            else:
+                                logger.error(
+                                    "Max attempts reached; keeping best available portrait"
+                                )
+                        else:
+                            logger.info(f"Portrait verification PASSED for {style}")
 
                     return image_path, prompt_path
 

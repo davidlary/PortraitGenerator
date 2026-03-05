@@ -135,6 +135,22 @@ class Settings(BaseSettings):
         description="Save prompt markdown files alongside images",
     )
 
+    # Portrait Verification Settings
+    enable_portrait_verification: bool = Field(
+        default=True,
+        description="Run post-generation portrait verification (size, dates, gender)",
+    )
+    enable_ground_truth_lookup: bool = Field(
+        default=True,
+        description="Cross-validate Gemini research against Wikipedia/Wikidata",
+    )
+    portrait_verification_min_size_kb: int = Field(
+        default=300,
+        ge=10,
+        le=10000,
+        description="Minimum portrait file size in KB for verification",
+    )
+
     # Testing Settings
     visual_inspection_enabled: bool = Field(
         default=True,

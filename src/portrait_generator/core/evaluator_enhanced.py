@@ -7,6 +7,7 @@ This module extends evaluation with:
 - Fact-checking with Google Search grounding
 """
 
+import io
 import logging
 from typing import Dict, Tuple, Optional
 
@@ -231,6 +232,12 @@ class EnhancedQualityEvaluator:
             return result
 
         try:
+            # Convert image to bytes for Vision API
+            image_buf = io.BytesIO()
+            image.convert("RGB").save(image_buf, format="JPEG", quality=90)
+            image_bytes = image_buf.getvalue()
+            has_vision_types = hasattr(self.gemini_client, "types")
+
             # Multi-pass evaluation for consistency
             num_passes = self.model_profile.evaluation.reasoning_passes if self.model_profile else 2
 
@@ -242,7 +249,23 @@ class EnhancedQualityEvaluator:
                     subject_data, style, pass_num
                 )
 
-                response = self.gemini_client._query_model_text(prompt)
+                # Send image + prompt to Gemini Vision when available
+                if has_vision_types:
+                    try:
+                        image_part = self.gemini_client.types.Part.from_bytes(
+                            data=image_bytes, mime_type="image/jpeg"
+                        )
+                        resp = self.gemini_client.client.models.generate_content(
+                            model=self.gemini_client.model,
+                            contents=[prompt, image_part],
+                        )
+                        response = resp.text or ""
+                    except Exception as ve:
+                        logger.debug(f"Vision eval failed, falling back to text: {ve}")
+                        response = self.gemini_client._query_model_text(prompt)
+                else:
+                    response = self.gemini_client._query_model_text(prompt)
+
                 all_responses.append(response)
 
             # Synthesize results from multiple passes

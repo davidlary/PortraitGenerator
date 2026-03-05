@@ -63,6 +63,10 @@ class SubjectData(BaseModel):
         default_factory=list,
         description="Reference sources used",
     )
+    gender: str = Field(
+        default="unknown",
+        description="Subject's gender: 'male', 'female', or 'unknown'",
+    )
 
     @property
     def formatted_years(self) -> str:
