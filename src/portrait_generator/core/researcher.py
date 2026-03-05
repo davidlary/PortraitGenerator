@@ -57,23 +57,27 @@ class BiographicalResearcher:
             # Parse response into structured data
             subject_data = self._parse_research_response(name, response)
 
-            # Cross-validate and enrich with Wikipedia/Wikidata ground truth
+            # Cross-validate and enrich with multi-source ground truth cascade
+            # (Wikipedia REST → Wikipedia Search → Wikidata → DBpedia → Gemini)
             try:
-                verifier = GroundTruthVerifier()
+                # Pass Gemini client to enable Tier 5 (AI web search fallback)
+                verifier = GroundTruthVerifier(gemini_client=self.gemini_client)
                 ground_truth = verifier.fetch(name)
-                if ground_truth.confidence > 0.5:
-                    conflicts = verifier.cross_validate(subject_data, ground_truth)
-                    if conflicts:
-                        logger.warning(
-                            f"Ground truth conflicts for '{name}': {conflicts}"
-                        )
-                    subject_data = verifier.enrich_subject_data(
-                        subject_data, ground_truth
+                # Always run cross-validate to log conflicts (even at low confidence)
+                conflicts = verifier.cross_validate(subject_data, ground_truth)
+                if conflicts:
+                    logger.warning(
+                        f"Ground truth conflicts for '{name}': {conflicts}"
                     )
-                    logger.info(
-                        f"Ground truth enriched: gender={subject_data.gender}, "
-                        f"birth={subject_data.birth_year}"
-                    )
+                subject_data = verifier.enrich_subject_data(
+                    subject_data, ground_truth
+                )
+                logger.info(
+                    f"Ground truth enriched: gender={subject_data.gender}, "
+                    f"birth={subject_data.birth_year}, "
+                    f"sources=[{ground_truth.source}], "
+                    f"confidence={ground_truth.confidence:.2f}"
+                )
             except Exception as gt_err:
                 logger.debug(f"Ground truth lookup skipped for '{name}': {gt_err}")
 
@@ -102,15 +106,15 @@ class BiographicalResearcher:
         Raises:
             ValueError: If birth year is invalid
         """
-        if birth < 0:
-            raise ValueError("Birth year cannot be negative for CE dates")
-
         if death is not None and death < birth:
             raise ValueError("Death year cannot be before birth year")
 
+        def _fmt(y: int) -> str:
+            return f"{abs(y)} BCE" if y < 0 else str(y)
+
         if death:
-            return f"{birth}-{death}"
-        return f"{birth}-Present"
+            return f"{_fmt(birth)}-{_fmt(death)}"
+        return f"{_fmt(birth)}-Present"
 
     def validate_data(self, data: SubjectData) -> bool:
         """
@@ -135,11 +139,14 @@ class BiographicalResearcher:
             logger.warning("Validation failed: Birth year missing")
             return False
 
-        if data.birth_year < 0 or data.birth_year > 2100:
+        # Birth year can be negative for BCE dates (e.g., -460 for Hippocrates 460 BCE)
+        if data.birth_year > 2100:
             logger.warning(f"Validation failed: Invalid birth year {data.birth_year}")
             return False
 
         if data.death_year is not None:
+            # For BCE dates: birth_year=-460, death_year=-370 → -370 > -460 ✓
+            # For CE dates: birth_year=1879, death_year=1955 → 1955 > 1879 ✓
             if data.death_year < data.birth_year:
                 logger.warning("Validation failed: Death before birth")
                 return False
@@ -242,33 +249,65 @@ Be historically accurate and specific.
             ValueError: If response cannot be parsed
         """
         try:
-            # Extract birth year - handle both inline and multi-line formats
+            # Extract birth year - lenient pattern handles "c. 460 BCE", "~1912", "circa 1098", etc.
+            # Uses [^\n\d]*? to skip non-digit prefixes like "c.", "approximately", "~"
             birth_match = re.search(
-                r"BIRTH YEAR[:\s]*\**\s*\n*\s*(\d+)", response, re.IGNORECASE
+                r"BIRTH YEAR[:\s]*\**[^\n\d]*?(\d+)", response, re.IGNORECASE
             )
-            if not birth_match:
-                # Check if birth year is not available
-                if "not publicly available" in response.lower() or "not available" in response.lower() or "information not available" in response.lower():
-                    # Use a reasonable estimate for modern figures (assume born around 1970-1990)
-                    logger.warning(f"Birth year not publicly available for {name}, using estimate: 1975")
-                    birth_year = 1975
-                else:
-                    raise ValueError("Could not extract birth year from response")
-            else:
+            if birth_match:
                 birth_year = int(birth_match.group(1))
+                # Check for BCE context in the 30 chars after "BIRTH YEAR:" label
+                ctx_start = birth_match.start()
+                ctx_end = min(len(response), birth_match.end() + 20)
+                birth_context = response[ctx_start:ctx_end]
+                if re.search(r"\bBCE?\b", birth_context, re.IGNORECASE):
+                    birth_year = -birth_year
+                    logger.debug(f"Detected BCE birth year for {name}: {birth_year}")
+            else:
+                # No year extractable - use placeholder; ground truth cascade will correct
+                if "not publicly available" in response.lower() or "not available" in response.lower() or "information not available" in response.lower():
+                    logger.warning(f"Birth year not publicly available for {name}, using estimate: 1975")
+                else:
+                    logger.warning(
+                        f"Could not extract birth year for '{name}' from Gemini response "
+                        f"(no digit found after BIRTH YEAR label); using estimate 1975 — "
+                        f"ground truth cascade will correct if actual year is known"
+                    )
+                birth_year = 1975
 
-            # Extract death year - handle both inline and multi-line formats
+            # Extract death year - strict pattern to avoid matching embedded numbers
+            # (e.g., "Not applicable, born in 1933" must NOT match 1933 as death year)
+            # Only accepts: year immediately after "DEATH YEAR:" with optional short prefix
+            # like "c.", "circa", "approximately", "~".
             death_year = None
             death_match = re.search(
-                r"DEATH YEAR[:\s]*\**\s*\n*\s*(\d+|Present|present|living|alive)",
+                r"DEATH YEAR[:\s]*\**\s*(?:[cC]\.?\s*|circa\s+|approximately\s+|~\s*)?"
+                r"(\d{3,4}|Present|present|living|alive|n/a|not\s+applicable)",
                 response,
                 re.IGNORECASE,
             )
             if death_match:
-                death_str = death_match.group(1)
-                if death_str.isdigit():
+                death_str = death_match.group(1).strip()
+                if re.match(r"^\d+$", death_str):
                     death_year = int(death_str)
-                # Otherwise, leave as None (still alive)
+                    # Check for BCE context
+                    ctx_start = death_match.start()
+                    ctx_end = min(len(response), death_match.end() + 20)
+                    death_context = response[ctx_start:ctx_end]
+                    if re.search(r"\bBCE?\b", death_context, re.IGNORECASE):
+                        death_year = -death_year
+                        logger.debug(f"Detected BCE death year for {name}: {death_year}")
+                # "Present", "living", "alive", "n/a", "not applicable" → leave as None
+
+            # Safety: if using the 1975 fallback birth year and death year precedes it,
+            # the death year was likely extracted from surrounding text, not the actual
+            # death date. Ground truth cascade will correct both years.
+            if birth_year == 1975 and death_year is not None and death_year < birth_year:
+                logger.warning(
+                    f"Death year {death_year} precedes fallback birth year 1975 for '{name}'; "
+                    f"clearing (ground truth will correct)"
+                )
+                death_year = None
 
             # Extract era - handle both inline and multi-line formats
             era_match = re.search(

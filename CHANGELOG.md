@@ -62,6 +62,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **P0 critical bug**: `generate_image()` was passing `contents=prompt_string`, silently discarding
   all reference images. Fixed to build `List[Part]` with images first (image-first ordering)
 - `loaded_count` scoping error in `generate_image()` when no reference images provided
+- **macOS Unicode normalization bug** in `test_book_portraits.py::_portrait_exists()`:
+  macOS HFS+ stores filenames in NFD decomposed form (ö → o + combining diacritical) while
+  Python strings are NFC composed. `Path.glob()` used string comparison without normalization,
+  causing subjects with diacritics (Schönbein, Berzelius, etc.) to always be treated as
+  missing. Fixed with `unicodedata.normalize("NFC", ...)` on both pattern and filesystem
+  entries. `Path.exists()` (used in generator) is unaffected — macOS OS layer normalizes.
+- Integration test fixture changed from `scope="module"` to `scope="function"` to support
+  `pytest-xdist` parallel execution (`-n 12`)
+- **`reference_paths` NameError** in `generator_enhanced.py` line 433: `reference_paths`
+  was undefined in scope, causing every portrait test to fail with NameError after saving to
+  disk. Fixed: replaced with `[]` — `ReferenceImage` objects are URLs/PIL Images, not local paths
+- **Ground truth cascade too narrow**: `GroundTruthVerifier` only used Wikipedia REST +
+  Wikidata SPARQL exact label match. Rewrote with 5-tier cascade:
+  Tier 1 Wikipedia REST → Tier 2 Wikipedia Search API → Tier 3 Wikidata `wbsearchentities`
+  (text search, handles "Brian A. Tinsley" vs "Brian Tinsley") → Tier 4 DBpedia SPARQL
+  → Tier 5 Gemini web search. Wikidata now uses `wbsearchentities` + `wbgetentities` not SPARQL.
+- **Brian Tinsley wrong birth year**: Gemini returned 1975 (actual: 1937). Added aggressive
+  override in `enrich_subject_data()`: if discrepancy >10 years and confidence ≥ 0.5, always
+  override — prevents decades-old portrait subjects from appearing too young
+- **John Pyle reference image too small**: Cambridge portrait URL (150×200px) was below the
+  256×256 minimum — always rejected, leaving portrait without a reference. Removed from
+  `_CONFIRMED_URLS`; cascade now finds Wikipedia image via Wikidata P18
+- **Ancient subjects birth year parse failure**: `_parse_research_response()` regex
+  `r"BIRTH YEAR[:\s]*\**\s*\n*\s*(\d+)"` failed on "c. 460 BCE", "approximately 1098 CE"
+  formats. Fixed with lenient pattern `r"BIRTH YEAR[:\s]*\**[^\n\d]*?(\d+)"` that skips
+  non-digit prefixes (c., circa, approximately, ~). Fallback to 1975 estimate (corrected by
+  ground truth cascade) instead of raising ValueError. Fixes Hippocrates, Theophrastus,
+  Pedanius Dioscorides, Hildegard von Bingen, and ambiguous modern subjects.
+
+### Integration Tests — Parallel Execution
+- 12 parallel workers via `pytest-xdist`: `python -m pytest tests/integration/test_book_portraits.py -n 12 --no-cov -m integration`
+- Estimated time for 77 portraits: ~5-10 minutes (vs 30-60 minutes sequential)
+- Existing portraits correctly skipped (Unicode-aware `_portrait_exists()`)
 
 ### Coverage / Tests
 - Tests: 455 → 480 passing

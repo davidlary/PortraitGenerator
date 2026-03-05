@@ -70,10 +70,13 @@ class SubjectData(BaseModel):
 
     @property
     def formatted_years(self) -> str:
-        """Get formatted year range (e.g., '1879-1955' or '1947-Present')."""
-        if self.death_year:
-            return f"{self.birth_year}-{self.death_year}"
-        return f"{self.birth_year}-Present"
+        """Get formatted year range (e.g., '1879-1955', '460 BCE-370 BCE', or '1947-Present')."""
+        def _fmt(y: int) -> str:
+            return f"{abs(y)} BCE" if y < 0 else str(y)
+
+        if self.death_year is not None:
+            return f"{_fmt(self.birth_year)}-{_fmt(self.death_year)}"
+        return f"{_fmt(self.birth_year)}-Present"
 
 
 class EvaluationResult(BaseModel):

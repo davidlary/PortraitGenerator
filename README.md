@@ -203,40 +203,19 @@ curl -X POST "http://localhost:8000/api/v1/generate" \
 
 ## Known Issues
 
-### Google Search Grounding (Disabled by Default as of v2.1.0)
+### Google Search Grounding — Resolved in v2.4.0
 
-**Issue:** Google Search Grounding API currently returns empty results consistently, affecting reference image finding functionality.
+**Status:** ✅ Fixed in v2.4.0 via 9-tier reference image cascade
 
-**Impact:**
-- Reference image finding was taking ~26 seconds per portrait
-- All searches returned 0 images (100% failure rate)
-- Generated portraits worked fine without references
+In v2.1.0, the Google Search Grounding API was returning empty results, causing `enable_reference_images`
+to be disabled by default. v2.4.0 completely replaces the grounding-API approach with a
+multi-tier cascade that uses Wikipedia REST, Wikidata SPARQL, Wikimedia Commons, and an optional
+Gemini web-search fallback — none of which depend on the grounding API.
 
-**Resolution:** As of v2.1.0, we've disabled reference finding by default for **2x faster generation**:
-- `enable_reference_images = False` (was `True` in v2.0.0)
-- `enable_search_grounding = False` (was `True` in v2.0.0)
+Reference images are now enabled by default (`enable_reference_images = True`) and the cascade
+successfully finds authentic portraits for the vast majority of historical subjects.
 
-**Performance Improvement:**
-```
-Before (v2.0.0): ~65 seconds per portrait
-After (v2.1.0):  ~32 seconds per portrait (2x faster!)
-```
-
-**Quality Impact:** None - portraits generate successfully without reference images, with identical quality.
-
-**To Re-enable** (if Google fixes the API in the future):
-```bash
-export ENABLE_REFERENCE_IMAGES=true
-export ENABLE_SEARCH_GROUNDING=true
-```
-
-Or in your `.env` file:
-```bash
-ENABLE_REFERENCE_IMAGES=true
-ENABLE_SEARCH_GROUNDING=true
-```
-
-**Technical Details:** See [profiling report](docs/PROFILING_2026-02-03.md) for systematic performance analysis.
+**Technical Details:** See [profiling report](docs/PROFILING_2026-02-03.md) for historical analysis.
 
 ---
 
@@ -514,17 +493,28 @@ Once the server is running, visit `http://localhost:8000/docs` for interactive A
 
 ### Core Components
 
-1. **GeminiImageClient**: Google Gemini API integration for image generation
-2. **BiographicalResearcher**: Deep research for historical accuracy
-3. **TitleOverlayEngine**: Professional title overlays with name and dates
-4. **PortraitGenerator**: Orchestrates complete workflow
-5. **QualityEvaluator**: Self-evaluation and quality assurance
-6. **API Layer**: RESTful FastAPI endpoints
+1. **GeminiImageClient**: Google Gemini Flash Image API integration for image + text generation
+2. **BiographicalResearcher**: Deep research with Gemini; cross-validated against ground truth
+3. **GroundTruthVerifier**: 5-tier cascade (Wikipedia REST → Wikipedia Search → Wikidata → DBpedia → Gemini web search) for date/gender verification
+4. **ReferenceFinder**: 9-tier cascade for authentic reference images (hardcoded table → Wikimedia → Gemini web → ...)
+5. **TitleOverlayEngine**: Professional title overlays with name, dates, and era
+6. **PortraitVerifier**: Post-generation verification (file size, overlay OCR, gender, identity vs reference)
+7. **EnhancedPortraitGenerator**: Orchestrates complete workflow with retry on verification failure
+8. **EnhancedQualityEvaluator**: Gemini Vision holistic evaluation of generated portrait
+9. **API Layer**: RESTful FastAPI endpoints
 
 ### Workflow
 
 ```
-Subject Name → Research → Generate (4 styles) → Add Overlays → Evaluate → Save
+Subject Name
+  → BiographicalResearcher (Gemini text research)
+  → GroundTruthVerifier (Wikipedia/Wikidata cross-validation, 5-tier cascade)
+  → ReferenceFinder (authentic portrait images, 9-tier cascade)
+  → Generate image (Gemini Flash Image, reference images injected)
+  → TitleOverlayEngine (name + dates overlay)
+  → PortraitVerifier (file size, OCR dates, gender check)
+  → EnhancedQualityEvaluator (Gemini Vision holistic scoring)
+  → Save portrait + .meta.json sidecar
 ```
 
 ---
@@ -541,10 +531,17 @@ source /Users/davidlary/Dropbox/Environments/load_api_keys.sh
 pytest tests/unit/ --cov=portrait_generator --cov-report=html --cov-report=term
 
 # Run specific test types
-pytest tests/unit/ -v           # Unit tests (389+ tests)
+pytest tests/unit/ -v           # Unit tests (480+ tests)
 
 # Run end-to-end tests with real API (requires GOOGLE_API_KEY to be set)
 pytest tests/integration/test_e2e_real_api.py -m e2e -v
+
+# Run all 77 book portrait tests in parallel (12 workers, ~5-10 min total)
+# Requires GOOGLE_API_KEY; existing portraits are skipped automatically
+pytest tests/integration/test_book_portraits.py -n 12 --no-cov -m integration --timeout=600
+
+# Force regeneration of all 77 portraits
+PORTRAIT_FORCE_REGENERATE=1 pytest tests/integration/test_book_portraits.py -n 12 --no-cov -m integration --timeout=600
 
 # Run only slow tests (real portrait generation)
 pytest -m slow -v
@@ -555,11 +552,12 @@ open htmlcov/index.html
 
 ### Test Coverage
 
-**Current Coverage: 66%** (threshold: 55%)
+**Current Coverage: 67%** (threshold: 55%)
 
-- **389+ unit tests** covering all core functionality
+- **480+ unit tests** covering all core functionality
 - **No mock code**: All tests use real objects with test/real API keys
 - **End-to-end tests** with real Google Gemini API calls (requires `GOOGLE_API_KEY`)
+- **77-subject integration test** covering every book portrait subject
 - API-dependent unit tests skip gracefully when `GOOGLE_API_KEY` is not set
 
 ### Loading API Keys
@@ -584,7 +582,9 @@ tests/
 │   ├── test_overlay.py        # Title overlay tests
 │   └── test_evaluator.py      # Quality evaluation tests
 ├── integration/                # Integration tests
-│   └── test_e2e_real_api.py   # Real API tests (requires GOOGLE_API_KEY)
+│   ├── test_book_portraits.py # 77-subject portrait generation (12 parallel workers)
+│   └── test_e2e_real_api.py   # End-to-end API tests (requires GOOGLE_API_KEY)
+├── ExamplePortraitTests/       # Generated portrait output (gitignored)
 └── fixtures/                   # Test data and fixtures
 ```
 
@@ -613,36 +613,46 @@ pytest tests/integration/test_e2e_real_api.py::TestE2ERealAPI::test_generate_sin
 
 ```
 PortraitGenerator/
-├── src/portrait_generator/      # Main package
-│   ├── __init__.py              # Package exports (PortraitClient, etc.)
-│   ├── client.py                # High-level Python API
-│   ├── cli.py                   # Command-line interface
-│   ├── generator.py             # Portrait generation orchestration
-│   ├── gemini_client.py         # Google Gemini API integration
-│   ├── researcher.py            # Biographical research
-│   ├── overlay.py               # Title overlay engine
-│   ├── evaluator.py             # Quality evaluation
-│   ├── config.py                # Configuration and settings
-│   └── api/                     # REST API
-│       ├── server.py            # FastAPI application
-│       ├── routes.py            # API endpoints
-│       └── models.py            # Request/response models
-├── tests/                       # Test suite (389+ tests, 66% coverage)
-│   ├── unit/                    # Unit tests (no mocks, real objects)
-│   ├── integration/             # Integration tests (incl. e2e)
-│   └── fixtures/                # Test data and fixtures
-├── conda.recipe/                # Conda package recipe
-│   └── meta.yaml               # Conda build configuration
-├── docs/                        # Documentation
-├── Examples/                    # Usage examples
-├── output/                      # Generated portraits (default)
-├── pyproject.toml              # Modern Python package config (PEP 621)
-├── setup.py                    # Package setup script
-├── requirements.txt            # Production dependencies
-├── requirements-dev.txt        # Development dependencies
-├── MANIFEST.in                 # Package distribution rules
-├── CHANGELOG.md                # Version history
-└── README.md                   # This file
+├── src/portrait_generator/          # Main package
+│   ├── __init__.py                  # Package exports (PortraitClient, generate_portrait, etc.)
+│   ├── client.py                    # High-level Python API (PortraitClient)
+│   ├── cli.py                       # CLI: generate / batch / status / serve / health-check
+│   ├── intelligence_coordinator.py  # Orchestrates research → generation → verification
+│   ├── prompt_builder.py            # Builds structured Gemini prompts with gender/dates/appearance
+│   ├── reference_finder.py          # 9-tier reference image cascade
+│   ├── pre_generation_validator.py  # Pre-flight validation before generation
+│   ├── api/                         # REST API (FastAPI)
+│   │   ├── models.py                # SubjectData, GenerationResult dataclasses
+│   │   ├── routes.py                # POST /generate, POST /batch, GET /status
+│   │   └── server.py               # FastAPI app factory
+│   ├── config/
+│   │   ├── settings.py             # All Settings fields (Pydantic BaseSettings)
+│   │   └── model_configs.py        # Model profiles for flash/pro/legacy models
+│   ├── core/
+│   │   ├── researcher.py           # BiographicalResearcher (Gemini text → SubjectData)
+│   │   ├── generator_enhanced.py   # EnhancedPortraitGenerator (main orchestration)
+│   │   ├── overlay.py              # TitleOverlayEngine (name + dates overlay)
+│   │   ├── portrait_verifier.py    # PortraitVerifier (size, OCR, gender, identity)
+│   │   └── evaluator_enhanced.py   # EnhancedQualityEvaluator (Gemini Vision)
+│   └── utils/
+│       ├── gemini_client.py        # GeminiImageClient (image + text generation)
+│       ├── ground_truth.py         # GroundTruthVerifier (5-tier cascade: Wikipedia → Wikidata → DBpedia → Gemini)
+│       ├── image_utils.py          # Image format conversion utilities
+│       └── validators.py           # Input validation helpers
+├── tests/                           # Test suite (480+ tests, 67% coverage)
+│   ├── unit/                        # Unit tests (no mocks, real objects)
+│   ├── integration/
+│   │   ├── test_book_portraits.py   # 77-subject parametrized portrait generation
+│   │   └── test_e2e_real_api.py     # End-to-end API tests (requires GOOGLE_API_KEY)
+│   └── ExamplePortraitTests/        # Generated portrait output (gitignored)
+├── docs/                            # Technical documentation
+├── Examples/                        # Usage examples
+├── output/                          # Default portrait output directory
+├── pyproject.toml                   # Modern Python package config (PEP 621)
+├── pytest.ini                       # pytest settings
+├── requirements.txt                 # Production dependencies
+├── CHANGELOG.md                     # Version history
+└── README.md                        # This file
 ```
 
 ### Code Quality

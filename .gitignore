@@ -64,6 +64,10 @@ paintings_output/
 !tests/fixtures/**/*.jpg
 !Examples/*.jpg
 
+# Integration test portrait output and backups (large generated files)
+tests/ExamplePortraitTests/
+tests/ExamplePortraitTests_backup_*/
+
 # Session artifacts and generated scripts
 final_test_log.txt
 test_failures.py

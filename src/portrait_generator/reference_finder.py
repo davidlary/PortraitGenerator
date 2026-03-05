@@ -5,18 +5,24 @@ a smart progressive cascade of strategies — from the fastest/most reliable
 to progressively more obscure fallbacks — with early exit as soon as
 max_images is satisfied.
 
-Cascade order (fastest → most obscure):
+Cascade order (fastest/highest-quality → most obscure):
+  Tier 0  — Local ExampleReferenceImages (human-verified, no network, instant)
   Tier 1  — _CONFIRMED_URLS hardcoded table (zero network, instant)
   Tier 2  — Wikipedia photo from GroundTruth enrichment (zero extra network)
   Tier 3  — Wikipedia REST API thumbnail + original image (1 API call, ~0.5s)
-  Tier 4  — Wikidata SPARQL P18 image property (2 calls, ~1-2s, very reliable)
-  Tier 5  — Wikipedia page images API (2+ calls per image, ~2-5s)
-  Tier 6  — Wikimedia Commons full-text search (2+ calls per image, ~3-5s)
-  Tier 7  — DBpedia lookup thumbnail (1 call, last resort, less reliable)
+  Tier 4  — Wikidata P18 image property (2 calls, ~1-2s, very reliable)
+  Tier 5  — On-disk URL cache from previous Gemini discoveries
+  Tier 6  — Gemini-powered web search (AI-driven, self-caching)
+  Tier 7  — Wikipedia page images API (2+ calls per image, ~2-5s)
+  Tier 8  — Wikimedia Commons full-text search (2+ calls per image, ~3-5s)
+  Tier 9  — DBpedia lookup thumbnail (1 call, last resort, less reliable)
 
 Each tier is only invoked when the candidate list still has room for more
 images.  As soon as max_images is satisfied the cascade short-circuits and
 returns immediately.
+
+Minimum image dimension: 100×100 px (small images accepted — super-resolution
+can enhance them). Local human-verified images accepted at ≥50×50 px.
 """
 
 import hashlib
@@ -44,8 +50,9 @@ _CONFIRMED_URLS: Dict[str, str] = {
     # Each URL was confirmed HTTP 200 by parallel research agents (v2.4.0).
     # Sources in priority order: Wikimedia Commons > Wikipedia > Institutional.
     #
-    # Not found (4 subjects): Francis John Welsh Whipple, Frank John Scrase,
-    # Walter Findeisen, Georg Pfotzer — these will be handled by the cascade.
+    # Note: Francis John Welsh Whipple, Georg Pfotzer, and Walter Findeisen now
+    # have human-verified local files in ExampleReferenceImages/ (Tier 0).
+    # Frank John Scrase: extremely obscure — no digitized portrait found.
     # ==========================================================================
 
     # ── Chapter-Introduction ──────────────────────────────────────────────────
@@ -126,8 +133,9 @@ _CONFIRMED_URLS: Dict[str, str] = {
     "Mario Molina": (
         "https://upload.wikimedia.org/wikipedia/commons/d/db/Mario_Molina_1c389_8387.jpg"
     ),
+    # Mark Jacobson: Stanford EFMH direct photo (1407×1556, verified Feb 2025)
     "Mark Jacobson": (
-        "https://cee.stanford.edu/sites/g/files/sbiybj17091/files/styles/large_square/public/media/person/mark-jacobson1739316140576.jpg"
+        "https://web.stanford.edu/group/efmh/jacobson/25-02-05-MZJ-Stanford.jpg"
     ),
     "Paul Crutzen": (
         "https://upload.wikimedia.org/wikipedia/commons/0/00/Paul_Crutzen.jpg"
@@ -140,8 +148,9 @@ _CONFIRMED_URLS: Dict[str, str] = {
     "Henri Poincaré": (
         "https://upload.wikimedia.org/wikipedia/commons/f/f4/PSM_V82_D416_Henri_Poincare.png"
     ),
+    # John Pyle (atmospheric chemist, Cambridge) — 3 confirmed working URLs
     "John Pyle": (
-        "https://www.ch.cam.ac.uk/files/styles/staff_portrait/public/portraits/jap12.jpg"
+        "https://imagecdn.royalsociety.org/people/P30713.jpg"  # Royal Society, 550×550
     ),
     "Joseph-Louis Lagrange": (
         "https://upload.wikimedia.org/wikipedia/commons/e/e7/Lagrange_crop.jpg"
@@ -171,11 +180,13 @@ _CONFIRMED_URLS: Dict[str, str] = {
     "Andrew Lorenc": (
         "https://blogs.surrey.ac.uk/mathsresearch/wp-content/uploads/sites/11/2022/06/Lorenc.jpg"
     ),
+    # David Lary: Wikipedia Commons smiling headshot (405×589, glasses, no beard)
     "David Lary": (
-        "https://profiles.utdallas.edu/storage/media/3494/conversions/DavidLary-medium.jpg"
+        "https://upload.wikimedia.org/wikipedia/commons/f/f3/DavidLarySmile.jpg"
     ),
+    # Eugenia Kalnay: ISC 600×600 clear color headshot (deceased Aug 2024)
     "Eugenia Kalnay": (
-        "https://earth.gsfc.nasa.gov/sites/default/files/styles/max_325x325/public/maniacs/pics/eugeniaKalnay.png"
+        "https://council.science/wp-content/uploads/2023/01/Eugenia-Kalnay-web.jpg"
     ),
     "Mike Fisher": (
         "https://scholar.googleusercontent.com/citations?view_op=medium_photo&user=roKiQSwAAAAJ&citpid=2"
@@ -214,11 +225,11 @@ _CONFIRMED_URLS: Dict[str, str] = {
     "Edward Appleton": (
         "https://upload.wikimedia.org/wikipedia/commons/5/58/Appleton.jpg"
     ),
-    # Francis John Welsh Whipple: NPG image blocked (403) — no public URL
-    # Frank John Scrase: extremely obscure — no digitized portrait found
-    # Georg Pfotzer: no portrait found anywhere
+    # Francis John Welsh Whipple: local ExampleReferenceImages files available (Tier 0)
+    # Frank John Scrase: extremely obscure — no digitized portrait found anywhere
+    # Georg Pfotzer: local ExampleReferenceImages files available (Tier 0)
     "Henrik Svensmark": (
-        "https://orbit.dtu.dk/files-asset/399006805/38287_bccf27f8.jpg"
+        "https://upload.wikimedia.org/wikipedia/commons/d/d0/HenrikSvensmark.jpg"
     ),
     "John Winckler": (
         "https://upload.wikimedia.org/wikipedia/en/e/e6/John_r_winckler.jpg"
@@ -347,13 +358,63 @@ _CONFIRMED_URLS: Dict[str, str] = {
 
 _HEADERS = {
     "User-Agent": (
-        "PortraitGenerator/2.2.0 "
+        "PortraitGenerator/2.4.0 "
         "(https://github.com/davidlary/PortraitGenerator; educational use)"
     )
 }
 _TIMEOUT = 15  # seconds
-_MIN_IMAGE_DIMENSION = 256  # pixels
-_MIN_IMAGE_BYTES = 10_240   # 10 KB
+# Lowered from 256 to 100: small images are better than nothing (super-resolution can enhance)
+_MIN_IMAGE_DIMENSION = 100  # pixels
+_MIN_IMAGE_BYTES = 2_048    # 2 KB (lowered from 10KB; local/scholar images can be small)
+
+# ---------------------------------------------------------------------------
+# Local reference images directory (human-verified, highest quality)
+# User manually collected these during research - they are ground truth.
+# ---------------------------------------------------------------------------
+_LOCAL_REFERENCE_DIR = Path(__file__).parent.parent.parent / "ExampleReferenceImages"
+
+# Mapping: canonical subject name → list of filenames in _LOCAL_REFERENCE_DIR
+# Files listed first = highest priority (prefer non-flipped originals)
+_LOCAL_REFERENCE_FILES: Dict[str, list] = {
+    "Benjamin Franklin": [
+        "BenjaminFranklin_Duplessis_1778.jpg",
+        "BenjaminFranklin.jpg",
+        "BenjaminFranklin-flip.jpg",
+    ],
+    "Brian Tinsley": ["brian.tinsley.jpeg"],
+    "Nicolaus Copernicus": ["Copernicus.jpg"],
+    "Gaspard-Gustave de Coriolis": [
+        "Gaspard-Gustave_de_Coriolis.jpg",
+        "Coriolis-2.jpg",
+    ],
+    "Charles-Augustin de Coulomb": ["Coulomb.png"],
+    "Charles T. R. Wilson": ["CTRWilson.jpg", "CTRWilson-flip.jpg"],
+    "Edward Appleton": ["EdwardAppleton.jpg"],
+    "Francis John Welsh Whipple": [
+        "Francis-John-Welsh-Whipple.jpg",
+        "Francis-John-Welsh-Whipple-flip.jpg",
+    ],
+    "Georg Pfotzer": ["Georg Pfotzer.jpg", "Georg Pfotzer-flip.jpg"],
+    "Hans Selye": ["Hans_Selye.jpg", "HansSelye.jpeg"],
+    "Henry Eyring": ["HenryEyring1951.jpg"],
+    "Jacobus van't Hoff": ["Jacobus_vant_Hoff_by_Perscheid_1904.jpg"],
+    "Johann Heinrich Lambert": ["JohannHeinrichLambert.jpg"],
+    "Jöns Jacob Berzelius": ["JonsJacobBerzelius.jpg"],
+    "Johannes Kepler": ["Kepler.jpg"],
+    "Léon Teisserenc de Bort": ["Léon_Teisserenc_de_Bort.jpg"],
+    "Lord Rayleigh": ["LordRayleigh.jpg"],
+    "Louis-Guillaume Le Monnier": [
+        "Louis-GuillaumeLeMonnier.jpg",
+        "Louis-GuillaumeLeMonnier.png",
+    ],
+    "Bruce McEwen": ["McEwen.jpg"],
+    "Isaac Newton": ["Newton.jpg"],
+    "Scott Forbush": ["Scott_Forbush.jpeg", "Scott_Forbush-flip.jpeg"],
+    "Svante Arrhenius": ["SvanteArrhenius.jpeg"],
+    "Victor Hess": ["VictorHess.jpg"],
+    "Walther Flemming": ["Walther_flemming_flipped.jpg"],
+    "Winfried Otto Schumann": ["Winfried_Otto_Schumann.jpeg"],
+}
 
 
 @dataclass
@@ -463,6 +524,23 @@ class ReferenceImageFinder:
 
         # ── Pre-load on-disk URL cache (populated by previous Gemini searches) ─
         url_cache = self._load_url_cache()
+
+        # ── Tier 0: Local human-verified reference images (highest priority) ──
+        # These were manually collected by the user — they are ground truth.
+        # No network needed; very high authenticity scores.
+        local_imgs = self._load_local_reference_images(name)
+        for img in local_imgs:
+            if img.url not in seen_urls:
+                seen_urls.add(img.url)
+                candidates.append(img)
+        if candidates:
+            logger.info(
+                f"Tier 0 (Local-ExampleReferenceImages): "
+                f"found {len(candidates)} image(s) for {name}"
+            )
+
+        if _done():
+            return self._finalize(candidates, subject_data, max_images)
 
         # ── Tier 1: Hardcoded confirmed URLs (zero network, instant) ──────────
         inst_url = self._lookup_confirmed_url(name)
@@ -625,6 +703,14 @@ class ReferenceImageFinder:
 
         for i, img in enumerate(sorted_images):
             try:
+                # ── Local file: use directly, no download needed ──────────────
+                if img.local_path and img.local_path.exists():
+                    downloaded_paths.append(img.local_path)
+                    logger.debug(
+                        f"Using local reference image (score={img.combined_score:.2f}): {img.local_path}"
+                    )
+                    continue
+
                 fmt_suffix = img.url.rsplit(".", 1)[-1].lower()
                 if fmt_suffix not in ("jpg", "jpeg", "png", "gif", "webp"):
                     fmt_suffix = "jpg"
@@ -883,6 +969,76 @@ class ReferenceImageFinder:
                 return url
         return None
 
+    def _load_local_reference_images(self, name: str) -> List[ReferenceImage]:
+        """Load human-verified reference images from the local ExampleReferenceImages directory.
+
+        These are the highest-priority reference images — manually curated by the user,
+        no network needed, and with maximum authenticity scores.
+
+        Returns images even if they are small (≥50×50 px); super-resolution can
+        enhance low-resolution images.
+
+        Args:
+            name: Subject's canonical name.
+
+        Returns:
+            List of ReferenceImage objects (empty if directory or mapping not found).
+        """
+        if not _LOCAL_REFERENCE_DIR.exists():
+            return []
+
+        # Exact match first
+        filenames = _LOCAL_REFERENCE_FILES.get(name, [])
+
+        # Case/punctuation-insensitive fallback
+        if not filenames:
+            def _norm(s: str) -> str:
+                return re.sub(r"[^a-z0-9]", "", s.lower())
+            name_norm = _norm(name)
+            for key, files in _LOCAL_REFERENCE_FILES.items():
+                if _norm(key) == name_norm:
+                    filenames = files
+                    break
+
+        if not filenames:
+            return []
+
+        results: List[ReferenceImage] = []
+        for filename in filenames:
+            path = _LOCAL_REFERENCE_DIR / filename
+            if not path.exists():
+                logger.debug(f"Local reference file not found: {path}")
+                continue
+            try:
+                pil_img = Image.open(path)
+                w, h = pil_img.size
+                # Accept ≥50×50 — human-verified; super-resolution can help small images
+                if w < 50 or h < 50:
+                    logger.debug(f"Local image too tiny ({w}×{h}), skipping: {path}")
+                    continue
+                # Quality score reflects resolution (capped at 1.0)
+                quality = min(1.0, (w * h) / (400 * 400))
+                img = ReferenceImage(
+                    url=f"file://{path.resolve()}",
+                    source="Local-ExampleReferenceImages",
+                    authenticity_score=0.99,  # Human-verified: maximum confidence
+                    quality_score=max(0.5, quality),
+                    relevance_score=0.99,
+                    era_match=True,
+                    description=(
+                        f"Human-verified local reference image for {name} "
+                        f"({w}×{h} px)"
+                    ),
+                    local_path=path.resolve(),
+                )
+                results.append(img)
+                logger.debug(f"Loaded local reference: {filename} ({w}×{h} px)")
+            except Exception as e:
+                logger.debug(f"Failed to load local image {path}: {e}")
+                continue
+
+        return results
+
     def _fetch_wikipedia_rest_thumbnail(self, name: str) -> Optional[ReferenceImage]:
         """Fetch thumbnail + original image from the Wikipedia REST API summary endpoint.
 
@@ -1029,7 +1185,15 @@ class ReferenceImageFinder:
             return results
 
         _skip_keywords = ("map", "flag", "icon", "logo", "diagram", "graph",
-                          "chart", "signature", "coat", "arms", "stamp")
+                          "chart", "signature", "coat", "arms", "stamp",
+                          "mug_shot", "mugshot", "cemetery", "grave", "tomb",
+                          "building", "street", "house", "plaque", "medal")
+
+        # Build a regex that requires all name words appear consecutively in
+        # the filename (rejects "John_Howard_Pyle" when searching "John Pyle",
+        # and "Gilbert_Stuart" when it appears in a metadata-matched file).
+        _name_parts = [re.escape(p) for p in name.split() if p]
+        _name_regex = r"[\W_]+".join(_name_parts) if len(_name_parts) >= 2 else None
 
         for hit in search_hits:
             title = hit.get("title", "")
@@ -1037,6 +1201,10 @@ class ReferenceImageFinder:
             if not any(lower.endswith(ext) for ext in (".jpg", ".jpeg", ".png")):
                 continue
             if any(kw in lower for kw in _skip_keywords):
+                continue
+            # Require subject's name words to appear consecutively in the filename
+            # (prevents wrong people with similar names, e.g. "John Howard Pyle")
+            if _name_regex and not re.search(_name_regex, lower, re.IGNORECASE):
                 continue
 
             try:

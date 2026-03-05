@@ -5,29 +5,30 @@ tests/ExamplePortraitTests/, and verifies the output passes the full
 verification pipeline.
 
 Usage:
-    # Run all portrait tests (requires GOOGLE_API_KEY):
+    # Run all portrait tests in parallel (12 workers — recommended):
+    python -m pytest tests/integration/test_book_portraits.py -v --timeout=600 -m integration -n 12
+
+    # Run all portrait tests sequentially (slower):
     python -m pytest tests/integration/test_book_portraits.py -v --timeout=600 -m integration
 
     # Run a single subject:
     python -m pytest tests/integration/test_book_portraits.py -v -k "Alan_Turing" --timeout=600
 
-    # Skip already-generated portraits:
-    python -m pytest tests/integration/test_book_portraits.py -v --timeout=600 --no-force
-
     # Force regeneration of all portraits:
-    PORTRAIT_FORCE_REGENERATE=1 python -m pytest tests/integration/test_book_portraits.py -v --timeout=600
+    PORTRAIT_FORCE_REGENERATE=1 python -m pytest tests/integration/test_book_portraits.py -v --timeout=600 -n 12
 
 Notes:
     - Requires a valid GOOGLE_API_KEY environment variable.
     - Each portrait takes ~22-45 seconds with the default Flash model.
-    - Total runtime for all 77 portraits: ~30-60 minutes.
+    - Total runtime for all 77 portraits: ~5-10 minutes with 12 parallel workers.
     - Portraits are saved to tests/ExamplePortraitTests/ and NOT deleted after tests.
-    - force_regenerate=False by default (existing portraits reused).
-    - Tests run sequentially to respect Gemini API rate limits.
+    - force_regenerate=False by default (existing portraits reused, skipped via pytest.skip).
+    - Unicode normalization (NFC/NFD) handled for macOS HFS+ filesystem compatibility.
 """
 
 import os
 import time
+import unicodedata
 from pathlib import Path
 
 import pytest
@@ -186,9 +187,9 @@ def _subject_id(subject_tuple):
 # Fixtures
 # ---------------------------------------------------------------------------
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def portrait_generator():
-    """Create a single EnhancedPortraitGenerator for all tests in this module."""
+    """Create an EnhancedPortraitGenerator for each test (compatible with pytest-xdist parallel)."""
     from portrait_generator.config.settings import Settings
     from portrait_generator.core.generator_enhanced import EnhancedPortraitGenerator
     from portrait_generator.utils.gemini_client import GeminiImageClient
@@ -231,11 +232,43 @@ def portrait_generator():
 # Helper
 # ---------------------------------------------------------------------------
 
+def _generator_filename(name: str, style: str) -> str:
+    """Replicate EnhancedPortraitGenerator._create_filename() exactly.
+
+    The generator uses:
+      1. Keep only alphanumeric chars and spaces (removes hyphens, apostrophes, etc.)
+      2. Split on spaces → list of words
+      3. capitalize() each word (first char upper, rest lower)
+      4. Join + append style suffix
+
+    This MUST stay in sync with generator_enhanced.py::_create_filename().
+    """
+    clean_name = "".join(c for c in name if c.isalnum() or c.isspace())
+    parts = clean_name.split()
+    base = "".join(word.capitalize() for word in parts)
+    return f"{base}_{style}"
+
+
 def _portrait_exists(name: str) -> bool:
-    """Check if portrait already exists for this subject."""
-    safe = name.replace(" ", "").replace("-", "").replace("'", "").replace(".", "")
-    pattern = f"{safe}*_Painting.png"
-    return len(list(OUTPUT_DIR.glob(pattern))) > 0
+    """Check if a Painting portrait already exists for this subject.
+
+    Two issues addressed:
+    1. Case: generator uses capitalize() which lowercases mid-word chars in hyphenated
+       names (e.g., "Carl-Gustaf Rossby" → "CarlgustafRossby", not "CarlGustafRossby").
+       Using exact _generator_filename() logic avoids the mismatch.
+    2. Unicode normalization: macOS HFS+ stores filenames in NFD decomposed form
+       (ö → o + combining diacritical) while Python strings are NFC composed
+       (ö → single code point U+00F6). Path.glob() uses string comparison without
+       normalization, so we iterate and compare with unicodedata.normalize("NFC", ...).
+    """
+    expected = _generator_filename(name, "Painting")
+    expected_nfc = unicodedata.normalize("NFC", expected)
+    expected_png = f"{expected_nfc}.png"
+    for f in OUTPUT_DIR.iterdir():
+        fname_nfc = unicodedata.normalize("NFC", f.name)
+        if fname_nfc == expected_png:
+            return True
+    return False
 
 
 # ---------------------------------------------------------------------------

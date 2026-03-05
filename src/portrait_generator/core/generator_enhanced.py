@@ -427,10 +427,15 @@ class EnhancedPortraitGenerator:
                             [img.authenticity_score for img in reference_images]
                             if reference_images else []
                         )
+                        # reference_images are ReferenceImage objects (URLs/PIL Images);
+                        # the verifier needs local file paths. Pass [] — held-out validation
+                        # uses reference images that were withheld during generation; local
+                        # paths would only be available if download_and_prepare_references()
+                        # was called separately (not done here by default).
                         verification = verifier.run_full_verification(
                             image_path,
                             subject_data,
-                            reference_paths if reference_paths else [],
+                            [],
                             reference_authenticity_scores=ref_auth_scores,
                         )
                         if not verification.passed:

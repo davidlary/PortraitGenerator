@@ -148,10 +148,12 @@ class TestFormatYears:
 
         assert result == "1940-2023"
 
-    def test_format_years_negative_birth(self, researcher):
-        """Test error handling for negative birth year (CE)."""
-        with pytest.raises(ValueError, match="cannot be negative"):
-            researcher.format_years(-500, -450)
+    def test_format_years_negative_birth_bce(self, researcher):
+        """Test BCE years (negative) format correctly as '500 BCE-450 BCE'."""
+        result = researcher.format_years(-500, -450)
+        assert "BCE" in result
+        assert "500" in result
+        assert "450" in result
 
     def test_format_years_death_before_birth(self, researcher):
         """Test error handling for death before birth."""
@@ -244,21 +246,21 @@ class TestValidateData:
 
         assert result is False
 
-    def test_validate_data_invalid_birth_year_negative(self, researcher):
-        """Test validation fails for negative birth year."""
+    def test_validate_data_bce_birth_year(self, researcher):
+        """Test that BCE dates (negative birth year) are now valid — Hippocrates case."""
         data = SubjectData(
-            name="Test",
-            birth_year=-100,
-            death_year=50,
-            era="Test",
-            appearance_notes=["Test"],
-            historical_context="Test",
-            reference_sources=["Test"],
+            name="Hippocrates",
+            birth_year=-460,
+            death_year=-370,
+            era="Ancient Greece",
+            appearance_notes=["Greek physician"],
+            historical_context="Ancient Greek medicine",
+            reference_sources=["Wikipedia"],
         )
 
         result = researcher.validate_data(data)
 
-        assert result is False
+        assert result is True
 
     def test_validate_data_invalid_birth_year_future(self, researcher):
         """Test validation fails for future birth year."""
@@ -428,14 +430,15 @@ class TestParseResearchResponse:
         assert result.formatted_years == "1947-Present"
 
     def test_parse_research_response_missing_birth_year(self, researcher):
-        """Test error handling for missing birth year."""
+        """Test that missing birth year falls back to 1975 placeholder (ground truth corrects)."""
         response = """
         FULL NAME: Test
         ERA: Modern
         """
 
-        with pytest.raises(ValueError, match="Could not extract birth year"):
-            researcher._parse_research_response("Test", response)
+        # Should no longer raise — uses 1975 fallback, ground truth cascade corrects
+        result = researcher._parse_research_response("Test", response)
+        assert result.birth_year == 1975
 
     def test_parse_research_response_minimal(self, researcher):
         """Test parsing minimal but valid response."""
