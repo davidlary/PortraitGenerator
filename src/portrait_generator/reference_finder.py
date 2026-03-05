@@ -343,8 +343,9 @@ _CONFIRMED_URLS: Dict[str, str] = {
     "Eugene P. Odum": (
         "https://upload.wikimedia.org/wikipedia/en/6/67/Eugene_Odum_by_James_Stawser.jpg"
     ),
+    # F. Herbert Bormann: Yale large version (960×1200) — better than small (4x5z3)
     "F. Herbert Bormann": (
-        "https://environment.yale.edu/sites/default/files/styles/4x5z3_small/public/content/images/3161/F.-Herbert-Bormann.jpg"
+        "https://environment.yale.edu/sites/default/files/styles/4x5z5_large/public/content/images/3161/F.-Herbert-Bormann.jpg"
     ),
     "Gene Likens": (
         "https://upload.wikimedia.org/wikipedia/commons/2/25/Gene_Likens_2015_Mariel_Carr.JPG"
