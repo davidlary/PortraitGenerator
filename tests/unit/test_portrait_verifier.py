@@ -205,6 +205,93 @@ class TestRunFullVerification:
 
 
 # ---------------------------------------------------------------------------
+# Sidecar metadata
+# ---------------------------------------------------------------------------
+
+class TestSidecar:
+    def test_write_and_verify_sidecar_passes(self, portrait_png, sample_subject):
+        """write_sidecar then verify_sidecar against same data should pass."""
+        PortraitVerifier.write_sidecar(portrait_png, sample_subject)
+        sidecar_path = portrait_png.with_suffix(".meta.json")
+        assert sidecar_path.exists()
+        ok, msg = PortraitVerifier.verify_sidecar(portrait_png, sample_subject)
+        assert ok is True
+        assert msg == ""
+
+    def test_sidecar_detects_name_mismatch(self, portrait_png, sample_subject):
+        """verify_sidecar fails when sidecar records a different name."""
+        PortraitVerifier.write_sidecar(portrait_png, sample_subject)
+
+        from portrait_generator.api.models import SubjectData
+        different_subject = SubjectData(
+            name="Marie Curie",
+            birth_year=1867,
+            era="19th Century",
+        )
+        ok, msg = PortraitVerifier.verify_sidecar(portrait_png, different_subject)
+        assert ok is False
+        assert "name" in msg.lower()
+
+    def test_sidecar_detects_birth_year_mismatch(self, portrait_png, sample_subject):
+        """verify_sidecar fails when birth year differs by more than 2."""
+        PortraitVerifier.write_sidecar(portrait_png, sample_subject)
+
+        from portrait_generator.api.models import SubjectData
+        wrong_year_subject = SubjectData(
+            name="Alan Turing",
+            birth_year=1900,  # 12 year diff — should fail
+            era="20th Century",
+        )
+        ok, msg = PortraitVerifier.verify_sidecar(portrait_png, wrong_year_subject)
+        assert ok is False
+        assert "birth" in msg.lower()
+
+    def test_verify_sidecar_passes_when_no_sidecar_exists(self, portrait_png, sample_subject):
+        """verify_sidecar returns (True, '') when sidecar file doesn't exist."""
+        # Ensure no sidecar
+        sidecar = portrait_png.with_suffix(".meta.json")
+        if sidecar.exists():
+            sidecar.unlink()
+        ok, msg = PortraitVerifier.verify_sidecar(portrait_png, sample_subject)
+        assert ok is True
+        assert msg == ""
+
+    def test_sidecar_written_as_valid_json(self, portrait_png, sample_subject):
+        """Sidecar file must be parseable JSON with required keys."""
+        import json
+        PortraitVerifier.write_sidecar(portrait_png, sample_subject)
+        sidecar_path = portrait_png.with_suffix(".meta.json")
+        data = json.loads(sidecar_path.read_text())
+        assert data["name"] == sample_subject.name
+        assert data["birth_year"] == sample_subject.birth_year
+        assert "subject_hash" in data
+        assert "generation_timestamp" in data
+
+    def test_run_full_verification_checks_sidecar(self, portrait_png, sample_subject):
+        """run_full_verification includes sidecar check."""
+        PortraitVerifier.write_sidecar(portrait_png, sample_subject)
+        v = PortraitVerifier(gemini_client=None, min_size_kb=10)
+        result = v.run_full_verification(portrait_png, sample_subject)
+        assert "sidecar" in result.checks
+        assert result.checks["sidecar"] is True
+
+    def test_run_full_verification_fails_on_sidecar_mismatch(
+        self, portrait_png, sample_subject, tmp_path
+    ):
+        """Sidecar recording wrong person causes verification failure."""
+        from portrait_generator.api.models import SubjectData
+        # Write sidecar for different person
+        wrong_subject = SubjectData(
+            name="Ada Lovelace", birth_year=1815, era="19th Century"
+        )
+        PortraitVerifier.write_sidecar(portrait_png, wrong_subject)
+        v = PortraitVerifier(gemini_client=None, min_size_kb=10)
+        result = v.run_full_verification(portrait_png, sample_subject)
+        assert result.checks.get("sidecar") is False
+        assert result.passed is False
+
+
+# ---------------------------------------------------------------------------
 # Vision API tests (require valid GOOGLE_API_KEY)
 # ---------------------------------------------------------------------------
 

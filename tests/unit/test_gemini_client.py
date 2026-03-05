@@ -164,6 +164,67 @@ class TestGenerateImage:
         with pytest.raises(ValueError, match="Invalid aspect_ratio"):
             legacy_client.generate_image(prompt="Test", aspect_ratio="1:4")
 
+    def test_generate_image_builds_multimodal_contents_with_reference(
+        self, client, tmp_path, monkeypatch
+    ) -> None:
+        """generate_image() must build a list[Part] contents when reference_images provided.
+
+        This is the v2.3.0 fix for the critical bug where reference images were
+        silently discarded (contents=string instead of contents=[image_parts, text]).
+        """
+        from pathlib import Path
+        from PIL import Image as PILImage
+        import io
+
+        # Create a real PNG reference file
+        ref_path = tmp_path / "ref.png"
+        PILImage.new("RGB", (64, 64), color=(128, 64, 32)).save(ref_path)
+
+        captured = {}
+
+        def fake_generate(model, contents, config):
+            captured["contents"] = contents
+            raise RuntimeError("Fake API stop")
+
+        monkeypatch.setattr(client.client.models, "generate_content", fake_generate)
+
+        try:
+            client.generate_image(prompt="Test portrait", reference_images=[ref_path])
+        except RuntimeError:
+            pass  # Expected — we only care about what was passed to generate_content
+
+        assert "contents" in captured, "generate_content was not called"
+        contents = captured["contents"]
+        # Must be a list (multimodal), not a string (text-only)
+        assert isinstance(contents, list), (
+            f"Expected list[Part] for multimodal contents, got {type(contents)}: {contents!r}"
+        )
+        # At least one image Part and one text Part
+        assert len(contents) >= 2, "Expected at least [image_part, text_part]"
+
+    def test_generate_image_text_only_when_no_reference(
+        self, client, monkeypatch
+    ) -> None:
+        """Without reference images, contents should be a plain string (fast path)."""
+        captured = {}
+
+        def fake_generate(model, contents, config):
+            captured["contents"] = contents
+            raise RuntimeError("Fake API stop")
+
+        monkeypatch.setattr(client.client.models, "generate_content", fake_generate)
+
+        try:
+            client.generate_image(prompt="Test portrait")
+        except RuntimeError:
+            pass
+
+        assert "contents" in captured
+        # No reference images → string (plain text) path
+        assert isinstance(captured["contents"], str), (
+            f"Expected string for text-only contents, got {type(captured['contents'])}"
+        )
+
     @_SKIP_NO_KEY
     def test_generate_image_success(self) -> None:
         """Test successful image generation - covered by integration/test_e2e_real_api.py."""

@@ -3,11 +3,11 @@
 > Generate historically accurate, publication-quality portrait images using Google Gemini Flash Image (Nano Banana 2)
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![PyPI version](https://img.shields.io/badge/pypi-v2.2.0-blue.svg)](https://pypi.org/project/portrait-generator/)
-[![Conda version](https://img.shields.io/badge/conda-v2.2.0-blue.svg)](https://anaconda.org/conda-forge/portrait-generator)
+[![PyPI version](https://img.shields.io/badge/pypi-v2.4.0-blue.svg)](https://pypi.org/project/portrait-generator/)
+[![Conda version](https://img.shields.io/badge/conda-v2.4.0-blue.svg)](https://anaconda.org/conda-forge/portrait-generator)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/tests-389%20passed-green.svg)](tests/)
-[![Coverage](https://img.shields.io/badge/coverage-66%25-orange.svg)](htmlcov/)
+[![Tests](https://img.shields.io/badge/tests-480%20passed-green.svg)](tests/)
+[![Coverage](https://img.shields.io/badge/coverage-67%25-orange.svg)](htmlcov/)
 
 ---
 
@@ -22,9 +22,23 @@
 - 🖥️ **CLI Commands**: Easy command-line interface for quick generation
 - 🚀 **REST API**: FastAPI-based RESTful API for remote integration
 - 📦 **PyPI & Conda**: Install via pip or conda
-- 📊 **389+ Tests**: 389+ tests including end-to-end with real API; no mock code
+- 📊 **480+ Tests**: 480+ tests including end-to-end with real API; no mock code
 - 🔒 **Secure**: Environment-based credentials only
 - 📝 **Fully Documented**: Complete API documentation and examples
+
+### NEW in 2.4.0: Zero-Tolerance Reference Image Pipeline
+
+- 🔍 **9-Tier Progressive Cascade**: Hardcoded table → URL cache → Wikipedia REST → Wikidata P18
+  → Gemini web search → Wikipedia page images → Wikimedia Commons → DBpedia — stops at first success
+- 🤖 **AI-Powered Fallback**: Gemini web search understands era, field, and institutional context
+  to find portraits for any subject; results self-cache for instant future access
+- ✅ **Held-Out Independent Validation**: Reference images split into generation set (used for creation)
+  and held-out set (withheld for independent post-generation identity verification)
+- 📚 **89-Entry Confirmed URL Table**: All 77 book portrait subjects pre-researched by parallel agents
+- 🔄 **Self-Caching**: Gemini discoveries persisted to disk; repeat runs are free
+- 🪪 **Sidecar Metadata**: `.meta.json` alongside every portrait for deterministic verification
+- 📐 **3-Stage Gender Verification**: Direct → contextual → elimination; 2/3 majority required
+- 🧪 **Integration Test Suite**: 77-subject parametrized test covering all book portrait subjects
 
 ### NEW in 2.2.0: Flash Image Model (Nano Banana 2) as Default
 

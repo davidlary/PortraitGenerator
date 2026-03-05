@@ -374,7 +374,7 @@ class EnhancedPortraitGenerator:
                 try:
                     # Generate with advanced features
                     generation_result = self._generate_image_advanced(
-                        prompt, reference_images, style
+                        prompt, reference_images, style, subject_data.name
                     )
 
                     # Extract image from result
@@ -405,6 +405,9 @@ class EnhancedPortraitGenerator:
                     final_image.save(image_path, "PNG", quality=95)
                     logger.info(f"Saved image: {image_path}")
 
+                    # Write sidecar metadata for deterministic verification
+                    PortraitVerifier.write_sidecar(image_path, subject_data)
+
                     # Post-generation verification
                     enable_verify = (
                         self.settings is not None
@@ -420,10 +423,15 @@ class EnhancedPortraitGenerator:
                             gemini_client=self.gemini_client,
                             min_size_kb=min_kb,
                         )
+                        ref_auth_scores = (
+                            [img.authenticity_score for img in reference_images]
+                            if reference_images else []
+                        )
                         verification = verifier.run_full_verification(
                             image_path,
                             subject_data,
                             reference_paths if reference_paths else [],
+                            reference_authenticity_scores=ref_auth_scores,
                         )
                         if not verification.passed:
                             logger.warning(
@@ -513,6 +521,7 @@ class EnhancedPortraitGenerator:
         prompt: str,
         reference_images: List,
         style: str,
+        subject_name: str = "",
     ):
         """Generate image with advanced client features.
 
@@ -529,7 +538,8 @@ class EnhancedPortraitGenerator:
         if reference_images and self.reference_finder:
             try:
                 reference_paths = self.reference_finder.download_and_prepare_references(
-                    reference_images
+                    reference_images,
+                    subject_name=subject_name,
                 )
             except Exception as e:
                 logger.warning(f"Failed to download references: {e}")

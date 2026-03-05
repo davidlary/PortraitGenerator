@@ -45,7 +45,7 @@ class Settings(BaseSettings):
         description="Enable advanced features for capable models",
     )
     enable_reference_images: bool = Field(
-        default=False,  # Changed to False in v2.1.0 - Google API returns empty results
+        default=True,  # Re-enabled in v2.3.0 - real URL fetching (Wikipedia/institutional) now works
         description="Enable reference image finding and usage",
     )
     max_reference_images: int = Field(

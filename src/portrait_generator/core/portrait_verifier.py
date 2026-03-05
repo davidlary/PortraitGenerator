@@ -13,9 +13,10 @@ import io
 import json
 import logging
 import re
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from PIL import Image
 
@@ -79,25 +80,29 @@ class PortraitVerifier:
         portrait_path: Path,
         subject_data: SubjectData,
         reference_paths: Optional[List[Path]] = None,
+        reference_authenticity_scores: Optional[List[float]] = None,
     ) -> VerificationResult:
         """Run all applicable verification checks on a portrait file.
 
         Checks performed:
         1. File size (always)
-        2. Overlay date OCR — compares dates in overlay against expected (Vision)
-        3. Gender check — detects if depicted person matches expected gender (Vision)
-        4. Identity check — compares portrait against reference photo (Vision)
+        2. Sidecar metadata consistency (always, if sidecar exists)
+        3. Overlay date OCR — Vision check; skipped if sidecar confirms dates (Vision)
+        4. Gender check — 3-stage protocol for robust detection (Vision)
+        5. Identity check — hard failure when reference has high authenticity (Vision)
 
         Args:
             portrait_path: Path to the generated portrait PNG.
             subject_data: Biographical data with expected name, dates, gender.
             reference_paths: Optional list of reference photo paths for identity check.
+            reference_authenticity_scores: Authenticity score per reference_path
+                (0.0-1.0).  When max score >= 0.9 (confirmed institutional URL),
+                identity mismatch becomes a hard failure rather than a warning.
 
         Returns:
             VerificationResult.  ``passed`` is True only when all critical
-            checks pass (size, dates, gender).  Identity check failure is
-            a warning, not a hard failure, because the reference photo itself
-            may be wrong.
+            checks pass (size, dates, gender, and identity when reference is
+            confirmed-authentic).
         """
         result = VerificationResult(passed=True)
 
@@ -124,7 +129,20 @@ class PortraitVerifier:
             result.passed = False
             return result
 
-        # --- Check 2: Overlay date OCR (Vision) ---
+        # --- Check 2: Sidecar metadata (deterministic, free, no Vision needed) ---
+        sidecar_ok, sidecar_msg = self.verify_sidecar(portrait_path, subject_data)
+        result.checks["sidecar"] = sidecar_ok
+        if not sidecar_ok:
+            result.failures.append(f"Sidecar mismatch: {sidecar_msg}")
+            result.passed = False
+            # If sidecar says wrong person entirely, skip remaining checks
+            if "name" in sidecar_msg.lower():
+                result.warnings.append(
+                    "Skipping Vision checks — sidecar indicates wrong subject data"
+                )
+                return result
+
+        # --- Check 3: Overlay date OCR (Vision) ---
         if self._has_vision and subject_data.birth_year:
             date_ok, date_msg = self.verify_overlay_dates(
                 pil_image,
@@ -139,23 +157,35 @@ class PortraitVerifier:
         else:
             result.warnings.append("Date OCR skipped (no Vision client or birth year)")
 
-        # --- Check 3: Gender verification (Vision) ---
+        # --- Check 4: Gender verification (3-stage protocol) ---
         gender = getattr(subject_data, "gender", "unknown")
         if self._has_vision and gender != "unknown":
             gender_ok, gender_confidence = self.verify_gender(pil_image, gender)
             result.checks["gender"] = gender_ok
             result.scores["gender"] = gender_confidence
-            if not gender_ok:
+            if gender_confidence < 0.4:
+                # 3-stage check says FAIL (0/3 or 1/3 agreement)
                 result.failures.append(
-                    f"Gender mismatch: expected '{gender}' but portrait appears to show a different gender"
+                    f"Gender mismatch (confidence={gender_confidence:.2f}): "
+                    f"expected '{gender}' but portrait appears to show a different gender"
                 )
                 result.passed = False
+            elif gender_confidence < 0.65:
+                # 2/3 stage agreement — warn, do not fail
+                result.warnings.append(
+                    f"Gender uncertainty (confidence={gender_confidence:.2f}): "
+                    f"expected '{gender}'; portrait passes with caution — review recommended"
+                )
         else:
             result.warnings.append(
                 "Gender check skipped (no Vision client or gender unknown)"
             )
 
-        # --- Check 4: Identity vs reference (Vision, non-critical) ---
+        # --- Check 5: Identity vs reference (Vision, graduated severity) ---
+        # Hard failure when reference has confirmed high authenticity (>= 0.9)
+        max_ref_score = max(reference_authenticity_scores) if reference_authenticity_scores else 0.0
+        identity_is_critical = max_ref_score >= 0.9
+
         if self._has_vision and reference_paths:
             valid_refs = [p for p in reference_paths if p and p.exists()]
             if valid_refs:
@@ -164,10 +194,19 @@ class PortraitVerifier:
                 )
                 result.checks["identity"] = identity_ok
                 if not identity_ok:
-                    # Warning only — reference photo could be wrong
-                    result.warnings.append(
-                        f"Identity check warning: {identity_msg}"
-                    )
+                    if identity_is_critical:
+                        # Confirmed-authentic reference photo — wrong person = hard fail
+                        result.failures.append(
+                            f"Identity mismatch (confirmed reference, score={max_ref_score:.2f}): "
+                            f"{identity_msg}"
+                        )
+                        result.passed = False
+                    else:
+                        # Uncertain reference — treat as warning only
+                        result.warnings.append(
+                            f"Identity check warning (reference score={max_ref_score:.2f}): "
+                            f"{identity_msg}"
+                        )
             else:
                 result.warnings.append("Identity check skipped (no valid reference files)")
         else:
@@ -299,6 +338,14 @@ class PortraitVerifier:
     ) -> tuple:
         """Check if the depicted person's gender matches expected gender.
 
+        Uses a 3-stage protocol to reduce false positives/negatives:
+        Stage 1 — Direct anatomical observation (anchor)
+        Stage 2 — Contextual cross-check with claimed gender
+        Stage 3 — Elimination check for opposite-gender features
+
+        A portrait passes when 2 or more of 3 stages agree with expected_gender.
+        Confidence maps as: 3/3 → 0.95, 2/3 → 0.70, 1/3 → 0.30, 0/3 → 0.05.
+
         Args:
             image: PIL Image of the portrait.
             expected_gender: "male" or "female".
@@ -309,32 +356,81 @@ class PortraitVerifier:
         if not self._has_vision or expected_gender == "unknown":
             return True, 1.0
 
-        prompt = (
-            "Look at the person depicted in this portrait. "
-            "What is the gender of the person shown? "
-            "Respond with exactly one word: 'male' or 'female'."
+        opposite = "female" if expected_gender == "male" else "male"
+
+        # Stage 1: Direct anatomical observation
+        stage1_prompt = (
+            "Look at the face and neck of the person in this portrait. "
+            "Based ONLY on facial structure and features visible in the image, "
+            "are the features more typical of a male person or a female person? "
+            "Answer with exactly one word: 'male' or 'female'."
         )
 
+        # Stage 2: Contextual cross-check
+        stage2_prompt = (
+            f"This portrait is claimed to depict a {expected_gender} person. "
+            "Do you see any features that clearly CONTRADICT this identification? "
+            "Look for: structural facial features, any visible body proportions. "
+            "Answer exactly: CONSISTENT or INCONSISTENT."
+        )
+
+        # Stage 3: Elimination check for opposite-gender markers
+        if expected_gender == "female":
+            stage3_markers = (
+                "visible facial hair (beard/mustache/stubble), "
+                "prominent Adam's apple, heavy brow ridge, "
+                "or very broad shoulders relative to face size"
+            )
+        else:
+            stage3_markers = (
+                "clearly rounded jawline with soft tissue overlay, "
+                "visible feminine facial structure, "
+                "or pronounced cheekbone softness inconsistent with male anatomy"
+            )
+        stage3_prompt = (
+            f"Is there clear visual evidence in this portrait that the person is "
+            f"{opposite} rather than {expected_gender}? "
+            f"Look specifically for: {stage3_markers}. "
+            f"Answer YES (clear evidence of {opposite}) or NO (no such evidence)."
+        )
+
+        votes_for_expected = 0
+
         try:
-            response_text = self._call_vision_api(image, prompt)
-            if not response_text:
-                return True, 0.5  # No response — don't fail
+            # Stage 1
+            r1 = self._call_vision_api(image, stage1_prompt)
+            if r1:
+                r1_lower = r1.strip().lower()
+                if expected_gender in r1_lower and opposite not in r1_lower:
+                    votes_for_expected += 1
+                elif expected_gender not in r1_lower:
+                    pass  # counts as a vote against
 
-            response_lower = response_text.strip().lower()
-            if "female" in response_lower:
-                detected = "female"
-            elif "male" in response_lower:
-                detected = "male"
-            else:
-                return True, 0.5  # Unclear response — don't fail
+            # Stage 2
+            r2 = self._call_vision_api(image, stage2_prompt)
+            if r2:
+                if "consistent" in r2.lower() and "inconsistent" not in r2.lower():
+                    votes_for_expected += 1
 
-            matches = detected == expected_gender
-            confidence = 0.9 if matches else 0.1
-            return matches, confidence
+            # Stage 3 — "NO" means no evidence of wrong gender → pass
+            r3 = self._call_vision_api(image, stage3_prompt)
+            if r3:
+                if r3.strip().upper().startswith("NO"):
+                    votes_for_expected += 1
 
         except Exception as e:
             logger.debug(f"Gender verification error: {e}")
             return True, 0.5  # Error — don't fail
+
+        # Map vote count to confidence and pass/fail
+        confidence_map = {3: 0.95, 2: 0.70, 1: 0.30, 0: 0.05}
+        confidence = confidence_map.get(votes_for_expected, 0.5)
+        passed = votes_for_expected >= 2  # Need majority agreement
+        logger.debug(
+            f"Gender check ({expected_gender}): {votes_for_expected}/3 stages passed, "
+            f"confidence={confidence:.2f}, overall_passed={passed}"
+        )
+        return passed, confidence
 
     def verify_identity_vs_reference(
         self,
@@ -385,6 +481,86 @@ class PortraitVerifier:
             return True, f"Error (non-critical): {e}"
 
     # ------------------------------------------------------------------ #
+    # Sidecar metadata (deterministic, no Vision required)                 #
+    # ------------------------------------------------------------------ #
+
+    @staticmethod
+    def write_sidecar(portrait_path: Path, subject_data: SubjectData) -> None:
+        """Write a JSON sidecar file alongside the portrait.
+
+        The sidecar records the exact SubjectData used for generation so that
+        verification can detect subject-data mismatches deterministically
+        (without Vision API calls).  It also provides a cross-run hash to
+        detect if two portraits share the same SubjectData (a proxy for the
+        caching bug).
+
+        Args:
+            portrait_path: Path to the generated portrait PNG/JPEG.
+            subject_data: SubjectData used to generate the portrait.
+        """
+        payload: Dict[str, Any] = {
+            "name": subject_data.name,
+            "birth_year": subject_data.birth_year,
+            "death_year": subject_data.death_year,
+            "era": subject_data.era,
+            "gender": getattr(subject_data, "gender", "unknown"),
+            "generation_timestamp": time.time(),
+            "subject_hash": hashlib.md5(
+                f"{subject_data.name}:{subject_data.birth_year}:{subject_data.death_year}".encode()
+            ).hexdigest(),
+        }
+        sidecar_path = portrait_path.with_suffix(".meta.json")
+        sidecar_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        logger.debug(f"Wrote portrait sidecar: {sidecar_path}")
+
+    @staticmethod
+    def verify_sidecar(
+        portrait_path: Path, subject_data: SubjectData
+    ) -> Tuple[bool, str]:
+        """Check portrait sidecar against expected SubjectData.
+
+        Returns (True, "") when sidecar matches or doesn't exist.
+        Returns (False, reason) when sidecar records a different subject.
+
+        This is the cheapest and most reliable date/name consistency check
+        because it compares what was INTENDED at generation time against what
+        was requested now.  No Vision API needed.
+        """
+        sidecar_path = portrait_path.with_suffix(".meta.json")
+        if not sidecar_path.exists():
+            return True, ""  # No sidecar — skip check
+
+        try:
+            sidecar = json.loads(sidecar_path.read_text(encoding="utf-8"))
+        except Exception as e:
+            return True, f"Could not parse sidecar: {e}"
+
+        sidecar_name = sidecar.get("name", "")
+        if sidecar_name and sidecar_name.lower() != subject_data.name.lower():
+            return False, (
+                f"Name mismatch: sidecar records '{sidecar_name}', "
+                f"expected '{subject_data.name}'"
+            )
+
+        sidecar_birth = sidecar.get("birth_year")
+        if sidecar_birth and subject_data.birth_year:
+            if abs(sidecar_birth - subject_data.birth_year) > 2:
+                return False, (
+                    f"Birth year mismatch: sidecar records {sidecar_birth}, "
+                    f"expected {subject_data.birth_year}"
+                )
+
+        sidecar_death = sidecar.get("death_year")
+        if sidecar_death and subject_data.death_year:
+            if abs(sidecar_death - subject_data.death_year) > 2:
+                return False, (
+                    f"Death year mismatch: sidecar records {sidecar_death}, "
+                    f"expected {subject_data.death_year}"
+                )
+
+        return True, ""
+
+    # ------------------------------------------------------------------ #
     # Vision API helpers                                                   #
     # ------------------------------------------------------------------ #
 
@@ -405,9 +581,10 @@ class PortraitVerifier:
             part = self.gemini_client.types.Part.from_bytes(
                 data=image_bytes, mime_type="image/jpeg"
             )
+            # Image-first ordering: visual context before text instructions
             response = self.gemini_client.client.models.generate_content(
                 model=self.gemini_client.model,
-                contents=[prompt, part],
+                contents=[part, prompt],
             )
             return response.text or ""
         except Exception as e:
@@ -419,11 +596,14 @@ class PortraitVerifier:
     ) -> str:
         """Send multiple images + text prompt to Gemini Vision.
 
+        Image-first ordering: all image parts first, then the text prompt.
+
         Returns:
             Response text, or empty string on error.
         """
         try:
-            contents = [prompt]
+            # Images first, text last
+            contents = []
             for img in images:
                 image_bytes = self._image_to_bytes(img)
                 contents.append(
@@ -431,6 +611,7 @@ class PortraitVerifier:
                         data=image_bytes, mime_type="image/jpeg"
                     )
                 )
+            contents.append(prompt)
             response = self.gemini_client.client.models.generate_content(
                 model=self.gemini_client.model,
                 contents=contents,

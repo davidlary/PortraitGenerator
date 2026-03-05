@@ -185,21 +185,36 @@ GENDER: Research the subject carefully and depict the correct gender."""
         if not context.reference_images:
             return ""
 
-        section = f"""REFERENCE IMAGES:
-You have access to {len(context.reference_images)} authenticated historical reference images of {context.subject_data.name}.
+        name = context.subject_data.name
+        n = len(context.reference_images[:5])
 
-Use these references to ensure:
-1. Facial features and proportions match historical photographs
-2. Hairstyle and grooming are era-appropriate
-3. Clothing and accessories reflect the time period
-4. Overall appearance is authentic and verifiable
+        section = f"""SUBJECT FROM REFERENCE PHOTOGRAPHS:
+You are provided with {n} authenticated reference image(s) of {name} (images appear before this text prompt).
 
-Reference image sources:"""
+Reference image role guide (images are ordered highest-quality-first):"""
 
+        role_labels = [
+            "PRIMARY FACE REFERENCE — use for facial structure, proportions, and expression",
+            "SECONDARY REFERENCE — confirm facial features and era-appropriate grooming",
+            "TERTIARY REFERENCE — additional corroboration of appearance",
+            "SUPPLEMENTARY — clothing and era context",
+            "SUPPLEMENTARY — additional era context",
+        ]
         for i, ref in enumerate(context.reference_images[:5], 1):
-            section += f"\n  {i}. {ref.source} (authenticity: {ref.authenticity_score:.0%})"
+            role = role_labels[i - 1] if i <= len(role_labels) else "SUPPLEMENTARY"
+            score_label = f"accuracy={ref.combined_score:.0%}" if ref.combined_score > 0 else f"auth={ref.authenticity_score:.0%}"
+            section += f"\n  Image {i}: [{ref.source}] {score_label} — {role}"
 
-        section += "\n\nSynthesize details from these references to create an accurate composite."
+        section += f"""
+
+FACIAL CONSISTENCY REQUIREMENTS:
+1. Facial bone structure (face shape, eye spacing, nose shape, jaw) MUST match the reference photograph(s)
+2. Gender identity MUST match: {getattr(context.subject_data, 'gender', 'unknown').upper()} person only
+3. Ethnic heritage markers visible in the reference must be preserved authentically
+4. Era-appropriate hairstyle and grooming (consistent with {context.subject_data.era})
+5. Focus on permanent structural features; do not reproduce age-related skin details
+
+CRITICAL: Maintain facial consistency with the reference photograph(s) while transforming into the requested artistic style. The person depicted must be identifiably {name}."""
 
         return section
 

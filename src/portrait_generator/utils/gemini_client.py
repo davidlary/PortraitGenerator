@@ -240,10 +240,42 @@ class GeminiImageClient:
                 tools=tools if tools else None,
             )
 
+            # Build multimodal contents: reference images first (image-first ordering),
+            # then text prompt last. Image-first helps the model establish visual context
+            # (facial features, era, appearance) before reading text instructions.
+            if reference_images:
+                contents = []
+                loaded_count = 0
+                _mime_map = {
+                    ".jpg": "image/jpeg",
+                    ".jpeg": "image/jpeg",
+                    ".png": "image/png",
+                    ".gif": "image/gif",
+                    ".webp": "image/webp",
+                }
+                for ref_path in reference_images:
+                    try:
+                        image_bytes = ref_path.read_bytes()
+                        mime_type = _mime_map.get(ref_path.suffix.lower(), "image/jpeg")
+                        contents.append(
+                            self.types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
+                        )
+                        loaded_count += 1
+                    except Exception as ref_err:
+                        logger.warning(f"Failed to load reference image {ref_path}: {ref_err}")
+                contents.append(self.types.Part.from_text(text=enhanced_prompt))
+                logger.info(
+                    f"Sending {loaded_count} reference image(s) + text prompt "
+                    f"to {self.model} (image-first ordering)"
+                )
+            else:
+                contents = enhanced_prompt
+                loaded_count = 0
+
             # Generate image using generate_content (correct API for gemini-3-pro-image-preview)
             response = self.client.models.generate_content(
                 model=self.model,
-                contents=enhanced_prompt,
+                contents=contents,
                 config=config,
             )
 
@@ -277,7 +309,7 @@ class GeminiImageClient:
                 iterations_used=1,  # Internal reasoning is automatic
                 reasoning=reasoning_text.strip() if reasoning_text else "",
                 grounding_used=self.enable_grounding and self.supports_grounding,
-                reference_images_used=len(reference_images) if reference_images else 0,
+                reference_images_used=loaded_count if reference_images else 0,
             )
 
             return result

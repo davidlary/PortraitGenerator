@@ -7,6 +7,69 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.4.0] - 2026-03-05
+
+### Added — Zero-Tolerance Reference Image Pipeline
+
+**9-Tier Progressive Reference Image Cascade** (`reference_finder.py`)
+- Tier 1: `_CONFIRMED_URLS` hardcoded table — zero network cost, instant
+- Tier 2: On-disk URL cache — populated by Gemini discoveries, free on repeat runs
+- Tier 3: Wikipedia photo from GroundTruth enrichment — already fetched, no extra cost
+- Tier 4: Wikipedia REST API thumbnail + original image — 1 API call, ~0.5s, free
+- Tier 5: Wikidata SPARQL P18 image property — 2 API calls, very reliable for notable people
+- Tier 6: **Gemini-powered web search** — AI understands era/field/institution context; results self-cache
+- Tier 7: Wikipedia page images API — existing strategy, now fallback not primary
+- Tier 8: Wikimedia Commons full-text search — additional fallback
+- Tier 9: DBpedia lookup — last resort
+
+**Held-Out Independent Validation** (`reference_finder.py`)
+- `split_for_generation_and_validation(images, n_gen=3)` partitions reference images into
+  generation set (sent to Gemini during creation) and held-out validation set (withheld for
+  independent post-generation identity verification — model never saw these images)
+- Disjoint sets enforced; best-scored images go to generation
+- Forms the basis of zero-trust portrait verification: "always verify, never assume"
+
+**89-Entry `_CONFIRMED_URLS` Table** (was 15 entries)
+- All 77 book portrait subjects researched by 7 parallel research agents
+- Every URL verified HTTP 200 by agents (Wikipedia Commons, institutional pages, NAS, etc.)
+- 4 subjects have no publicly available portrait (Whipple, Scrase, Findeisen, Pfotzer) —
+  cascade handles these via Wikipedia REST + Wikidata + Gemini automatically
+
+**77-Subject Integration Test Suite** (`tests/integration/test_book_portraits.py`)
+- Parametrized test covering every subject from `BookPortraits.md`
+- `@pytest.mark.integration @pytest.mark.slow` — runs separately from unit tests
+- Output to `tests/ExamplePortraitTests/`; portraits reused across runs unless forced
+
+**25+ New Unit Tests** for cascade tiers and held-out validation:
+- `TestCascadeTiers`: Wikipedia REST, Wikidata P18, Commons search, DBpedia, URL cache, cascade early-exit, deduplication
+- `TestHeldOutValidationSplit`: Split behavior for 0/1/2/3/5 images, custom `n_gen`, disjoint enforcement, highest-scored-to-gen
+
+**Portrait Verifier** (`core/portrait_verifier.py`)
+- 3-stage gender verification protocol (direct → contextual → elimination; 2/3 majority)
+- Sidecar JSON metadata (`.meta.json`) alongside every portrait for deterministic verification
+- Image-first ordering in all Vision API calls (Google-recommended for multimodal accuracy)
+- Graduated identity failure: hard fail only when `reference_authenticity_score >= 0.9`
+
+### Changed
+- `enable_reference_images` default: `False` → `True` (real cascade now works for any subject)
+- `ReferenceImage.combined_score` field added; stored by `_rank_and_filter()` for transparent scoring
+- `download_and_prepare_references()` now uses per-person cache directories
+- `find_reference_images()` completely redesigned as cascade with early exit and deduplication
+- `_fetch_wikipedia_page_images()` demoted from Tier 3 to Tier 7 (now a fallback, not primary)
+- Prompt builder updated to Pattern C reference structure: explicit per-image role labels
+
+### Fixed
+- **P0 critical bug**: `generate_image()` was passing `contents=prompt_string`, silently discarding
+  all reference images. Fixed to build `List[Part]` with images first (image-first ordering)
+- `loaded_count` scoping error in `generate_image()` when no reference images provided
+
+### Coverage / Tests
+- Tests: 455 → 480 passing
+- Coverage: 62% → 67%
+- All 3 pre-existing failures are API-key-dependent (require `GOOGLE_API_KEY`)
+
+---
+
 ## [2.2.0] - 2026-03-04
 
 ### Added
