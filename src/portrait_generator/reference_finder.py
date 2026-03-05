@@ -152,8 +152,9 @@ _CONFIRMED_URLS: Dict[str, str] = {
     "John Pyle": (
         "https://imagecdn.royalsociety.org/people/P30713.jpg"  # Royal Society, 550×550
     ),
+    # Joseph-Louis Lagrange: LoC head-and-shoulders engraving (1233×1536) — cleaner than crop (1043×1167)
     "Joseph-Louis Lagrange": (
-        "https://upload.wikimedia.org/wikipedia/commons/e/e7/Lagrange_crop.jpg"
+        "https://upload.wikimedia.org/wikipedia/commons/2/2c/Joseph_Louis_Lagrange%2C_1736-1813%2C_head-and-shoulders_portrait_LCCN2005691518.jpg"
     ),
     "Leonhard Euler": (
         "https://upload.wikimedia.org/wikipedia/commons/f/f9/Leonhard_Euler_-_Jakob_Emanuel_Handmann_%28Kunstmuseum_Basel%29.jpg"
@@ -198,8 +199,9 @@ _CONFIRMED_URLS: Dict[str, str] = {
     "Roger Daley": (
         "https://cmos.in1touch.org/uploaded/web/website/RogerDaley.jpg"
     ),
+    # Rudolf Kalman: ETH-BIB archival photo (3168×2112, 1MB) — much better than Wikipedia 321×300
     "Rudolf Kalman": (
-        "https://upload.wikimedia.org/wikipedia/commons/a/ac/Rudolf_Kalman.jpg"
+        "https://upload.wikimedia.org/wikipedia/commons/5/53/ETH-BIB-Kalman%2C_Rudolf_E._%281930-2016%29-HK_04-01925.jpg"
     ),
 
     # ── Chapter-ML ────────────────────────────────────────────────────────────
@@ -232,8 +234,9 @@ _CONFIRMED_URLS: Dict[str, str] = {
     "Henrik Svensmark": (
         "https://upload.wikimedia.org/wikipedia/commons/d/d0/HenrikSvensmark.jpg"
     ),
+    # John Winckler: National Academies Biographical Memoirs (385×546, public domain) — better than Wikipedia/en (226×270, fair use)
     "John Winckler": (
-        "https://upload.wikimedia.org/wikipedia/en/e/e6/John_r_winckler.jpg"
+        "https://www.nationalacademies.org/read/10470/assets/images/p20005c54g356001.jpg"
     ),
     "Louis-Guillaume Le Monnier": (
         "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e2/T1-_d532_-_Fig._268._%E2%80%94_Lemonnier.png/960px-T1-_d532_-_Fig._268._%E2%80%94_Lemonnier.png"
