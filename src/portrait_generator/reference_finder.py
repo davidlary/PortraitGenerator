@@ -194,8 +194,9 @@ _CONFIRMED_URLS: Dict[str, str] = {
     "Norbert Wiener": (
         "https://upload.wikimedia.org/wikipedia/commons/5/56/Norbert_Wiener.png"
     ),
+    # Roger Daley: CMOS memorial page (305×434) — better than science.ca (100×110)
     "Roger Daley": (
-        "https://www.science.ca/images/scientists/h-daley.jpg"
+        "https://cmos.in1touch.org/uploaded/web/website/RogerDaley.jpg"
     ),
     "Rudolf Kalman": (
         "https://upload.wikimedia.org/wikipedia/commons/a/ac/Rudolf_Kalman.jpg"
