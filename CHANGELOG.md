@@ -9,18 +9,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.4.0] - 2026-03-05
 
-### Added — Zero-Tolerance Reference Image Pipeline
+### Added — State-of-the-Art Reference Image Pipeline
 
-**9-Tier Progressive Reference Image Cascade** (`reference_finder.py`)
-- Tier 1: `_CONFIRMED_URLS` hardcoded table — zero network cost, instant
+**10-Tier Progressive Reference Image Cascade** (`reference_finder.py`)
+- **Tier 0: Local ExampleReferenceImages/** — 25 subjects with human-verified photos (zero network, highest priority, auth=0.99)
+- Tier 1: `_CONFIRMED_URLS` hardcoded table — zero network cost, instant, pre-verified
 - Tier 2: On-disk URL cache — populated by Gemini discoveries, free on repeat runs
 - Tier 3: Wikipedia photo from GroundTruth enrichment — already fetched, no extra cost
 - Tier 4: Wikipedia REST API thumbnail + original image — 1 API call, ~0.5s, free
 - Tier 5: Wikidata SPARQL P18 image property — 2 API calls, very reliable for notable people
 - Tier 6: **Gemini-powered web search** — AI understands era/field/institution context; results self-cache
-- Tier 7: Wikipedia page images API — existing strategy, now fallback not primary
-- Tier 8: Wikimedia Commons full-text search — additional fallback
+- Tier 7: Wikipedia page images API — now a fallback not primary
+- Tier 8: Wikimedia Commons full-text search — stricter name filtering (consecutive words)
 - Tier 9: DBpedia lookup — last resort
+
+**BCE Date Support** (`core/researcher.py`, `api/models.py`)
+- Birth/death years for ancient figures (Hippocrates c. 460 BCE, Theophrastus c. 371 BCE) now
+  parsed correctly: regex detects "BCE" context and negates year (−460 instead of 460)
+- `validate_data()` now accepts negative birth years (BCE dates are valid)
+- `formatted_years` property shows "460 BCE-370 BCE" format
+- Death year regex hardened to prevent matching embedded numbers in text
+- Safety fallback: when birth_year=1975 (placeholder) and death_year < birth_year, clears death_year
+
+**Reference Image URL Updates** (verified March 2026)
+- David Lary → Wikipedia Commons smiling headshot (405×589, no beard, glasses)
+- Eugenia Kalnay → ISC 600×600 color headshot (correct female portrait)
+- Mark Jacobson → Stanford EFMH direct photo (1407×1556, current Feb 2025)
+- Henrik Svensmark → Wikimedia Commons confirmed URL
+- 25 subjects now have Tier 0 local images (human-verified by user)
+
+**Commons Search Quality Improvement** (`reference_finder.py`)
+- Consecutive-name regex filter rejects wrong people: "John Howard Pyle" rejected when searching "John Pyle"
+- Expanded skip keywords: mug_shot, mugshot, cemetery, grave, tomb, building, street, house, plaque, medal
 
 **Held-Out Independent Validation** (`reference_finder.py`)
 - `split_for_generation_and_validation(images, n_gen=3)` partitions reference images into
