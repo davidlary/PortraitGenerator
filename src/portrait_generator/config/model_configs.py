@@ -6,19 +6,19 @@ All configurations are data-driven with no hard-coded thresholds in the main cod
 Supported Models:
 - gemini-3.1-flash-image-preview: Fast, high-efficiency image model (Nano Banana 2) [RECOMMENDED]
 - gemini-3-pro-image-preview: Highest quality image model (Nano Banana Pro)
-- gemini-2.5-flash-preview-image-generation: Previous generation flash (Nano Banana)
+- gemini-2.5-flash-image: Pure image model — no search-as-tool (Nano Banana) [quota fallback]
 - gemini-exp-1206: Previous experimental model (legacy)
 
 Model Selection Guide:
 - Use gemini-3.1-flash-image-preview (default) for best speed + accuracy balance
 - Use gemini-3-pro-image-preview for maximum quality on complex subjects
-- Use gemini-2.5-flash-preview-image-generation as fallback when newer models hit quota
+- Use gemini-2.5-flash-image as quota fallback (pure image model; no tool/search support)
 - Use gemini-exp-1206 for legacy compatibility only
 
 Quota Cascade (try in order when rate-limited):
-1. gemini-3.1-flash-image-preview  (Nano Banana 2)   — primary
-2. gemini-3-pro-image-preview      (Nano Banana Pro) — secondary
-3. gemini-2.5-flash-preview-image-generation (Nano Banana) — tertiary fallback
+1. gemini-3.1-flash-image-preview  (Nano Banana 2)   — primary   [thinking + search]
+2. gemini-3-pro-image-preview      (Nano Banana Pro) — secondary [thinking + search]
+3. gemini-2.5-flash-image          (Nano Banana)     — tertiary  [image-only; no search-as-tool]
 """
 
 import dataclasses
@@ -305,24 +305,25 @@ MODEL_PROFILES: Dict[str, ModelProfile] = {
         ),
     ),
 
-    "gemini-2.5-flash-preview-image-generation": ModelProfile(
-        model_name="gemini-2.5-flash-preview-image-generation",
-        display_name="Gemini 2.5 Flash Preview Image (Nano Banana)",
+    "gemini-2.5-flash-image": ModelProfile(
+        model_name="gemini-2.5-flash-image",
+        display_name="Gemini 2.5 Flash Image (Nano Banana)",
         description=(
-            "Previous-generation Gemini flash image model. Nano Banana provides "
-            "solid portrait quality with Google Search grounding and reasoning. "
-            "Use as tertiary fallback when Nano Banana 2 and Nano Banana Pro quotas "
-            "are exhausted. Separate daily quota bucket from newer models."
+            "Pure image-generation model. Does NOT support search as a tool "
+            "(no google_search or grounding API). No thinking mode. "
+            "Use as tertiary quota fallback only when Nano Banana 2 and Pro are "
+            "exhausted. Has its own separate daily quota bucket. "
+            "Note: any '2.5-flash-*' model ID variant is treated identically."
         ),
         release_date="2025-06",
         is_recommended=False,
         capabilities=ModelCapabilities(
-            google_search_grounding=True,
+            google_search_grounding=False,  # pure image model; search-as-tool not supported
             image_search_grounding=False,
             multi_image_reference=True,
             max_reference_images=5,
             internal_reasoning=True,
-            thinking_mode=False,
+            thinking_mode=False,            # no thinking mode on pure image models
             physics_aware_synthesis=False,
             native_text_rendering=True,
             international_text_rendering=False,
@@ -340,7 +341,7 @@ MODEL_PROFILES: Dict[str, ModelProfile] = {
             max_internal_iterations=1,
             quality_threshold=0.82,
             confidence_threshold=0.78,
-            enable_search_grounding=True,
+            enable_search_grounding=False,  # must be False: model does not accept search-as-tool
             enable_reference_images=True,
             max_reference_images_to_use=3,
             max_generation_attempts=2,
@@ -509,7 +510,7 @@ RECOMMENDED_MODEL = get_recommended_model()
 # Model constants
 FLASH_MODEL = "gemini-3.1-flash-image-preview"              # Nano Banana 2 — fast + accurate (default)
 PRO_MODEL = "gemini-3-pro-image-preview"                    # Nano Banana Pro — maximum quality
-NANO_BANANA_MODEL = "gemini-2.5-flash-preview-image-generation"  # Nano Banana — quota fallback
+NANO_BANANA_MODEL = "gemini-2.5-flash-image"                         # Nano Banana — quota fallback
 LEGACY_MODEL = "gemini-exp-1206"                            # Legacy compatibility
 
 # Quota cascade: try in order when rate-limited (each has its own daily quota bucket)

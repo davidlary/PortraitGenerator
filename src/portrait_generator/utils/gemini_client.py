@@ -17,15 +17,17 @@ rate-limit cascade recovery:
   * Deepest reasoning and physics-aware synthesis
   * Highest accuracy for complex/obscure historical subjects
 
-- Gemini 2.5 Flash Preview Image Generation (Nano Banana) — TERTIARY fallback
-  * Separate daily quota bucket from newer models
-  * Good portrait quality with Google Search grounding and reasoning
+- Gemini 2.5 Flash Image (Nano Banana, model ID "gemini-2.5-flash-image") — TERTIARY fallback
+  * Pure image-generation model — NO search-as-tool, NO thinking mode
+  * Separate daily quota bucket from Gemini 3.x models
+  * Good portrait quality via multi-image reference support
 
 Cascade behavior: when a generation call hits a quota / rate-limit error the
 client automatically advances to the next model and retries.  After exhausting
 all models in one cycle the client pauses 5 s before cycling back:
 
     Nano Banana 2  →  Nano Banana Pro  →  Nano Banana  →  (pause 5 s)  →  Nano Banana 2 …
+    (thinking+search)  (thinking+search)  (image-only)
 """
 
 import io
@@ -107,7 +109,7 @@ class GeminiImageClient:
         Nano Banana 2  →  Nano Banana Pro  →  Nano Banana  →  (cycle back)
         gemini-3.1-flash-image-preview
                        →  gemini-3-pro-image-preview
-                                          →  gemini-2.5-flash-preview-image-generation
+                                          →  gemini-2.5-flash-image
                                                            →  gemini-3.1-flash-image-preview …
     """
 
@@ -185,23 +187,36 @@ class GeminiImageClient:
             ) from e
 
     def _detect_capabilities(self) -> None:
-        """Detect capabilities of the configured model."""
+        """Detect capabilities of the configured model.
+
+        Key distinctions:
+        - Gemini 3.x models (Flash + Pro): thinking mode, search-as-tool grounding, extended ratios
+        - Gemini 2.5-flash-* models: pure image generation only — NO search-as-tool,
+          NO thinking mode.  Covers both "gemini-2.5-flash-image" and any longer name
+          containing "2.5-flash" (e.g. "gemini-2.5-flash-preview-image-generation").
+        - Gemini 2.x (non-image) and legacy: internal reasoning only, no tools
+        """
         # Flash model (Nano Banana 2) - recommended for speed + accuracy
         is_flash = "3.1-flash" in self.model or "nano-banana-2" in self.model
         # Pro model (Nano Banana Pro) - maximum quality
         is_pro = "3-pro" in self.model or "nano-banana-pro" in self.model
         # Any Gemini 3.x generation
         is_gemini3 = "gemini-3" in self.model or is_flash or is_pro
-        # Gemini 2.5 Flash (Nano Banana) - previous gen flash, quota fallback
-        is_gemini25 = "2.5-flash" in self.model and not is_gemini3
-        # Legacy or other Gemini 2.x
-        is_gemini2 = "gemini-2" in self.model and not is_gemini3
+        # All Gemini 2.5-flash-* variants are pure image-generation models:
+        # they do NOT accept search as a tool and have no thinking mode.
+        # This covers "gemini-2.5-flash-image", "gemini-2.5-flash-preview-image-generation",
+        # and any future short/long aliases for the same family.
+        is_pure_image_model = "2.5-flash" in self.model and not is_gemini3
+        # Legacy or other Gemini 2.x (non-image, non-2.5-flash)
+        is_gemini2 = "gemini-2" in self.model and not is_gemini3 and not is_pure_image_model
 
-        self.supports_grounding = is_gemini3 or is_gemini25
+        # Only Gemini 3.x supports search as a tool (grounding API).
+        # Pure image models (2.5-flash-*) and legacy models do not.
+        self.supports_grounding = is_gemini3
         self.supports_image_grounding = is_flash  # Flash adds Image Search grounding
-        self.supports_multi_image = is_gemini3 or is_gemini25
-        self.supports_reasoning = is_gemini3 or is_gemini2 or is_gemini25
-        self.supports_native_text = is_gemini3 or is_gemini2 or is_gemini25
+        self.supports_multi_image = is_gemini3 or is_pure_image_model
+        self.supports_reasoning = is_gemini3 or is_gemini2 or is_pure_image_model
+        self.supports_native_text = is_gemini3 or is_gemini2 or is_pure_image_model
         self.supports_thinking_mode = is_gemini3  # Only Gemini 3.x has thinking mode
         self.supports_batch = is_flash  # Flash supports Batch API
         self.supports_extended_aspect_ratios = is_flash  # Flash adds 1:4, 4:1, 1:8, 8:1
