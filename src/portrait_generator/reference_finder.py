@@ -183,8 +183,10 @@ _CONFIRMED_URLS: Dict[str, str] = {
     ),
 
     # ── Chapter-Assimilation ──────────────────────────────────────────────────
+    # Andrew Lorenc: RMetS 2021 Honorary Fellow official portrait, 1429×1382 full headshot
+    # White hair, white/grey beard, rectangular glasses — confirmed identity by RMetS labeling
     "Andrew Lorenc": (
-        "https://blogs.surrey.ac.uk/mathsresearch/wp-content/uploads/sites/11/2022/06/Lorenc.jpg"
+        "https://www.rmets.org/sites/default/files/inline-images/Andrew%20Lorenc.JPG"
     ),
     # David Lary: Wikipedia Commons smiling headshot (405×589, glasses, no beard)
     "David Lary": (

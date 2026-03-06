@@ -217,8 +217,9 @@ FACIAL CONSISTENCY REQUIREMENTS:
 2. Gender identity MUST match: {getattr(context.subject_data, 'gender', 'unknown').upper()} person only
 3. Ethnic heritage markers visible in the reference must be preserved authentically
 4. Era-appropriate hairstyle and grooming (consistent with {context.subject_data.era})
-5. Focus on permanent structural features; do not reproduce age-related skin details
-6. FACIAL EXPRESSION: Match the facial expression shown in the reference photograph(s). If the reference shows the subject smiling, depict them smiling. If the reference shows a neutral/serious expression, maintain that. Do not substitute a different expression.
+5. FACIAL HAIR: Replicate exactly what the reference photograph(s) show — if the subject is clean-shaven in the references, depict them clean-shaven with NO beard and NO mustache. Do not invent facial hair that is not present in the references.
+6. Focus on permanent structural features; do not reproduce age-related skin details
+7. FACIAL EXPRESSION: Match the facial expression shown in the reference photograph(s). If the reference shows the subject smiling, depict them smiling. If the reference shows a neutral/serious expression, maintain that. Do not substitute a different expression.
 
 CRITICAL: Maintain facial consistency with the reference photograph(s) while transforming into the requested artistic style. The person depicted must be identifiably {name}."""
 
