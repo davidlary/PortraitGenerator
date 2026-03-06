@@ -392,6 +392,9 @@ _LOCAL_REFERENCE_FILES: Dict[str, list] = {
         "BenjaminFranklin-flip.jpg",
     ],
     "Brian Tinsley": ["brian.tinsley.jpeg"],
+    # David Lary: three user-provided reference photos — glasses, dark hair, no beard
+    # 1=USSOCOM polo B&W (1290×1897), 2=suit/tie headshot (1200×1200), 3=NASA hoodie (576×604)
+    "David Lary": ["David_Lary_1.jpeg", "David_Lary_2.jpeg", "David_Lary_3.jpeg"],
     "Nicolaus Copernicus": ["Copernicus.jpg"],
     "Gaspard-Gustave de Coriolis": [
         "Gaspard-Gustave_de_Coriolis.jpg",
