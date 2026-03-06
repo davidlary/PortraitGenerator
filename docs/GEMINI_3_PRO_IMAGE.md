@@ -1,6 +1,6 @@
 ## Gemini Image Models - Advanced Features Guide
 
-**Version 2.4.0** | **Default Model: gemini-3.1-flash-image-preview (Nano Banana 2)**
+**Version 2.4.1** | **Default Model: gemini-3.1-flash-image-preview (Nano Banana 2)**
 > Also supports: gemini-3-pro-image-preview (maximum quality) and gemini-exp-1206 (legacy)
 
 ---
@@ -646,6 +646,12 @@ Gemini 3 Pro Image with advanced features costs more per generation than basic m
 ---
 
 ### Version History
+
+**2.4.1 (March 6, 2026):**
+- Facial expression matching: portrait prompts now instruct AI to replicate reference photo expression
+- David Lary: 3 user-provided local photos registered as Tier 0 (score 1.09, highest priority)
+- John Pyle: expanded to 5 confirmed Cambridge URLs (St Catharine's 1896×1422 as primary)
+- _LOCAL_REFERENCE_FILES expanded to 26 subjects
 
 **2.0.0 (January 30, 2026):**
 - Added Gemini 3 Pro Image (Nano Banana Pro) support

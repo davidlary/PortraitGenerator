@@ -3,8 +3,8 @@
 > Generate historically accurate, publication-quality portrait images using Google Gemini Flash Image (Nano Banana 2)
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![PyPI version](https://img.shields.io/badge/pypi-v2.4.0-blue.svg)](https://pypi.org/project/portrait-generator/)
-[![Conda version](https://img.shields.io/badge/conda-v2.4.0-blue.svg)](https://anaconda.org/conda-forge/portrait-generator)
+[![PyPI version](https://img.shields.io/badge/pypi-v2.4.1-blue.svg)](https://pypi.org/project/portrait-generator/)
+[![Conda version](https://img.shields.io/badge/conda-v2.4.1-blue.svg)](https://anaconda.org/conda-forge/portrait-generator)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://img.shields.io/badge/tests-480%20passed-green.svg)](tests/)
 [![Coverage](https://img.shields.io/badge/coverage-67%25-orange.svg)](htmlcov/)
@@ -26,19 +26,21 @@
 - 🔒 **Secure**: Environment-based credentials only
 - 📝 **Fully Documented**: Complete API documentation and examples
 
-### NEW in 2.4.0: Zero-Tolerance Reference Image Pipeline
+### NEW in 2.4.1: Facial Expression Matching + Reference Image Pipeline
 
+- 😊 **Facial Expression Matching**: Portrait prompts now explicitly require replicating the subject's expression from reference photos (smiling if references show smiling)
 - 🔍 **10-Tier Progressive Cascade (Tiers 0-9)**: Local images → Hardcoded table → URL cache → Wikipedia REST → Wikidata P18
   → Gemini web search → Wikipedia page images → Wikimedia Commons → DBpedia — stops at first success
 - 🤖 **AI-Powered Fallback**: Gemini web search understands era, field, and institutional context
   to find portraits for any subject; results self-cache for instant future access
 - ✅ **Held-Out Independent Validation**: Reference images split into generation set (used for creation)
   and held-out set (withheld for independent post-generation identity verification)
-- 📚 **90-Entry Confirmed URL Table**: All 77 book portrait subjects pre-researched by parallel agents
+- 📚 **90-Entry Confirmed URL Table**: All 94 book portrait subjects pre-researched by parallel agents
+- 👤 **26 Subjects with Tier 0 Local Photos**: Human-verified reference images at highest priority (score 1.09)
 - 🔄 **Self-Caching**: Gemini discoveries persisted to disk; repeat runs are free
 - 🪪 **Sidecar Metadata**: `.meta.json` alongside every portrait for deterministic verification
 - 📐 **3-Stage Gender Verification**: Direct → contextual → elimination; 2/3 majority required
-- 🧪 **Integration Test Suite**: 77-subject parametrized test covering all book portrait subjects
+- 🧪 **Integration Test Suite**: 94-subject parametrized test covering all book portrait subjects
 
 ---
 
@@ -1127,9 +1129,9 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Status
 
-🚀 **Version 2.4.0** - Production Ready
+🚀 **Version 2.4.1** - Production Ready
 
-- **Release Date**: March 5, 2026
+- **Release Date**: March 6, 2026
 - **Default Model**: gemini-3.1-flash-image-preview (Nano Banana 2)
 - **Python Support**: 3.10, 3.11, 3.12
 - **Test Coverage**: 67% (480+ tests passing; 96/96 integration tests)
