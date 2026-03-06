@@ -7,12 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.4.1] - 2026-03-06
+
+### Added
+- **Facial expression matching in prompts** (`prompt_builder.py`) — Portraits now explicitly instructed to match the facial expression shown in reference photographs (smiling if references show smiling, neutral if neutral). Previously, subjects smiling in all reference photos were rendered with neutral expressions.
+- **David Lary Tier 0 references** (`reference_finder.py`) — 3 user-provided local photos (USSOCOM polo, suit/tie headshot, NASA hoodie) added as highest-priority references for David Lary.
+- **John Pyle expanded Tier 1 URLs** (`reference_finder.py`) — 5 confirmed Cambridge institutional URLs now used (up from 2), including 1896×1422 St Catharine's Nathan Pitt 2015 portrait.
+
+### Fixed
+- Documentation count: `_LOCAL_REFERENCE_FILES` now correctly shows 26 subjects (was 25) in CHANGELOG.md.
+
+---
+
 ## [2.4.0] - 2026-03-05
 
 ### Added — State-of-the-Art Reference Image Pipeline
 
 **10-Tier Progressive Reference Image Cascade** (`reference_finder.py`)
-- **Tier 0: Local ExampleReferenceImages/** — 25 subjects with human-verified photos (zero network, highest priority, auth=0.99)
+- **Tier 0: Local ExampleReferenceImages/** — 26 subjects with human-verified photos (zero network, highest priority, auth=0.99)
 - Tier 1: `_CONFIRMED_URLS` hardcoded table — zero network cost, instant, pre-verified
 - Tier 2: On-disk URL cache — populated by Gemini discoveries, free on repeat runs
 - Tier 3: Wikipedia photo from GroundTruth enrichment — already fetched, no extra cost
@@ -36,7 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Eugenia Kalnay → ISC 600×600 color headshot (correct female portrait)
 - Mark Jacobson → Stanford EFMH direct photo (1407×1556, current Feb 2025)
 - Henrik Svensmark → Wikimedia Commons confirmed URL
-- 25 subjects now have Tier 0 local images (human-verified by user)
+- 26 subjects now have Tier 0 local images (human-verified by user)
 
 **Commons Search Quality Improvement** (`reference_finder.py`)
 - Consecutive-name regex filter rejects wrong people: "John Howard Pyle" rejected when searching "John Pyle"

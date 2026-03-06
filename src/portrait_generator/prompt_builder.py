@@ -218,6 +218,7 @@ FACIAL CONSISTENCY REQUIREMENTS:
 3. Ethnic heritage markers visible in the reference must be preserved authentically
 4. Era-appropriate hairstyle and grooming (consistent with {context.subject_data.era})
 5. Focus on permanent structural features; do not reproduce age-related skin details
+6. FACIAL EXPRESSION: Match the facial expression shown in the reference photograph(s). If the reference shows the subject smiling, depict them smiling. If the reference shows a neutral/serious expression, maintain that. Do not substitute a different expression.
 
 CRITICAL: Maintain facial consistency with the reference photograph(s) while transforming into the requested artistic style. The person depicted must be identifiably {name}."""
 
