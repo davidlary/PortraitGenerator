@@ -153,7 +153,15 @@ SUBJECT INFORMATION:
         if data.death_year:
             section += f"\n- Death Year: {data.death_year}"
 
-        section += f"\n- Approximate age at portrait time: {portrait_age} years old"
+        if context.reference_images:
+            section += (
+                "\n- AGE APPEARANCE: MATCH THE REFERENCE PHOTOGRAPHS exactly — "
+                "depict the subject at the same age, with the same hair colour, "
+                "hair style, and skin appearance as shown in the reference image(s). "
+                "Do not substitute a different or older calculated age."
+            )
+        else:
+            section += f"\n- Approximate age at portrait time: {portrait_age} years old"
 
         # Gender — inject explicitly so AI cannot default to stereotypes
         if gender != "unknown":
@@ -290,7 +298,8 @@ CRITICAL: Maintain facial consistency with the reference photograph(s) while tra
 - Maintains photographic detail level
 - Subtle impasto texture visible
 - Traditional portrait painting composition
-- Artistic interpretation while maintaining accuracy""",
+- Artistic interpretation while maintaining accuracy
+- NO decorative frames, gilded borders, or ornamental surrounds — frameless canvas only""",
         }
 
         return style_instructions.get(

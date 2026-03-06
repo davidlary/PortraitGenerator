@@ -1,8 +1,12 @@
-"""Integration tests: generate all 77 book portraits from BookPortraits.md.
+"""Integration tests: generate all 94 book portraits from BookPortraits.md.
 
 Each test generates a Painting-style portrait for one subject, saves it to
 tests/ExamplePortraitTests/, and verifies the output passes the full
 verification pipeline.
+
+Output filename conventions:
+    <Name>_Painting.png        — generated with at least one reference image
+    <Name>_Painting_NoRef.png  — generated with NO reference images (no known portrait exists)
 
 Usage:
     # Run all portrait tests in parallel (12 workers — recommended):
@@ -20,7 +24,7 @@ Usage:
 Notes:
     - Requires a valid GOOGLE_API_KEY environment variable.
     - Each portrait takes ~22-45 seconds with the default Flash model.
-    - Total runtime for all 77 portraits: ~5-10 minutes with 12 parallel workers.
+    - Total runtime for all 94 portraits: ~12-15 minutes with 12 parallel workers.
     - Portraits are saved to tests/ExamplePortraitTests/ and NOT deleted after tests.
     - force_regenerate=False by default (existing portraits reused, skipped via pytest.skip).
     - Unicode normalization (NFC/NFD) handled for macOS HFS+ filesystem compatibility.
@@ -49,7 +53,7 @@ _SKIP_NO_KEY = pytest.mark.skipif(
 _FORCE_REGEN = os.getenv("PORTRAIT_FORCE_REGENERATE", "0") == "1"
 
 # ---------------------------------------------------------------------------
-# Complete list of 77 unique individuals from BookPortraits.md
+# Complete list of 94 unique individuals from BookPortraits.md
 # Format: (canonical_name, birth_year_or_approx, death_year_or_None, chapter)
 # ---------------------------------------------------------------------------
 
@@ -252,7 +256,11 @@ def _generator_filename(name: str, style: str) -> str:
 def _portrait_exists(name: str) -> bool:
     """Check if a Painting portrait already exists for this subject.
 
-    Two issues addressed:
+    Checks both filename variants:
+      - <Name>_Painting.png        (generated with reference images)
+      - <Name>_Painting_NoRef.png  (generated without any reference images)
+
+    Three issues addressed:
     1. Case: generator uses capitalize() which lowercases mid-word chars in hyphenated
        names (e.g., "Carl-Gustaf Rossby" → "CarlgustafRossby", not "CarlGustafRossby").
        Using exact _generator_filename() logic avoids the mismatch.
@@ -260,13 +268,15 @@ def _portrait_exists(name: str) -> bool:
        (ö → o + combining diacritical) while Python strings are NFC composed
        (ö → single code point U+00F6). Path.glob() uses string comparison without
        normalization, so we iterate and compare with unicodedata.normalize("NFC", ...).
+    3. NoRef suffix: subjects with no known portrait get _NoRef suffix appended by
+       the generator; both variants must be accepted as "already exists".
     """
-    expected = _generator_filename(name, "Painting")
-    expected_nfc = unicodedata.normalize("NFC", expected)
-    expected_png = f"{expected_nfc}.png"
+    base = _generator_filename(name, "Painting")
+    base_nfc = unicodedata.normalize("NFC", base)
+    targets = {f"{base_nfc}.png", f"{base_nfc}_NoRef.png"}
     for f in OUTPUT_DIR.iterdir():
         fname_nfc = unicodedata.normalize("NFC", f.name)
-        if fname_nfc == expected_png:
+        if fname_nfc in targets:
             return True
     return False
 

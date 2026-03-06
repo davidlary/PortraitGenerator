@@ -332,8 +332,10 @@ class EnhancedPortraitGenerator:
         Raises:
             RuntimeError: If generation fails
         """
-        # Create filename
-        filename_base = self._create_filename(subject_data.name, style)
+        # Create filename — append _NoRef when no reference images were found
+        filename_base = self._create_filename(
+            subject_data.name, style, has_references=len(reference_images) > 0
+        )
         image_path = self.output_dir / f"{filename_base}.png"
         prompt_path = self.output_dir / f"{filename_base}_prompt.md"
 
@@ -637,12 +639,15 @@ Please address this issue and ensure:
             # No transformation needed for Color or Painting
             return image
 
-    def _create_filename(self, name: str, style: str) -> str:
+    def _create_filename(self, name: str, style: str, has_references: bool = True) -> str:
         """Create filename from subject name and style.
 
         Args:
             name: Subject name
             style: Portrait style
+            has_references: Whether reference images were available for this portrait.
+                            When False, appends '_NoRef' suffix to signal the portrait
+                            was generated without any reference images.
 
         Returns:
             Filename (without extension)
@@ -656,6 +661,10 @@ Please address this issue and ensure:
 
         # Add style suffix
         filename = f"{filename}_{style}"
+
+        # Flag portraits generated without any reference images
+        if not has_references:
+            filename = f"{filename}_NoRef"
 
         logger.debug(f"Created filename: {filename}")
 
