@@ -40,6 +40,84 @@
 - 📐 **3-Stage Gender Verification**: Direct → contextual → elimination; 2/3 majority required
 - 🧪 **Integration Test Suite**: 77-subject parametrized test covering all book portrait subjects
 
+---
+
+## Adding Local Reference Images (Highest Priority — Tier 0)
+
+When you have actual photographs of a subject, placing them in the `ExampleReferenceImages/`
+directory gives the pipeline the most accurate reference data possible. Local images are
+**always used first** (Tier 0, score 1.092) and outrank all online sources (Tier 1 confirmed
+URLs score 1.038, Tier 4+ Wikipedia scores 0.88-0.95).
+
+### Step 1 — Drop images into `ExampleReferenceImages/`
+
+```
+PortraitGenerator/
+└── ExampleReferenceImages/
+    ├── David_Lary_1.jpeg        # Accepted formats: .jpg, .jpeg, .png
+    ├── David_Lary_2.jpeg
+    └── David_Lary_3.jpeg
+```
+
+Use clear, well-lit headshots wherever possible. Multiple photos from different angles or
+lighting conditions improve likeness fidelity. Minimum 256×256 px recommended.
+
+### Step 2 — Register the filenames in `reference_finder.py`
+
+Open `src/portrait_generator/reference_finder.py` and find the `_LOCAL_REFERENCE_FILES`
+dictionary (around line 385). Add your subject:
+
+```python
+_LOCAL_REFERENCE_FILES: Dict[str, list] = {
+    # ... existing entries ...
+
+    # David Lary: three user-provided reference photos — glasses, dark hair, no beard
+    "David Lary": ["David_Lary_1.jpeg", "David_Lary_2.jpeg", "David_Lary_3.jpeg"],
+}
+```
+
+The key must exactly match the subject name used in generation. Filenames are resolved
+relative to `ExampleReferenceImages/`.
+
+### Step 3 — Regenerate
+
+Clear the cache for that subject, then regenerate:
+
+```bash
+# Remove stale cached references for the subject
+rm -rf .cpf/reference_images/david_lary/
+
+# Force fresh generation
+portrait-generator generate "David Lary" --styles Painting --output-dir output/
+```
+
+### Why Tier 0 images produce the best likenesses
+
+| Priority | Source | Score | Notes |
+|----------|--------|-------|-------|
+| **Tier 0** | **Local ExampleReferenceImages** | **1.09** | User-verified — ground truth |
+| Tier 1 | Confirmed URL table | 1.04 | Pre-researched institutional photos |
+| Tier 4 | Wikipedia REST | 0.95 | Wikipedia photo, may be generic |
+| Tier 5 | Wikidata P18 | 0.92 | Wikidata image property |
+| Tier 8 | Wikimedia Commons | 0.88 | Commons search, lower confidence |
+
+The 10-tier cascade stops as soon as enough images are gathered. Having Tier 0 images
+means the AI receives high-confidence, human-verified references before any web search
+is attempted, which is crucial for subjects with name collisions (e.g. scientists whose
+names match more-famous people on Wikipedia).
+
+### Tips for best results
+
+- **Provide 2-5 photos**: Different lighting, angles, or years improve robustness
+- **Clear face focus**: Cropped headshots work best; remove distracting backgrounds if possible
+- **Avoid group photos**: Individual portraits give stronger facial feature signals
+- **Match the era**: For historical subjects, period-appropriate photos ground the style better
+- **Add to the URL table too**: If you find a public URL for an institutional profile photo,
+  add it to `_CONFIRMED_URLS` in `reference_finder.py` so the image is automatically
+  fetched on future runs without needing the local file
+
+---
+
 ### NEW in 2.2.0: Flash Image Model (Nano Banana 2) as Default
 
 - ⚡ **gemini-3.1-flash-image-preview**: New default model — ~22s vs ~45s (2x faster)

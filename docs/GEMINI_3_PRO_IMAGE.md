@@ -63,16 +63,42 @@ ENABLE_SEARCH_GROUNDING=false  # Default: false (grounding API returns empty res
 
 #### 2. Multi-Image Reference Support
 
-Use up to 14 authentic historical reference images to guide generation.
+Use up to 14 authentic reference images to guide generation. Images are discovered
+automatically via a **10-tier cascade (Tiers 0-9)**, or you can supply your own.
 
-**Features:**
-- Automatic reference image discovery via Google Search
-- Authenticity scoring and validation
-- Quality assessment
-- Era-matching verification
-- Smart image ranking and selection
+**Tier priorities (highest → lowest):**
+| Tier | Source | Score | When used |
+|------|--------|-------|-----------|
+| 0 | `ExampleReferenceImages/` local files | 1.09 | Always (if registered) |
+| 1 | Hardcoded confirmed URL table | 1.04 | Pre-researched subjects |
+| 2 | On-disk Gemini URL cache | 1.00 | Repeat runs |
+| 3 | Wikipedia GroundTruth photo | 0.97 | Wikipedia has a photo |
+| 4 | Wikipedia REST thumbnail | 0.95 | Wikipedia page exists |
+| 5 | Wikidata P18 image | 0.92 | Wikidata has photo |
+| 6 | Gemini web search | 0.88 | AI-discovered image |
+| 7 | Wikipedia page images | 0.88 | Embedded page images |
+| 8 | Wikimedia Commons search | 0.88 | Commons category match |
+| 9 | DBpedia thumbnail | 0.85 | Last resort |
 
-**Usage:**
+**Supplying your own reference images (Tier 0 — highest priority):**
+
+Place photos in `ExampleReferenceImages/` and register them in `reference_finder.py`:
+
+```python
+# In src/portrait_generator/reference_finder.py
+_LOCAL_REFERENCE_FILES: Dict[str, list] = {
+    # Add your subject here — filenames relative to ExampleReferenceImages/
+    "Jane Smith": ["JaneSmith_headshot.jpg", "JaneSmith_conference.jpg"],
+}
+```
+
+Then clear the cache and regenerate:
+```bash
+rm -rf .cpf/reference_images/jane_smith/
+portrait-generator generate "Jane Smith" --styles Painting
+```
+
+**Automatic discovery usage:**
 ```python
 from portrait_generator import PortraitClient
 
