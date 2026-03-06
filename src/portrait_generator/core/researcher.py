@@ -2,39 +2,39 @@
 
 import logging
 import re
+from pathlib import Path
 from typing import Optional
+
+import yaml
 
 from ..api.models import SubjectData
 from ..utils.ground_truth import GroundTruthVerifier
 
 logger = logging.getLogger(__name__)
 
+# Path to human-curated biographical data file
+_BIO_YAML_PATH = Path(__file__).parent.parent / "data" / "verified_biographies.yaml"
 
-# ---------------------------------------------------------------------------
-# Verified biographical data — locked-in facts that override Gemini research
-# and ground truth lookups.  Add entries here for any subject whose birth/death
-# year or gender was incorrect in automated research.
-#
-# Format: "Full Name": {"birth_year": int, "death_year": int|None, "gender": str}
-# ---------------------------------------------------------------------------
-_VERIFIED_BIOGRAPHY: dict = {
-    # Chapter-Assimilation
-    "Andrew Lorenc":  {"birth_year": 1951, "death_year": None, "gender": "male"},
-    "David Lary":     {"birth_year": 1965, "death_year": None, "gender": "male"},
-    "Eugenia Kalnay": {"birth_year": 1942, "death_year": None, "gender": "female"},
-    "Mike Fisher":    {"birth_year": 1962, "death_year": None, "gender": "male"},
-    "Roger Daley":    {"birth_year": 1941, "death_year": 1999, "gender": "male"},
-    "Rudolf Kalman":  {"birth_year": 1930, "death_year": 2016, "gender": "male"},
-    "Norbert Wiener": {"birth_year": 1894, "death_year": 1964, "gender": "male"},
-    # Chapter-Simulating
-    "John Pyle":      {"birth_year": 1950, "death_year": None, "gender": "male"},
-    # Ancient/BCE subjects (prevent parsing errors)
-    "Hippocrates":      {"birth_year": -460, "death_year": -370, "gender": "male"},
-    "Theophrastus":     {"birth_year": -371, "death_year": -287, "gender": "male"},
-    "Pedanius Dioscorides": {"birth_year": 40,  "death_year": 90,  "gender": "male"},
-    "Avicenna":         {"birth_year": 980,  "death_year": 1037, "gender": "male"},
-    "Hildegard von Bingen": {"birth_year": 1098, "death_year": 1179, "gender": "female"},
-}
+
+def _load_verified_biographies() -> dict:
+    """Load verified biographical data from YAML file."""
+    if _BIO_YAML_PATH.exists():
+        with open(_BIO_YAML_PATH, "r", encoding="utf-8") as f:
+            return yaml.safe_load(f) or {}
+    return {}
+
+
+def _save_verified_biography(name: str, birth_year: int, death_year, gender: str, notes: str = "") -> None:
+    """Persist a new verified biography entry to the YAML file."""
+    data = _load_verified_biographies()
+    entry = {"birth_year": birth_year, "death_year": death_year, "gender": gender}
+    if notes:
+        entry["notes"] = notes
+    data[name] = entry
+    _BIO_YAML_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(_BIO_YAML_PATH, "w", encoding="utf-8") as f:
+        yaml.dump(data, f, default_flow_style=False, allow_unicode=True, sort_keys=True)
+    logger.info(f"Saved verified biography for '{name}' to {_BIO_YAML_PATH.name}")
 
 
 class BiographicalResearcher:
@@ -109,8 +109,9 @@ class BiographicalResearcher:
                 logger.debug(f"Ground truth lookup skipped for '{name}': {gt_err}")
 
             # Apply verified biography overrides (highest authority — beats Gemini + ground truth)
-            if name in _VERIFIED_BIOGRAPHY:
-                bio = _VERIFIED_BIOGRAPHY[name]
+            verified = _load_verified_biographies()
+            if name in verified:
+                bio = verified[name]
                 subject_data.birth_year = bio["birth_year"]
                 subject_data.death_year = bio.get("death_year")
                 subject_data.gender = bio.get("gender", subject_data.gender)
@@ -119,6 +120,21 @@ class BiographicalResearcher:
                     f"birth={bio['birth_year']}, death={bio.get('death_year')}, "
                     f"gender={bio.get('gender')}"
                 )
+            else:
+                # Auto-save high-confidence ground truth discoveries for future runs
+                try:
+                    verifier_check = GroundTruthVerifier(gemini_client=self.gemini_client)
+                    gt = verifier_check.fetch(name)
+                    if gt.confidence >= 0.85 and gt.birth_year and gt.birth_year > 0:
+                        _save_verified_biography(
+                            name=name,
+                            birth_year=gt.birth_year,
+                            death_year=gt.death_year,
+                            gender=subject_data.gender,
+                            notes=f"Auto-saved: confidence={gt.confidence:.2f}, source={gt.source}",
+                        )
+                except Exception:
+                    pass  # Auto-save is best-effort only
 
             logger.info(
                 f"Research complete: {subject_data.name} "

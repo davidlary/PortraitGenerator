@@ -1,0 +1,500 @@
+# Verified biographical data — human-curated facts that override Gemini research
+# and ground-truth lookups.  Add entries here for any subject whose birth/death
+# year or gender was incorrect in automated research.
+#
+# Fields:
+#   birth_year:  integer (negative for BCE, e.g. -460 for 460 BCE)
+#   death_year:  integer or null (null = still living)
+#   gender:      "male" | "female" | "unknown"
+#
+# Sources used for verification:
+#   Wikipedia, Wikidata, institutional pages, book chapter metadata (BookPortraits.md)
+# ---------------------------------------------------------------------------
+
+# ── Chapter-Introduction ────────────────────────────────────────────────────
+Christian Friedrich Schönbein:
+  birth_year: 1799
+  death_year: 1868
+  gender: male
+
+John Tyndall:
+  birth_year: 1820
+  death_year: 1893
+  gender: male
+
+Joseph Fourier:
+  birth_year: 1768
+  death_year: 1830
+  gender: male
+
+Louis Agassiz:
+  birth_year: 1807
+  death_year: 1873
+  gender: male
+
+Svante Arrhenius:
+  birth_year: 1859
+  death_year: 1927
+  gender: male
+
+Theodore Fujita:
+  birth_year: 1920
+  death_year: 1998
+  gender: male
+
+# ── Chapter-Global-Chemistry ─────────────────────────────────────────────────
+Carl-Gustaf Rossby:
+  birth_year: 1898
+  death_year: 1957
+  gender: male
+
+Nicolaus Copernicus:
+  birth_year: 1473
+  death_year: 1543
+  gender: male
+
+Gaspard-Gustave de Coriolis:
+  birth_year: 1792
+  death_year: 1843
+  gender: male
+
+Henry Eyring:
+  birth_year: 1901
+  death_year: 1981
+  gender: male
+
+Jacobus van't Hoff:
+  birth_year: 1852
+  death_year: 1911
+  gender: male
+
+Johann Heinrich Lambert:
+  birth_year: 1728
+  death_year: 1777
+  gender: male
+
+Jöns Jacob Berzelius:
+  birth_year: 1779
+  death_year: 1848
+  gender: male
+
+Johannes Kepler:
+  birth_year: 1571
+  death_year: 1630
+  gender: male
+
+Léon Teisserenc de Bort:
+  birth_year: 1855
+  death_year: 1913
+  gender: male
+
+Lord Rayleigh:
+  birth_year: 1842
+  death_year: 1919
+  gender: male
+
+Luke Howard:
+  birth_year: 1772
+  death_year: 1864
+  gender: male
+
+Isaac Newton:
+  birth_year: 1643
+  death_year: 1727
+  gender: male
+
+Sydney Chapman:
+  birth_year: 1888
+  death_year: 1970
+  gender: male
+
+Tor Bergeron:
+  birth_year: 1891
+  death_year: 1977
+  gender: male
+
+Tycho Brahe:
+  birth_year: 1546
+  death_year: 1601
+  gender: male
+
+Walter Findeisen:
+  birth_year: 1909
+  death_year: 1945
+  gender: male
+
+# ── Chapter-Air-Quality ──────────────────────────────────────────────────────
+C. William Gear:
+  birth_year: 1935
+  death_year: 2022
+  gender: male
+
+Hiram Levy:
+  birth_year: 1936
+  death_year: null
+  gender: male
+
+Mario Molina:
+  birth_year: 1943
+  death_year: 2020
+  gender: male
+
+Mark Jacobson:
+  birth_year: 1967
+  death_year: null
+  gender: male
+
+Paul Crutzen:
+  birth_year: 1933
+  death_year: 2021
+  gender: male
+
+# ── Chapter-Simulating ───────────────────────────────────────────────────────
+Aleksandr Lyapunov:
+  birth_year: 1857
+  death_year: 1918
+  gender: male
+
+Henri Poincaré:
+  birth_year: 1854
+  death_year: 1912
+  gender: male
+
+John Pyle:
+  birth_year: 1950
+  death_year: null
+  gender: male
+
+Joseph-Louis Lagrange:
+  birth_year: 1736
+  death_year: 1813
+  gender: male
+
+Leonhard Euler:
+  birth_year: 1707
+  death_year: 1783
+  gender: male
+
+Sherwood Rowland:
+  birth_year: 1927
+  death_year: 2012
+  gender: male
+
+# ── Chapter-Observing ────────────────────────────────────────────────────────
+Clive Rodgers:
+  birth_year: 1940
+  death_year: null
+  gender: male
+
+Moustafa Chahine:
+  birth_year: 1935
+  death_year: 2011
+  gender: male
+
+Sydney Twomey:
+  birth_year: 1927
+  death_year: 2012
+  gender: male
+
+Ulrich Platt:
+  birth_year: 1944
+  death_year: null
+  gender: male
+
+# ── Chapter-Assimilation ─────────────────────────────────────────────────────
+Andrew Lorenc:
+  birth_year: 1951
+  death_year: null
+  gender: male
+  notes: "Met Office/ECMWF data assimilation scientist; Gemini confuses with other Andrew Lorenc (1948-2024)"
+
+David Lary:
+  birth_year: 1965
+  death_year: null
+  gender: male
+  notes: "UT Dallas atmospheric scientist; Gemini sometimes returns birth_year=1975 placeholder"
+
+Eugenia Kalnay:
+  birth_year: 1942
+  death_year: null
+  gender: female
+  notes: "Argentine-American meteorologist; Gemini occasionally researches as male"
+
+Mike Fisher:
+  birth_year: 1962
+  death_year: null
+  gender: male
+  notes: "ECMWF data assimilation scientist; name collision with NHL hockey player born 1980"
+
+Norbert Wiener:
+  birth_year: 1894
+  death_year: 1964
+  gender: male
+
+Roger Daley:
+  birth_year: 1941
+  death_year: 1999
+  gender: male
+
+Rudolf Kalman:
+  birth_year: 1930
+  death_year: 2016
+  gender: male
+
+# ── Chapter-ML ───────────────────────────────────────────────────────────────
+Teuvo Kohonen:
+  birth_year: 1934
+  death_year: 2021
+  gender: male
+
+# ── Chapter-Charged ──────────────────────────────────────────────────────────
+Benjamin Franklin:
+  birth_year: 1706
+  death_year: 1790
+  gender: male
+
+Brian Tinsley:
+  birth_year: 1940
+  death_year: null
+  gender: male
+
+Charles-Augustin de Coulomb:
+  birth_year: 1736
+  death_year: 1806
+  gender: male
+
+Charles T. R. Wilson:
+  birth_year: 1869
+  death_year: 1959
+  gender: male
+
+Davis Sentman:
+  birth_year: 1946
+  death_year: 2011
+  gender: male
+
+Edward Appleton:
+  birth_year: 1892
+  death_year: 1965
+  gender: male
+
+Francis John Welsh Whipple:
+  birth_year: 1876
+  death_year: 1943
+  gender: male
+
+Frank John Scrase:
+  birth_year: 1897
+  death_year: 1963
+  gender: male
+
+Georg Pfotzer:
+  birth_year: 1909
+  death_year: 1981
+  gender: male
+
+Henrik Svensmark:
+  birth_year: 1958
+  death_year: null
+  gender: male
+
+John Winckler:
+  birth_year: 1916
+  death_year: 2001
+  gender: male
+
+Louis-Guillaume Le Monnier:
+  birth_year: 1717
+  death_year: 1799
+  gender: male
+
+Marx Brook:
+  birth_year: 1920
+  death_year: 2002
+  gender: male
+
+Ralph Markson:
+  birth_year: 1930
+  death_year: 2022
+  gender: male
+
+Richard Carrington:
+  birth_year: 1826
+  death_year: 1875
+  gender: male
+
+Scott Forbush:
+  birth_year: 1904
+  death_year: 1984
+  gender: male
+
+Victor Hess:
+  birth_year: 1883
+  death_year: 1964
+  gender: male
+
+Winfried Otto Schumann:
+  birth_year: 1888
+  death_year: 1974
+  gender: male
+
+# ── Chapter-IAQ ──────────────────────────────────────────────────────────────
+Charles Weschler:
+  birth_year: 1944
+  death_year: null
+  gender: male
+
+Lance Wallace:
+  birth_year: 1940
+  death_year: 2022
+  gender: male
+
+Max von Pettenkofer:
+  birth_year: 1818
+  death_year: 1901
+  gender: male
+
+William Nazaroff:
+  birth_year: 1952
+  death_year: null
+  gender: male
+
+# ── Chapter-Improving-IAQ ────────────────────────────────────────────────────
+Boris Petrovich Tokin:
+  birth_year: 1900
+  death_year: 1982
+  gender: male
+
+Charles H. Blackley:
+  birth_year: 1820
+  death_year: 1900
+  gender: male
+
+Edward O. Wilson:
+  birth_year: 1929
+  death_year: 2021
+  gender: male
+
+Frank W. Went:
+  birth_year: 1903
+  death_year: 1990
+  gender: male
+
+Jan Ingenhousz:
+  birth_year: 1730
+  death_year: 1799
+  gender: male
+
+Joseph Priestley:
+  birth_year: 1733
+  death_year: 1804
+  gender: male
+
+Melvin Calvin:
+  birth_year: 1911
+  death_year: 1997
+  gender: male
+
+Nicolas-Théodore de Saussure:
+  birth_year: 1767
+  death_year: 1845
+  gender: male
+
+Walther Flemming:
+  birth_year: 1843
+  death_year: 1905
+  gender: male
+
+William F. Wells:
+  birth_year: 1887
+  death_year: 1963
+  gender: male
+
+Willis Carrier:
+  birth_year: 1876
+  death_year: 1950
+  gender: male
+
+# ── Chapter-Health-Impacts ───────────────────────────────────────────────────
+Avicenna:
+  birth_year: 980
+  death_year: 1037
+  gender: male
+
+Bruce McEwen:
+  birth_year: 1938
+  death_year: 2020
+  gender: male
+
+Hans Selye:
+  birth_year: 1907
+  death_year: 1982
+  gender: male
+
+Hildegard von Bingen:
+  birth_year: 1098
+  death_year: 1179
+  gender: female
+
+Hippocrates:
+  birth_year: -460
+  death_year: -370
+  gender: male
+  notes: "BCE dates stored as negative integers"
+
+Nicholas Culpeper:
+  birth_year: 1616
+  death_year: 1654
+  gender: male
+
+Pedanius Dioscorides:
+  birth_year: 40
+  death_year: 90
+  gender: male
+
+René-Maurice Gattefossé:
+  birth_year: 1881
+  death_year: 1950
+  gender: male
+
+Ronald Ross:
+  birth_year: 1857
+  death_year: 1932
+  gender: male
+
+Rudolf Virchow:
+  birth_year: 1821
+  death_year: 1902
+  gender: male
+
+Theophrastus:
+  birth_year: -371
+  death_year: -287
+  gender: male
+  notes: "BCE dates stored as negative integers"
+
+# ── Chapter-AQ-Plants-Birds-Animals ─────────────────────────────────────────
+Eugene P. Odum:
+  birth_year: 1913
+  death_year: 2002
+  gender: male
+
+F. Herbert Bormann:
+  birth_year: 1922
+  death_year: 2012
+  gender: male
+
+Gene Likens:
+  birth_year: 1935
+  death_year: null
+  gender: male
+
+Karl von Frisch:
+  birth_year: 1886
+  death_year: 1982
+  gender: male
+
+Rachel Carson:
+  birth_year: 1907
+  death_year: 1964
+  gender: female
