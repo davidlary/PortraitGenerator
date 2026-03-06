@@ -4,6 +4,7 @@ This module builds advanced prompts that leverage reference images,
 native text rendering, and physics-aware synthesis instructions.
 """
 
+import datetime
 import logging
 from dataclasses import dataclass
 from pathlib import Path
@@ -129,12 +130,16 @@ class PromptBuilder:
         data = context.subject_data
         gender = getattr(data, "gender", "unknown")
 
-        # Calculate approximate portrait age
-        portrait_year = data.birth_year + (
-            (data.death_year - data.birth_year) // 2
-            if data.death_year
-            else 40
-        )
+        # Calculate portrait year and age — always depict at career prime, never decrepit
+        # For deceased: midpoint of lifespan
+        # For living: cap at age 65 (prime/distinguished, not elderly) unless they're younger
+        current_year = datetime.date.today().year
+        if data.death_year:
+            portrait_year = data.birth_year + (data.death_year - data.birth_year) // 2
+        else:
+            current_age = current_year - data.birth_year
+            portrait_age_target = min(current_age, 65)  # never older than 65 in the portrait
+            portrait_year = data.birth_year + portrait_age_target
         portrait_age = portrait_year - data.birth_year
 
         section = f"""Generate a historically accurate {context.style} portrait of {data.name}.

@@ -108,17 +108,17 @@ class TestReferenceImageFinder:
         assert finder.download_dir.exists()
 
     def test_lookup_confirmed_url_known_subject(self, reference_finder):
-        """Test confirmed URL lookup returns URL for known subjects."""
+        """Test confirmed URL lookup returns URL(s) for known subjects."""
         from portrait_generator.api.models import SubjectData
         data = SubjectData(name="David Lary", birth_year=1970, era="Contemporary")
-        url = reference_finder._lookup_confirmed_url(data.name)
-        assert url is not None
-        assert url.startswith("https://")
+        urls = reference_finder._lookup_confirmed_urls(data.name)
+        assert len(urls) > 0
+        assert urls[0].startswith("https://")
 
     def test_lookup_confirmed_url_unknown_subject(self, reference_finder):
-        """Test confirmed URL lookup returns None for unknown subjects."""
-        url = reference_finder._lookup_confirmed_url("Completely Unknown Person XYZ")
-        assert url is None
+        """Test confirmed URL lookup returns empty list for unknown subjects."""
+        urls = reference_finder._lookup_confirmed_urls("Completely Unknown Person XYZ")
+        assert urls == []
 
     def test_get_wikipedia_photo_url_present(self, reference_finder):
         """Test extracting Wikipedia photo URL from reference_sources."""
@@ -222,9 +222,9 @@ class TestReferenceImageFinder:
             "F. Herbert Bormann",
         ]
         for name in new_entries:
-            url = reference_finder._lookup_confirmed_url(name)
-            assert url is not None, f"Missing confirmed URL for {name}"
-            assert url.startswith("https://"), f"Expected https URL for {name}, got {url}"
+            urls = reference_finder._lookup_confirmed_urls(name)
+            assert len(urls) > 0, f"Missing confirmed URL for {name}"
+            assert urls[0].startswith("https://"), f"Expected https URL for {name}, got {urls[0]}"
 
     @_SKIP_NO_KEY
     def test_validate_reference_authenticity(self, sample_subject_data, tmp_path) -> None:
@@ -566,7 +566,7 @@ class TestCascadeTiers:
 
         # Ensure "David Lary" is in confirmed URLs
         finder = ReferenceImageFinder(download_dir=tmp_path / "refs")
-        assert finder._lookup_confirmed_url("David Lary") is not None
+        assert len(finder._lookup_confirmed_urls("David Lary")) > 0
 
         img_bytes = io.BytesIO()
         PILImage.new("RGB", (512, 682)).save(img_bytes, "JPEG")

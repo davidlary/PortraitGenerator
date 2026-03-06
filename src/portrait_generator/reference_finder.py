@@ -148,10 +148,12 @@ _CONFIRMED_URLS: Dict[str, str] = {
     "Henri Poincaré": (
         "https://upload.wikimedia.org/wikipedia/commons/f/f4/PSM_V82_D416_Henri_Poincare.png"
     ),
-    # John Pyle (atmospheric chemist, Cambridge) — 3 confirmed working URLs
-    "John Pyle": (
-        "https://imagecdn.royalsociety.org/people/P30713.jpg"  # Royal Society, 550×550
-    ),
+    # John Pyle (atmospheric chemist, Cambridge, born ~1948, still living) — multiple confirmed URLs
+    # Royal Society 550×550 + Cambridge Chemistry 150×200 (both HTTP 200 verified)
+    "John Pyle": [
+        "https://imagecdn.royalsociety.org/people/P30713.jpg",   # Royal Society, 550×550
+        "https://www.ch.cam.ac.uk/files/styles/staff_portrait/public/portraits/jap12.jpg",  # Cambridge, 150×200
+    ],
     # Joseph-Louis Lagrange: LoC head-and-shoulders engraving (1233×1536) — cleaner than crop (1043×1167)
     "Joseph-Louis Lagrange": (
         "https://upload.wikimedia.org/wikipedia/commons/2/2c/Joseph_Louis_Lagrange%2C_1736-1813%2C_head-and-shoulders_portrait_LCCN2005691518.jpg"
@@ -421,6 +423,19 @@ _LOCAL_REFERENCE_FILES: Dict[str, list] = {
     "Winfried Otto Schumann": ["Winfried_Otto_Schumann.jpeg"],
 }
 
+# ---------------------------------------------------------------------------
+# Subjects whose names collide with more-famous people on Wikipedia/Commons.
+# For these names, Tier 3 (Wikipedia ground-truth photo) and Tier 8 (Commons
+# full-text search) are skipped because they return the WRONG person.
+# Only Tier 0 (local) and Tier 1 (confirmed URLs) are trusted.
+# ---------------------------------------------------------------------------
+_NAME_COLLISION_SUBJECTS: set = {
+    # Wikipedia/Commons returns the WRONG person for these names.
+    # Only Tier 0 (local) and Tier 1 (confirmed URLs) are trusted for these subjects.
+    "Mike Fisher",   # Wikipedia/Commons "Mike Fisher" = NHL hockey player (not ECMWF scientist)
+    "John Pyle",     # Commons returns 18th-century painting of different "John Pyle" (not Cambridge FRS)
+}
+
 
 @dataclass
 class ReferenceImage:
@@ -548,8 +563,8 @@ class ReferenceImageFinder:
             return self._finalize(candidates, subject_data, max_images)
 
         # ── Tier 1: Hardcoded confirmed URLs (zero network, instant) ──────────
-        inst_url = self._lookup_confirmed_url(name)
-        if inst_url:
+        # Supports single string or list of URLs per subject for strong multi-image grounding
+        for inst_url in self._lookup_confirmed_urls(name):
             img = self._validate_url(
                 url=inst_url,
                 source="Confirmed-Institutional",
@@ -582,7 +597,11 @@ class ReferenceImageFinder:
             return self._finalize(candidates, subject_data, max_images)
 
         # ── Tier 3: Wikipedia photo already fetched by GroundTruth ────────────
+        # Skip for name-collision subjects: Wikipedia's page is about a different person
         wiki_photo = self._get_wikipedia_photo_url(subject_data)
+        if name in _NAME_COLLISION_SUBJECTS:
+            wiki_photo = None
+            logger.debug(f"Tier 3: skipping Wikipedia photo for '{name}' (name collision)")
         if wiki_photo and wiki_photo not in seen_urls:
             img = self._validate_url(
                 url=wiki_photo,
@@ -599,17 +618,21 @@ class ReferenceImageFinder:
             return self._finalize(candidates, subject_data, max_images)
 
         # ── Tier 4: Wikipedia REST API thumbnail / original image ──────────────
-        rest_img = self._fetch_wikipedia_rest_thumbnail(name)
-        if _add(rest_img):
-            logger.debug(f"Tier 4 (Wikipedia-REST): found image for {name}")
+        # Skip for name-collision subjects (Wikipedia page is for a different person)
+        if name not in _NAME_COLLISION_SUBJECTS:
+            rest_img = self._fetch_wikipedia_rest_thumbnail(name)
+            if _add(rest_img):
+                logger.debug(f"Tier 4 (Wikipedia-REST): found image for {name}")
 
         if _done():
             return self._finalize(candidates, subject_data, max_images)
 
         # ── Tier 5: Wikidata SPARQL P18 image property ────────────────────────
-        wikidata_img = self._fetch_wikidata_p18_image(name)
-        if _add(wikidata_img):
-            logger.debug(f"Tier 5 (Wikidata-P18): found image for {name}")
+        # Skip for name-collision subjects (Wikidata also returns the wrong famous person)
+        if name not in _NAME_COLLISION_SUBJECTS:
+            wikidata_img = self._fetch_wikidata_p18_image(name)
+            if _add(wikidata_img):
+                logger.debug(f"Tier 5 (Wikidata-P18): found image for {name}")
 
         if _done():
             return self._finalize(candidates, subject_data, max_images)
@@ -636,8 +659,13 @@ class ReferenceImageFinder:
             return self._finalize(candidates, subject_data, max_images)
 
         # ── Tier 8: Wikimedia Commons full-text search ────────────────────────
-        need = max_images - len(candidates)
-        commons_imgs = self._fetch_wikimedia_commons_search(name, limit=need)
+        # Skip for name-collision subjects to avoid returning wrong person's photos
+        if name in _NAME_COLLISION_SUBJECTS:
+            logger.debug(f"Tier 8: skipping Commons search for '{name}' (name collision)")
+            commons_imgs = []
+        else:
+            need = max_images - len(candidates)
+            commons_imgs = self._fetch_wikimedia_commons_search(name, limit=need)
         added = sum(1 for img in commons_imgs if _add(img))
         if added:
             logger.debug(f"Tier 8 (Commons-search): found {added} image(s) for {name}")
@@ -962,17 +990,26 @@ class ReferenceImageFinder:
                 return source[len("WIKIPEDIA_PHOTO:"):]
         return None
 
-    def _lookup_confirmed_url(self, name: str) -> Optional[str]:
-        """Check hardcoded table of verified institutional photo URLs."""
-        # Exact match
+    def _lookup_confirmed_urls(self, name: str) -> List[str]:
+        """Return list of confirmed institutional photo URLs for a subject.
+
+        Values in _CONFIRMED_URLS may be a single string or a list of strings.
+        Always returns a list (empty if not found).
+        """
+        entry = None
         if name in _CONFIRMED_URLS:
-            return _CONFIRMED_URLS[name]
-        # Case-insensitive match
-        name_lower = name.lower()
-        for key, url in _CONFIRMED_URLS.items():
-            if key.lower() == name_lower:
-                return url
-        return None
+            entry = _CONFIRMED_URLS[name]
+        else:
+            name_lower = name.lower()
+            for key, val in _CONFIRMED_URLS.items():
+                if key.lower() == name_lower:
+                    entry = val
+                    break
+        if entry is None:
+            return []
+        if isinstance(entry, list):
+            return entry
+        return [entry]
 
     def _load_local_reference_images(self, name: str) -> List[ReferenceImage]:
         """Load human-verified reference images from the local ExampleReferenceImages directory.
@@ -1189,9 +1226,12 @@ class ReferenceImageFinder:
             logger.debug(f"Wikimedia Commons search failed for '{name}': {e}")
             return results
 
+        # Check both underscore and space forms since API titles use spaces,
+        # but URL filenames use underscores (e.g. "mug shot" not "mug_shot" in title)
         _skip_keywords = ("map", "flag", "icon", "logo", "diagram", "graph",
                           "chart", "signature", "coat", "arms", "stamp",
-                          "mug_shot", "mugshot", "cemetery", "grave", "tomb",
+                          "mug_shot", "mug shot", "mugshot",
+                          "cemetery", "grave", "tomb",
                           "building", "street", "house", "plaque", "medal")
 
         # Build a regex that requires all name words appear consecutively in
