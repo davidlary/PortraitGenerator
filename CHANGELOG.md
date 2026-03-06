@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.4.2] - 2026-03-06
+
+### Added
+- **Reference-photo age matching** (`prompt_builder.py`) — When reference images are available, portraits are now instructed to match the *apparent age, hair colour, and skin appearance shown in the reference photographs* rather than a mathematically calculated age. Previously, a living subject born in 1965 would be depicted with age-65-appropriate white hair even when reference photos showed dark/mixed hair. Subjects without reference images continue to use the calculated age as before.
+- **`_NoRef` filename suffix** (`generator_enhanced.py`) — Portraits generated with *zero* reference images now get a `_NoRef` suffix (e.g. `WalterFindeisen_Painting_NoRef.png`). This immediately signals that the AI had no real photograph to work from, and the result is a best-effort interpretation only. Affects the 4 subjects for whom no portrait exists anywhere (Whipple, Scrase, Findeisen, Pfotzer) plus any future subjects the cascade cannot find.
+- **No-frame rule for Painting style** (`prompt_builder.py`) — Explicit instruction added: "NO decorative frames, gilded borders, or ornamental surrounds — frameless canvas only." Previously, subjects without reference images (who trigger a fully AI-imagined painting) sometimes received ornate gold frames.
+
+### Fixed
+- **David Lary white hair** — Reference-photo age matching now ensures the portrait matches his dark/mixed hair from reference photos, not the hair colour implied by a calculated age of 61.
+- **John Pyle apparent age** — Portrait now matches the age shown in his Cambridge reference photographs rather than a capped value of 65.
+- **Roger Daley appearing too young / inappropriate setting** — Midpoint age for a 1941–1999 subject was 29; portrait now matches the age shown in the CMOS memorial reference photo.
+- **Walter Findeisen gold frame** — No-frame rule prevents the ornate frame artefact that appeared when the AI had no reference to guide it.
+
+### Changed
+- `test_book_portraits.py`: `_portrait_exists()` now checks both `_Painting.png` and `_Painting_NoRef.png` variants so skip-logic works for all subjects.
+- Integration test docstring updated: "77 portraits / 5-10 min" → "94 portraits / 12-15 min".
+
+---
+
 ## [2.4.1] - 2026-03-06
 
 ### Added

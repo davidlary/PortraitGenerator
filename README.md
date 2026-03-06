@@ -3,8 +3,8 @@
 > Generate historically accurate, publication-quality portrait images using Google Gemini Flash Image (Nano Banana 2)
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![PyPI version](https://img.shields.io/badge/pypi-v2.4.1-blue.svg)](https://pypi.org/project/portrait-generator/)
-[![Conda version](https://img.shields.io/badge/conda-v2.4.1-blue.svg)](https://anaconda.org/conda-forge/portrait-generator)
+[![PyPI version](https://img.shields.io/badge/pypi-v2.4.2-blue.svg)](https://pypi.org/project/portrait-generator/)
+[![Conda version](https://img.shields.io/badge/conda-v2.4.2-blue.svg)](https://anaconda.org/conda-forge/portrait-generator)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://img.shields.io/badge/tests-480%20passed-green.svg)](tests/)
 [![Coverage](https://img.shields.io/badge/coverage-67%25-orange.svg)](htmlcov/)
@@ -26,9 +26,13 @@
 - 🔒 **Secure**: Environment-based credentials only
 - 📝 **Fully Documented**: Complete API documentation and examples
 
-### NEW in 2.4.1: Facial Expression Matching + Reference Image Pipeline
+### NEW in 2.4.2: Reference-Photo Age Matching + No-Reference Filename Labelling
 
-- 😊 **Facial Expression Matching**: Portrait prompts now explicitly require replicating the subject's expression from reference photos (smiling if references show smiling)
+- 🎂 **Reference-Photo Age Matching**: When reference images exist, portraits match the subject's *actual* age, hair colour, and appearance from those photos — not a calculated value. Fixes white-hair and wrong-age issues.
+- 🏷️ **`_NoRef` Filename Suffix**: Portraits generated with zero reference images are automatically named `<Name>_Painting_NoRef.png`, making it instantly clear which portraits had no real photograph as a guide.
+- 🖼️ **No Decorative Frames**: Painting-style portraits now explicitly forbid ornate gold frames or gilded borders that occasionally appeared for reference-free subjects.
+- 📋 **YAML Verified Biographies**: All 94 subjects have locked-in birth/death years and gender stored in `verified_biographies.yaml` — prevents wrong-person errors on every run.
+- 😊 **Facial Expression + Beard Matching**: Portrait prompts require replicating expression and facial hair exactly as shown in reference photos.
 - 🔍 **10-Tier Progressive Cascade (Tiers 0-9)**: Local images → Hardcoded table → URL cache → Wikipedia REST → Wikidata P18
   → Gemini web search → Wikipedia page images → Wikimedia Commons → DBpedia — stops at first success
 - 🤖 **AI-Powered Fallback**: Gemini web search understands era, field, and institutional context

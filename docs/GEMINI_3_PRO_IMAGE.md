@@ -1,6 +1,6 @@
 ## Gemini Image Models - Advanced Features Guide
 
-**Version 2.4.1** | **Default Model: gemini-3.1-flash-image-preview (Nano Banana 2)**
+**Version 2.4.2** | **Default Model: gemini-3.1-flash-image-preview (Nano Banana 2)**
 > Also supports: gemini-3-pro-image-preview (maximum quality) and gemini-exp-1206 (legacy)
 
 ---
@@ -647,10 +647,19 @@ Gemini 3 Pro Image with advanced features costs more per generation than basic m
 
 ### Version History
 
+**2.4.2 (March 6, 2026):**
+- Reference-photo age matching: portrait age/hair/skin now driven by reference photos, not calculated value
+- `_NoRef` filename suffix for portraits generated without any reference images (Whipple, Scrase, Findeisen, Pfotzer)
+- No decorative frames rule added to Painting style — prevents ornate gold-frame artefacts
+- YAML verified biography store: all 94 subjects have locked-in birth/death/gender data
+
 **2.4.1 (March 6, 2026):**
 - Facial expression matching: portrait prompts now instruct AI to replicate reference photo expression
+- Facial hair matching: portraits replicate beard/clean-shaven state from reference photos
+- YAML-backed verified biographies with auto-update for high-confidence discoveries
 - David Lary: 3 user-provided local photos registered as Tier 0 (score 1.09, highest priority)
 - John Pyle: expanded to 5 confirmed Cambridge URLs (St Catharine's 1896×1422 as primary)
+- Andrew Lorenc: upgraded to RMetS full portrait (1429×1382), name collision noted in YAML
 - _LOCAL_REFERENCE_FILES expanded to 26 subjects
 
 **2.0.0 (January 30, 2026):**
