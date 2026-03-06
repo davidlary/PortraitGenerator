@@ -10,12 +10,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.4.1] - 2026-03-06
 
 ### Added
+- **YAML-backed verified biography store** (`src/portrait_generator/data/verified_biographies.yaml`) — All 94 book portrait subjects have locked-in birth/death years and gender. This file is the highest-authority override, applied after all Gemini research and ground-truth lookups, preventing wrong-person errors (e.g. Andrew Lorenc 1948 deceased → 1951 correct, Mike Fisher 1980 NHL player → 1962 scientist).
+- **Auto-update of verified biographies** (`core/researcher.py`) — For new subjects not in the YAML file, high-confidence ground-truth discoveries (confidence ≥ 0.85) are automatically persisted so future runs skip the research overhead.
 - **Facial expression matching in prompts** (`prompt_builder.py`) — Portraits now explicitly instructed to match the facial expression shown in reference photographs (smiling if references show smiling, neutral if neutral). Previously, subjects smiling in all reference photos were rendered with neutral expressions.
+- **Facial hair matching in prompts** (`prompt_builder.py`) — Requirement #5 in FACIAL CONSISTENCY REQUIREMENTS: if references show a clean-shaven subject, the portrait must be clean-shaven with NO beard and NO mustache. Prevents beard invention.
 - **David Lary Tier 0 references** (`reference_finder.py`) — 3 user-provided local photos (USSOCOM polo, suit/tie headshot, NASA hoodie) added as highest-priority references for David Lary.
 - **John Pyle expanded Tier 1 URLs** (`reference_finder.py`) — 5 confirmed Cambridge institutional URLs now used (up from 2), including 1896×1422 St Catharine's Nathan Pitt 2015 portrait.
 
 ### Fixed
-- Documentation count: `_LOCAL_REFERENCE_FILES` now correctly shows 26 subjects (was 25) in CHANGELOG.md.
+- **Andrew Lorenc reference URL** — Upgraded from Surrey banner graphic (low quality) to RMetS 2021 Honorary Fellow official portrait (1429×1382 full headshot), eliminating the "French peasant" appearance caused by a poor reference image.
+- **Andrew Lorenc name collision** — YAML biography locks birth_year=1951 and includes a note explaining the collision with another Andrew Lorenc (1948–2024) that Gemini/Wikipedia sometimes returns.
+- **Mike Fisher name collision** — YAML biography locks birth_year=1962 (ECMWF scientist) with a note about the NHL hockey player born 1980. `_NAME_COLLISION_SUBJECTS` already blocks Wikipedia/Commons; YAML now prevents birth year errors too.
+- **Full regeneration batch timing** — Updated estimated time from "5-10 min" to "12-15 min" to reflect actual 94-subject run time of ~15 minutes with 12 parallel workers.
 
 ---
 
@@ -61,13 +67,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Disjoint sets enforced; best-scored images go to generation
 - Forms the basis of zero-trust portrait verification: "always verify, never assume"
 
-**90-Entry `_CONFIRMED_URLS` Table** (was 15 entries)
-- All 77 book portrait subjects researched by 7 parallel research agents
+**89-Entry `_CONFIRMED_URLS` Table** (was 15 entries)
+- All 94 book portrait subjects researched by 7 parallel research agents
 - Every URL verified HTTP 200 by agents (Wikipedia Commons, institutional pages, NAS, etc.)
 - 4 subjects have no publicly available portrait (Whipple, Scrase, Findeisen, Pfotzer) —
   cascade handles these via Wikipedia REST + Wikidata + Gemini automatically
 
-**77-Subject Integration Test Suite** (`tests/integration/test_book_portraits.py`)
+**94-Subject Integration Test Suite** (`tests/integration/test_book_portraits.py`)
 - Parametrized test covering every subject from `BookPortraits.md`
 - `@pytest.mark.integration @pytest.mark.slow` — runs separately from unit tests
 - Output to `tests/ExamplePortraitTests/`; portraits reused across runs unless forced
@@ -125,7 +131,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Integration Tests — Parallel Execution
 - 12 parallel workers via `pytest-xdist`: `python -m pytest tests/integration/test_book_portraits.py -n 12 --no-cov -m integration`
-- Estimated time for 77 portraits: ~5-10 minutes (vs 30-60 minutes sequential)
+- Estimated time for 94 portraits: ~12-15 minutes (vs 60-120 minutes sequential)
 - Existing portraits correctly skipped (Unicode-aware `_portrait_exists()`)
 
 ### Coverage / Tests

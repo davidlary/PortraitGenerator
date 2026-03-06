@@ -35,7 +35,7 @@
   to find portraits for any subject; results self-cache for instant future access
 - ✅ **Held-Out Independent Validation**: Reference images split into generation set (used for creation)
   and held-out set (withheld for independent post-generation identity verification)
-- 📚 **90-Entry Confirmed URL Table**: All 94 book portrait subjects pre-researched by parallel agents
+- 📚 **89-Entry Confirmed URL Table**: All 94 book portrait subjects pre-researched by parallel agents
 - 👤 **26 Subjects with Tier 0 Local Photos**: Human-verified reference images at highest priority (score 1.09)
 - 🔄 **Self-Caching**: Gemini discoveries persisted to disk; repeat runs are free
 - 🪪 **Sidecar Metadata**: `.meta.json` alongside every portrait for deterministic verification
@@ -616,11 +616,11 @@ pytest tests/unit/ -v           # Unit tests (480+ tests)
 # Run end-to-end tests with real API (requires GOOGLE_API_KEY to be set)
 pytest tests/integration/test_e2e_real_api.py -m e2e -v
 
-# Run all 77 book portrait tests in parallel (12 workers, ~5-10 min total)
+# Run all 94 book portrait tests in parallel (12 workers, ~5-10 min total)
 # Requires GOOGLE_API_KEY; existing portraits are skipped automatically
 pytest tests/integration/test_book_portraits.py -n 12 --no-cov -m integration --timeout=600
 
-# Force regeneration of all 77 portraits
+# Force regeneration of all 94 portraits
 PORTRAIT_FORCE_REGENERATE=1 pytest tests/integration/test_book_portraits.py -n 12 --no-cov -m integration --timeout=600
 
 # Run only slow tests (real portrait generation)
@@ -637,7 +637,7 @@ open htmlcov/index.html
 - **480+ unit tests** covering all core functionality
 - **No mock code**: All tests use real objects with test/real API keys
 - **End-to-end tests** with real Google Gemini API calls (requires `GOOGLE_API_KEY`)
-- **77-subject integration test** covering every book portrait subject
+- **94-subject integration test** covering every book portrait subject
 - API-dependent unit tests skip gracefully when `GOOGLE_API_KEY` is not set
 
 ### Loading API Keys
@@ -662,7 +662,7 @@ tests/
 │   ├── test_overlay.py        # Title overlay tests
 │   └── test_evaluator.py      # Quality evaluation tests
 ├── integration/                # Integration tests
-│   ├── test_book_portraits.py # 77-subject portrait generation (12 parallel workers)
+│   ├── test_book_portraits.py # 94-subject portrait generation (12 parallel workers)
 │   └── test_e2e_real_api.py   # End-to-end API tests (requires GOOGLE_API_KEY)
 ├── ExamplePortraitTests/       # Generated portrait output (gitignored)
 └── fixtures/                   # Test data and fixtures
@@ -722,7 +722,7 @@ PortraitGenerator/
 ├── tests/                           # Test suite (480+ tests, 67% coverage)
 │   ├── unit/                        # Unit tests (no mocks, real objects)
 │   ├── integration/
-│   │   ├── test_book_portraits.py   # 77-subject parametrized portrait generation
+│   │   ├── test_book_portraits.py   # 94-subject parametrized portrait generation
 │   │   └── test_e2e_real_api.py     # End-to-end API tests (requires GOOGLE_API_KEY)
 │   └── ExamplePortraitTests/        # Generated portrait output (gitignored)
 ├── docs/                            # Technical documentation
