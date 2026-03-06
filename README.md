@@ -1133,7 +1133,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Status
 
-🚀 **Version 2.4.1** - Production Ready
+🚀 **Version 2.4.2** - Production Ready
 
 - **Release Date**: March 6, 2026
 - **Default Model**: gemini-3.1-flash-image-preview (Nano Banana 2)
