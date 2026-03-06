@@ -3,8 +3,8 @@
 > Generate historically accurate, publication-quality portrait images using Google Gemini Flash Image (Nano Banana 2)
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![PyPI version](https://img.shields.io/badge/pypi-v2.5.0-blue.svg)](https://pypi.org/project/portrait-generator/)
-[![Conda version](https://img.shields.io/badge/conda-v2.5.0-blue.svg)](https://anaconda.org/conda-forge/portrait-generator)
+[![PyPI version](https://img.shields.io/badge/pypi-v2.6.0-blue.svg)](https://pypi.org/project/portrait-generator/)
+[![Conda version](https://img.shields.io/badge/conda-v2.6.0-blue.svg)](https://anaconda.org/conda-forge/portrait-generator)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://img.shields.io/badge/tests-480%20passed-green.svg)](tests/)
 [![Coverage](https://img.shields.io/badge/coverage-67%25-orange.svg)](htmlcov/)
@@ -25,6 +25,18 @@
 - 📊 **480+ Tests**: 480+ tests including end-to-end with real API; no mock code
 - 🔒 **Secure**: Environment-based credentials only
 - 📝 **Fully Documented**: Complete API documentation and examples
+
+### NEW in 2.6.0: Automatic Model Cascade for Rate-Limit Recovery
+
+- 🔄 **Automatic Model Cascade** (`GeminiImageClient`): When a generation call hits a quota / rate-limit error the client automatically advances to the next model in the cascade and retries — cycling back after a full round so the primary model's quota has time to recover:
+  - **Cascade order**: Nano Banana 2 → Nano Banana Pro → Nano Banana → *(cycle back)*
+  - `gemini-3.1-flash-image-preview` → `gemini-3-pro-image-preview` → `gemini-2.5-flash-preview-image-generation`
+  - Up to **2 full cycles** (6 attempts) before raising an error
+  - **5-second pause** inserted after each full cycle to allow quota recovery
+  - Each model switch re-detects capabilities (grounding, thinking mode, extended ratios) — fully transparent to all callers
+  - Aspect ratio gracefully downgraded when cascading to a model that lacks extended-ratio support (e.g. `1:4` → `3:4`)
+  - Pass `model_cascade=[model]` to `GeminiImageClient` to disable cascading for a single-model setup
+- 🔎 **`get_cascade_status()`** — New diagnostic method on `GeminiImageClient` returning current model, index, and full cascade list
 
 ### NEW in 2.5.0: Name Collision Disambiguation + Research-Verified Middle Initials
 
@@ -1138,7 +1150,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Status
 
-🚀 **Version 2.5.0** - Production Ready
+🚀 **Version 2.6.0** - Production Ready
 
 - **Release Date**: March 6, 2026
 - **Default Model**: gemini-3.1-flash-image-preview (Nano Banana 2)

@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.6.0] - 2026-03-06
+
+### Added
+- **Automatic model cascade for rate-limit recovery** (`utils/gemini_client.py`, `config/model_configs.py`) — `GeminiImageClient` now automatically advances through a cascade of Gemini image models when a quota / rate-limit error is encountered, transparently to all callers:
+  - **Cascade order**: Nano Banana 2 → Nano Banana Pro → Nano Banana → *(cycle back)*
+    - `gemini-3.1-flash-image-preview` (primary — ~22s, highest throughput)
+    - `gemini-3-pro-image-preview` (secondary — ~45s, maximum quality)
+    - `gemini-2.5-flash-preview-image-generation` (tertiary — separate daily quota bucket)
+  - Allows up to **2 full cycles** (6 attempts) before raising an error, giving the primary model's quota window time to recover
+  - After completing a full cycle, pauses **5 seconds** before restarting from the primary model
+  - `_detect_capabilities()` is re-called on every model switch, refreshing `supports_grounding`, `supports_thinking_mode`, `supports_extended_aspect_ratios`, etc. for the new model
+  - Aspect ratio gracefully downgraded (e.g. `1:4` → `3:4`) when the new model doesn't support extended ratios — no hard failure
+  - Prompt enhancement (`_enhance_prompt`) is model-aware and re-run inside the loop so each model gets instructions matching its own features
+- **`GeminiImageClient.model_cascade` constructor parameter** — Pass a custom ordered list of model names to override the default `QUOTA_CASCADE`. Pass `[model]` (a single-item list) to disable cascading entirely.
+- **`GeminiImageClient.get_cascade_status()` method** — Returns `{"current_model": ..., "cascade_index": ..., "cascade": [...]}` for diagnostic use.
+- **`GeminiImageClient._is_rate_limit_error()` static method** — Detects quota/429/ResourceExhausted errors via string matching and `google.api_core.exceptions.ResourceExhausted` type check.
+- **`GeminiImageClient._advance_model_cascade()` method** — Advances `_cascade_index`, sets `self.model`, refreshes capabilities.
+
+### Changed
+- `GeminiImageClient.get_model_info()` now includes `model_cascade` and `cascade_index` in its return dict.
+- The `generate_image()` method body is now wrapped in a cascade `while True` loop; the outer signature is unchanged (backward-compatible).
+
+---
+
 ## [2.5.0] - 2026-03-06
 
 ### Added

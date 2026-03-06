@@ -1,21 +1,36 @@
 """Google Gemini API client for image generation with advanced capabilities.
 
-This module provides an enhanced client supporting both:
-- Gemini 3.1 Flash Image (Nano Banana 2) - RECOMMENDED: best speed+accuracy balance
-  * ~22s generation time (vs ~45s for Pro)
+This module provides an enhanced client supporting multiple models with automatic
+rate-limit cascade recovery:
+
+- Gemini 3.1 Flash Image (Nano Banana 2) — PRIMARY / RECOMMENDED
+  * ~22s generation time
   * Image Search grounding (text + image search results)
   * Thinking mode for enhanced accuracy
   * New resolutions: 0.5K, 1K, 2K, 4K
   * New aspect ratios: 1:4, 4:1, 1:8, 8:1 + standard set
   * Improved international text rendering
   * Batch API support
-- Gemini 3 Pro Image (Nano Banana Pro) - for maximum quality workloads
+
+- Gemini 3 Pro Image (Nano Banana Pro) — SECONDARY (quota cascade fallback)
+  * ~45s generation time
   * Deepest reasoning and physics-aware synthesis
   * Highest accuracy for complex/obscure historical subjects
+
+- Gemini 2.5 Flash Preview Image Generation (Nano Banana) — TERTIARY fallback
+  * Separate daily quota bucket from newer models
+  * Good portrait quality with Google Search grounding and reasoning
+
+Cascade behavior: when a generation call hits a quota / rate-limit error the
+client automatically advances to the next model and retries.  After exhausting
+all models in one cycle the client pauses 5 s before cycling back:
+
+    Nano Banana 2  →  Nano Banana Pro  →  Nano Banana  →  (pause 5 s)  →  Nano Banana 2 …
 """
 
 import io
 import logging
+import time
 from typing import Optional, List, Dict, Any
 from pathlib import Path
 from dataclasses import dataclass
@@ -81,12 +96,26 @@ class GeminiImageClient:
 
     For maximum quality on complex historical subjects, use
     gemini-3-pro-image-preview (Nano Banana Pro) instead.
+
+    Model cascade (automatic rate-limit recovery):
+    When a generation call hits a quota / rate-limit error the client
+    automatically advances to the next model in the cascade and retries,
+    allowing each model's daily quota to be used in turn.  After exhausting
+    all models in one full cycle the client pauses briefly before cycling
+    back to the primary model (which has had time to recover):
+
+        Nano Banana 2  →  Nano Banana Pro  →  Nano Banana  →  (cycle back)
+        gemini-3.1-flash-image-preview
+                       →  gemini-3-pro-image-preview
+                                          →  gemini-2.5-flash-preview-image-generation
+                                                           →  gemini-3.1-flash-image-preview …
     """
 
     def __init__(
         self,
         api_key: str,
         model: str = "gemini-3.1-flash-image-preview",
+        model_cascade: Optional[List[str]] = None,
         enable_grounding: bool = True,
         enable_reasoning: bool = True,
         thinking_level: str = "medium",
@@ -95,7 +124,11 @@ class GeminiImageClient:
 
         Args:
             api_key: Google API key
-            model: Gemini model name (default: gemini-3.1-flash-image-preview)
+            model: Primary Gemini model name (default: gemini-3.1-flash-image-preview)
+            model_cascade: Ordered list of fallback models for rate-limit recovery.
+                           Defaults to QUOTA_CASCADE (NB2 → NB Pro → NB) starting at
+                           the position of *model* in the cascade.  Pass ``[model]``
+                           to disable cascading entirely.
             enable_grounding: Enable Google Search / Image Search grounding
             enable_reasoning: Enable internal reasoning capabilities
             thinking_level: Thinking depth for accuracy (minimal/low/medium/high)
@@ -111,10 +144,27 @@ class GeminiImageClient:
             raise ValueError("API key appears to be invalid (too short)")
 
         self.api_key = api_key
-        self.model = model
         self.enable_grounding = enable_grounding
         self.enable_reasoning = enable_reasoning
         self.thinking_level = thinking_level
+
+        # --- Model cascade setup ---
+        # Import here to avoid circular imports at module level
+        from ..config.model_configs import QUOTA_CASCADE as _DEFAULT_CASCADE
+        if model_cascade is None:
+            self._model_cascade: List[str] = _DEFAULT_CASCADE
+        else:
+            self._model_cascade = list(model_cascade)
+
+        # Start at the requested model's position in the cascade (or 0 if not found)
+        if model in self._model_cascade:
+            self._cascade_index: int = self._model_cascade.index(model)
+        else:
+            # Requested model not in cascade — prepend it so it is tried first
+            self._model_cascade = [model] + self._model_cascade
+            self._cascade_index = 0
+
+        self.model: str = self._model_cascade[self._cascade_index]
 
         try:
             import google.genai as genai
@@ -142,15 +192,17 @@ class GeminiImageClient:
         is_pro = "3-pro" in self.model or "nano-banana-pro" in self.model
         # Any Gemini 3.x generation
         is_gemini3 = "gemini-3" in self.model or is_flash or is_pro
-        # Legacy or Gemini 2.x
+        # Gemini 2.5 Flash (Nano Banana) - previous gen flash, quota fallback
+        is_gemini25 = "2.5-flash" in self.model and not is_gemini3
+        # Legacy or other Gemini 2.x
         is_gemini2 = "gemini-2" in self.model and not is_gemini3
 
-        self.supports_grounding = is_gemini3
+        self.supports_grounding = is_gemini3 or is_gemini25
         self.supports_image_grounding = is_flash  # Flash adds Image Search grounding
-        self.supports_multi_image = is_gemini3
-        self.supports_reasoning = is_gemini3 or is_gemini2
-        self.supports_native_text = is_gemini3 or is_gemini2
-        self.supports_thinking_mode = is_gemini3  # Both Flash and Pro support thinking
+        self.supports_multi_image = is_gemini3 or is_gemini25
+        self.supports_reasoning = is_gemini3 or is_gemini2 or is_gemini25
+        self.supports_native_text = is_gemini3 or is_gemini2 or is_gemini25
+        self.supports_thinking_mode = is_gemini3  # Only Gemini 3.x has thinking mode
         self.supports_batch = is_flash  # Flash supports Batch API
         self.supports_extended_aspect_ratios = is_flash  # Flash adds 1:4, 4:1, 1:8, 8:1
 
@@ -162,6 +214,75 @@ class GeminiImageClient:
             f"reasoning={self.supports_reasoning}, "
             f"extended_ratios={self.supports_extended_aspect_ratios}"
         )
+
+    # ------------------------------------------------------------------
+    # Model cascade helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _is_rate_limit_error(error: Exception) -> bool:
+        """Return True if *error* is a quota / rate-limit error.
+
+        Checks both the stringified exception message (catches wrapped
+        RuntimeError) and the original ``__cause__`` (raw Google API error).
+        """
+        _KEYWORDS = (
+            'quota', 'rate limit', 'rate_limit', 'ratelimit',
+            'resource_exhausted', 'resourceexhausted', 'resource exhausted',
+            '429', 'too many requests', 'quota exceeded', 'limit exceeded',
+            'requests per day', 'requests per minute', 'per_day', 'per_minute',
+        )
+
+        def _matches(exc: Exception) -> bool:
+            msg = str(exc).lower()
+            return any(k in msg for k in _KEYWORDS)
+
+        if _matches(error):
+            return True
+
+        # Also inspect the original cause (may be a google.api_core exception)
+        cause = getattr(error, '__cause__', None)
+        if cause is not None and _matches(cause):
+            return True
+
+        # Check google.api_core.exceptions.ResourceExhausted if available
+        try:
+            import google.api_core.exceptions as _gae
+            if isinstance(error, _gae.ResourceExhausted):
+                return True
+            if cause is not None and isinstance(cause, _gae.ResourceExhausted):
+                return True
+        except (ImportError, AttributeError):
+            pass
+
+        return False
+
+    def _advance_model_cascade(self) -> str:
+        """Advance to the next model in the cascade.
+
+        Updates ``self.model`` and re-detects capabilities so every
+        subsequent call uses the new model's feature set.
+
+        Returns:
+            The name of the newly selected model.
+        """
+        self._cascade_index = (self._cascade_index + 1) % len(self._model_cascade)
+        self.model = self._model_cascade[self._cascade_index]
+        self._detect_capabilities()  # refresh supports_* flags for the new model
+        logger.info(
+            f"Model cascade: switched to {self.model} "
+            f"(position {self._cascade_index + 1}/{len(self._model_cascade)} "
+            f"in cascade: {' → '.join(self._model_cascade)})"
+        )
+        return self.model
+
+    def get_cascade_status(self) -> dict:
+        """Return current cascade state (useful for logging / diagnostics)."""
+        return {
+            "current_model": self.model,
+            "cascade_index": self._cascade_index,
+            "cascade": self._model_cascade,
+        }
 
     def generate_image(
         self,
@@ -211,112 +332,158 @@ class GeminiImageClient:
                 f"Must be one of: {', '.join(sorted(valid_ratios))}"
             )
 
-        logger.info(f"Generating image with aspect ratio: {aspect_ratio}")
-        logger.debug(f"Prompt: {prompt[:100]}...")
+        # ------------------------------------------------------------------
+        # Model cascade loop
+        # Tries each model in self._model_cascade in turn when a quota /
+        # rate-limit error is encountered.  Allows up to 2 full cycles so
+        # the primary model has time to recover before the cascade wraps.
+        #
+        #   Nano Banana 2 → Nano Banana Pro → Nano Banana → (pause) → Nano Banana 2 …
+        # ------------------------------------------------------------------
+        _cascade_max = len(self._model_cascade) * 2   # 2 full cycles before giving up
+        _cascade_used = 0
 
-        # Enhance prompt with advanced features
-        enhanced_prompt = self._enhance_prompt(
-            prompt,
-            enable_iteration=enable_iteration,
-            max_iterations=max_iterations,
-        )
-
-        try:
-            # Configure generation for gemini-3-pro-image-preview
-            # This model uses generate_content with response_modalities, not generate_images
-            image_config = self.types.ImageConfig(
-                aspect_ratio=aspect_ratio,
+        while True:
+            # Determine the effective aspect ratio for the current model.
+            # The initial validation passed for the primary model; if the cascade
+            # has switched to a model that lacks extended-ratio support, fall back
+            # gracefully rather than failing with a hard error.
+            _base_ratios = {"1:1", "3:4", "4:3", "9:16", "16:9"}
+            effective_ratio = (
+                aspect_ratio
+                if (self.supports_extended_aspect_ratios or aspect_ratio in _base_ratios)
+                else "3:4"
             )
-
-            # Build tools list
-            tools = []
-            if self.enable_grounding and self.supports_grounding:
-                tools.append({"google_search": {}})
-
-            # Configure content generation with image output
-            config = self.types.GenerateContentConfig(
-                response_modalities=['Image'],  # Request image output
-                image_config=image_config,
-                tools=tools if tools else None,
-            )
-
-            # Build multimodal contents: reference images first (image-first ordering),
-            # then text prompt last. Image-first helps the model establish visual context
-            # (facial features, era, appearance) before reading text instructions.
-            if reference_images:
-                contents = []
-                loaded_count = 0
-                _mime_map = {
-                    ".jpg": "image/jpeg",
-                    ".jpeg": "image/jpeg",
-                    ".png": "image/png",
-                    ".gif": "image/gif",
-                    ".webp": "image/webp",
-                }
-                for ref_path in reference_images:
-                    try:
-                        image_bytes = ref_path.read_bytes()
-                        mime_type = _mime_map.get(ref_path.suffix.lower(), "image/jpeg")
-                        contents.append(
-                            self.types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
-                        )
-                        loaded_count += 1
-                    except Exception as ref_err:
-                        logger.warning(f"Failed to load reference image {ref_path}: {ref_err}")
-                contents.append(self.types.Part.from_text(text=enhanced_prompt))
-                logger.info(
-                    f"Sending {loaded_count} reference image(s) + text prompt "
-                    f"to {self.model} (image-first ordering)"
+            if effective_ratio != aspect_ratio:
+                logger.debug(
+                    f"Downgraded aspect_ratio {aspect_ratio!r} → {effective_ratio!r} "
+                    f"({self.model} does not support extended ratios)"
                 )
-            else:
-                contents = enhanced_prompt
-                loaded_count = 0
 
-            # Generate image using generate_content (correct API for gemini-3-pro-image-preview)
-            response = self.client.models.generate_content(
-                model=self.model,
-                contents=contents,
-                config=config,
+            logger.info(
+                f"Generating image [{self.model}] ratio={effective_ratio}"
+                + (f" (cascade attempt {_cascade_used + 1})" if _cascade_used else "")
+            )
+            logger.debug(f"Prompt: {prompt[:100]}...")
+
+            # (Re-)enhance prompt for the current model's capabilities.
+            # Must be inside the loop because _enhance_prompt() is model-aware
+            # (thinking mode, grounding instructions differ between models).
+            enhanced_prompt = self._enhance_prompt(
+                prompt,
+                enable_iteration=enable_iteration,
+                max_iterations=max_iterations,
             )
 
-            # Extract image from response parts
-            pil_image = None
-            reasoning_text = ""
+            try:
+                # Configure generation
+                image_config = self.types.ImageConfig(aspect_ratio=effective_ratio)
 
-            for part in response.candidates[0].content.parts:
-                if part.text:
-                    reasoning_text += part.text
-                # Try to get image from part
-                try:
-                    genai_image = part.as_image()
-                    if genai_image and genai_image.image_bytes:
-                        # Convert google.genai Image to PIL Image using image_bytes
-                        pil_image = Image.open(io.BytesIO(genai_image.image_bytes))
-                        break
-                except Exception as e:
-                    logger.debug(f"Could not extract image from part: {e}")
-                    pass
+                # Build tools list — grounding support differs between models
+                tools = []
+                if self.enable_grounding and self.supports_grounding:
+                    tools.append({"google_search": {}})
 
-            if not pil_image:
-                raise RuntimeError("No image returned in response")
+                config = self.types.GenerateContentConfig(
+                    response_modalities=['Image'],
+                    image_config=image_config,
+                    tools=tools if tools else None,
+                )
 
-            logger.info(f"Generated image: {pil_image.size} {pil_image.mode}")
+                # Build multimodal contents: reference images first (image-first
+                # ordering), then text prompt last.
+                if reference_images:
+                    contents = []
+                    loaded_count = 0
+                    _mime_map = {
+                        ".jpg": "image/jpeg",
+                        ".jpeg": "image/jpeg",
+                        ".png": "image/png",
+                        ".gif": "image/gif",
+                        ".webp": "image/webp",
+                    }
+                    for ref_path in reference_images:
+                        try:
+                            image_bytes = ref_path.read_bytes()
+                            mime_type = _mime_map.get(ref_path.suffix.lower(), "image/jpeg")
+                            contents.append(
+                                self.types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
+                            )
+                            loaded_count += 1
+                        except Exception as ref_err:
+                            logger.warning(f"Failed to load reference image {ref_path}: {ref_err}")
+                    contents.append(self.types.Part.from_text(text=enhanced_prompt))
+                    logger.info(
+                        f"Sending {loaded_count} reference image(s) + text prompt "
+                        f"to {self.model} (image-first ordering)"
+                    )
+                else:
+                    contents = enhanced_prompt
+                    loaded_count = 0
 
-            # Create result with metadata
-            result = GenerationResult(
-                image=pil_image,
-                confidence_score=0.90,  # Gemini 3 Pro has high confidence
-                iterations_used=1,  # Internal reasoning is automatic
-                reasoning=reasoning_text.strip() if reasoning_text else "",
-                grounding_used=self.enable_grounding and self.supports_grounding,
-                reference_images_used=loaded_count if reference_images else 0,
-            )
+                # Generate image
+                response = self.client.models.generate_content(
+                    model=self.model,
+                    contents=contents,
+                    config=config,
+                )
 
-            return result
+                # Extract image from response parts
+                pil_image = None
+                reasoning_text = ""
 
-        except Exception as e:
-            logger.error(f"Image generation failed: {e}", exc_info=True)
-            raise RuntimeError(f"Image generation failed: {e}") from e
+                for part in response.candidates[0].content.parts:
+                    if part.text:
+                        reasoning_text += part.text
+                    try:
+                        genai_image = part.as_image()
+                        if genai_image and genai_image.image_bytes:
+                            pil_image = Image.open(io.BytesIO(genai_image.image_bytes))
+                            break
+                    except Exception as part_err:
+                        logger.debug(f"Could not extract image from part: {part_err}")
+
+                if not pil_image:
+                    raise RuntimeError("No image returned in response")
+
+                logger.info(
+                    f"Generated image: {pil_image.size} {pil_image.mode}"
+                    + (f" (via {self.model} after {_cascade_used} cascade switch(es))" if _cascade_used else "")
+                )
+
+                return GenerationResult(
+                    image=pil_image,
+                    confidence_score=0.90,
+                    iterations_used=1,
+                    reasoning=reasoning_text.strip() if reasoning_text else "",
+                    grounding_used=self.enable_grounding and self.supports_grounding,
+                    reference_images_used=loaded_count if reference_images else 0,
+                )
+
+            except Exception as e:
+                # Rate-limit / quota error → advance cascade and retry
+                if self._is_rate_limit_error(e) and _cascade_used < _cascade_max:
+                    _old_model = self.model
+                    _new_model = self._advance_model_cascade()
+                    _cascade_used += 1
+                    logger.warning(
+                        f"Rate limited on {_old_model} — cascading to {_new_model} "
+                        f"({_cascade_used}/{_cascade_max} cascade attempts)"
+                    )
+                    # After a full cycle through all models, pause briefly to allow
+                    # the primary model's quota window to start recovering.
+                    if self._cascade_index == 0:
+                        _pause_s = 5
+                        logger.info(
+                            f"Completed full cascade cycle — pausing {_pause_s}s "
+                            f"before retrying from {_new_model}…"
+                        )
+                        time.sleep(_pause_s)
+                    continue  # retry with the new model
+
+                # Non-rate-limit failure (or cascade exhausted) — propagate
+                logger.error(f"Image generation failed: {e}", exc_info=True)
+                raise RuntimeError(f"Image generation failed: {e}") from e
 
     def _enhance_prompt(
         self,
@@ -581,6 +748,8 @@ RECOMMENDATIONS: [list suggestions]
         """
         return {
             "model": self.model,
+            "model_cascade": self._model_cascade,
+            "cascade_index": self._cascade_index,
             "provider": "Google Gemini",
             "capabilities": {
                 "image_generation": True,

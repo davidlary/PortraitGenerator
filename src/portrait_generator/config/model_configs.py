@@ -6,12 +6,19 @@ All configurations are data-driven with no hard-coded thresholds in the main cod
 Supported Models:
 - gemini-3.1-flash-image-preview: Fast, high-efficiency image model (Nano Banana 2) [RECOMMENDED]
 - gemini-3-pro-image-preview: Highest quality image model (Nano Banana Pro)
+- gemini-2.5-flash-preview-image-generation: Previous generation flash (Nano Banana)
 - gemini-exp-1206: Previous experimental model (legacy)
 
 Model Selection Guide:
 - Use gemini-3.1-flash-image-preview (default) for best speed + accuracy balance
 - Use gemini-3-pro-image-preview for maximum quality on complex subjects
+- Use gemini-2.5-flash-preview-image-generation as fallback when newer models hit quota
 - Use gemini-exp-1206 for legacy compatibility only
+
+Quota Cascade (try in order when rate-limited):
+1. gemini-3.1-flash-image-preview  (Nano Banana 2)   — primary
+2. gemini-3-pro-image-preview      (Nano Banana Pro) — secondary
+3. gemini-2.5-flash-preview-image-generation (Nano Banana) — tertiary fallback
 """
 
 import dataclasses
@@ -298,6 +305,56 @@ MODEL_PROFILES: Dict[str, ModelProfile] = {
         ),
     ),
 
+    "gemini-2.5-flash-preview-image-generation": ModelProfile(
+        model_name="gemini-2.5-flash-preview-image-generation",
+        display_name="Gemini 2.5 Flash Preview Image (Nano Banana)",
+        description=(
+            "Previous-generation Gemini flash image model. Nano Banana provides "
+            "solid portrait quality with Google Search grounding and reasoning. "
+            "Use as tertiary fallback when Nano Banana 2 and Nano Banana Pro quotas "
+            "are exhausted. Separate daily quota bucket from newer models."
+        ),
+        release_date="2025-06",
+        is_recommended=False,
+        capabilities=ModelCapabilities(
+            google_search_grounding=True,
+            image_search_grounding=False,
+            multi_image_reference=True,
+            max_reference_images=5,
+            internal_reasoning=True,
+            thinking_mode=False,
+            physics_aware_synthesis=False,
+            native_text_rendering=True,
+            international_text_rendering=False,
+            iterative_refinement=False,
+            supported_resolutions=["1024x1024", "2048x2048"],
+            max_resolution="2048x2048",
+            supported_aspect_ratios=["1:1", "3:4", "4:3", "9:16", "16:9"],
+            typical_generation_time=35.0,
+            supports_batch=False,
+            accuracy_tier="high",
+        ),
+        generation=GenerationConfig(
+            enable_pre_generation_checks=True,
+            enable_iterative_refinement=False,
+            max_internal_iterations=1,
+            quality_threshold=0.82,
+            confidence_threshold=0.78,
+            enable_search_grounding=True,
+            enable_reference_images=True,
+            max_reference_images_to_use=3,
+            max_generation_attempts=2,
+            enable_smart_retry=True,
+        ),
+        evaluation=EvaluationConfig(
+            use_holistic_reasoning=True,
+            reasoning_passes=1,
+            autonomous_error_detection=True,
+            visual_coherence_checking=True,
+            enable_fact_checking=True,
+        ),
+    ),
+
     "gemini-exp-1206": ModelProfile(
         model_name="gemini-exp-1206",
         display_name="Gemini Experimental (December 2025)",
@@ -450,9 +507,13 @@ def get_optimal_config_for_model(
 RECOMMENDED_MODEL = get_recommended_model()
 
 # Model constants
-FLASH_MODEL = "gemini-3.1-flash-image-preview"   # Fast + accurate (default)
-PRO_MODEL = "gemini-3-pro-image-preview"          # Maximum quality
-LEGACY_MODEL = "gemini-exp-1206"                  # Legacy compatibility
+FLASH_MODEL = "gemini-3.1-flash-image-preview"              # Nano Banana 2 — fast + accurate (default)
+PRO_MODEL = "gemini-3-pro-image-preview"                    # Nano Banana Pro — maximum quality
+NANO_BANANA_MODEL = "gemini-2.5-flash-preview-image-generation"  # Nano Banana — quota fallback
+LEGACY_MODEL = "gemini-exp-1206"                            # Legacy compatibility
+
+# Quota cascade: try in order when rate-limited (each has its own daily quota bucket)
+QUOTA_CASCADE = [FLASH_MODEL, PRO_MODEL, NANO_BANANA_MODEL]
 
 # Backwards compatibility alias
 DEFAULT_MODEL = FLASH_MODEL

@@ -1,7 +1,7 @@
 ## Gemini Image Models - Advanced Features Guide
 
-**Version 2.5.0** | **Default Model: gemini-3.1-flash-image-preview (Nano Banana 2)**
-> Also supports: gemini-3-pro-image-preview (maximum quality) and gemini-exp-1206 (legacy)
+**Version 2.6.0** | **Default Model: gemini-3.1-flash-image-preview (Nano Banana 2)**
+> Also supports: gemini-3-pro-image-preview (maximum quality), gemini-2.5-flash-preview-image-generation (quota fallback), and gemini-exp-1206 (legacy)
 
 ---
 
@@ -646,6 +646,13 @@ Gemini 3 Pro Image with advanced features costs more per generation than basic m
 ---
 
 ### Version History
+
+**2.6.0 (March 6, 2026):**
+- Automatic model cascade for rate-limit recovery: `GeminiImageClient` now advances through Nano Banana 2 → Nano Banana Pro → Nano Banana when quota errors are hit, cycling back after a full round (with 5s pause) so the primary model has time to recover
+- New `model_cascade` constructor parameter (pass `[model]` to disable cascading)
+- New `get_cascade_status()` diagnostic method
+- `_detect_capabilities()` re-run on every model switch to correctly refresh grounding/thinking/aspect-ratio support flags
+- Aspect ratio gracefully downgraded when cascading to a model without extended-ratio support
 
 **2.5.0 (March 6, 2026):**
 - Name collision disambiguation: John A. Pyle, Andrew C. Lorenc, Mike Fisher (1962-Present) — researched middle initials or lifespan suffix
