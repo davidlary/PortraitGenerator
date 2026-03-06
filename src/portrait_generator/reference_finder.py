@@ -148,9 +148,10 @@ _CONFIRMED_URLS: Dict[str, str] = {
     "Henri Poincaré": (
         "https://upload.wikimedia.org/wikipedia/commons/f/f4/PSM_V82_D416_Henri_Poincare.png"
     ),
-    # John Pyle CBE FRS (atmospheric chemist, Cambridge, born ~1948, still living) — multiple confirmed URLs
+    # John A. Pyle CBE FRS (atmospheric chemist, Cambridge, born 4 Apr 1951) — multiple confirmed URLs
+    # Full name: John Adrian Pyle; published as J. A. Pyle; "A." disambiguates from 18th-century John Pyle
     # All HTTP 200 verified; sorted best-quality-first
-    "John Pyle": [
+    "John A. Pyle": [
         "https://www.caths.cam.ac.uk/sites/default/files/professor_john_pyle_cbe_credit_nathan_pitt_2.jpg",  # St Catharine's Nathan Pitt 2015, 1896×1422 — HIGHEST QUALITY
         "https://www.caths.cam.ac.uk/sites/default/files/John%20Pyle%20new%20portraits-5331%20-%20Copy_0.jpg",  # St Catharine's 2015, 631×632
         "https://www.ch.cam.ac.uk/files/portraits/jap12.jpg",  # Cambridge Chemistry original, 399×531, 160KB
@@ -183,9 +184,10 @@ _CONFIRMED_URLS: Dict[str, str] = {
     ),
 
     # ── Chapter-Assimilation ──────────────────────────────────────────────────
-    # Andrew Lorenc: RMetS 2021 Honorary Fellow official portrait, 1429×1382 full headshot
+    # Andrew C. Lorenc: RMetS 2021 Honorary Fellow official portrait, 1429×1382 full headshot
+    # Full name: Andrew C. Lorenc; middle initial "C" confirmed in all publications (e.g. Lorenc 1986 QJRMS)
     # White hair, white/grey beard, rectangular glasses — confirmed identity by RMetS labeling
-    "Andrew Lorenc": (
+    "Andrew C. Lorenc": (
         "https://www.rmets.org/sites/default/files/inline-images/Andrew%20Lorenc.JPG"
     ),
     # David Lary: Wikipedia Commons smiling headshot (405×589, glasses, no beard)
@@ -196,7 +198,9 @@ _CONFIRMED_URLS: Dict[str, str] = {
     "Eugenia Kalnay": (
         "https://council.science/wp-content/uploads/2023/01/Eugenia-Kalnay-web.jpg"
     ),
-    "Mike Fisher": (
+    # Mike Fisher (1962-Present): ECMWF data assimilation scientist — no middle initial found
+    # Lifespan suffix "(1962-Present)" disambiguates from NHL hockey player Mike Fisher (born 1980)
+    "Mike Fisher (1962-Present)": (
         "https://scholar.googleusercontent.com/citations?view_op=medium_photo&user=roKiQSwAAAAJ&citpid=2"
     ),
     "Norbert Wiener": (
@@ -429,6 +433,9 @@ _LOCAL_REFERENCE_FILES: Dict[str, list] = {
     "Victor Hess": ["VictorHess.jpg"],
     "Walther Flemming": ["Walther_flemming_flipped.jpg"],
     "Winfried Otto Schumann": ["Winfried_Otto_Schumann.jpeg"],
+    # John F.R. Kerr (1934-2019): Australian pathologist who coined "apoptosis"
+    # Note: John Kerr the physicist (1824-1907) is a different person - use only local ref
+    "John Kerr": ["JohnFRKerr.jpg"],
 }
 
 # ---------------------------------------------------------------------------
@@ -440,8 +447,9 @@ _LOCAL_REFERENCE_FILES: Dict[str, list] = {
 _NAME_COLLISION_SUBJECTS: set = {
     # Wikipedia/Commons returns the WRONG person for these names.
     # Only Tier 0 (local) and Tier 1 (confirmed URLs) are trusted for these subjects.
-    "Mike Fisher",   # Wikipedia/Commons "Mike Fisher" = NHL hockey player (not ECMWF scientist)
-    "John Pyle",     # Commons returns 18th-century painting of different "John Pyle" (not Cambridge FRS)
+    "Mike Fisher (1962-Present)",  # Wikipedia/Commons "Mike Fisher" = NHL hockey player (not ECMWF scientist)
+    "John A. Pyle",                # Commons returns 18th-century painting of different "John Pyle" (not Cambridge FRS)
+    "John Kerr",                   # Wikipedia "John Kerr" = physicist (1824-1907); we want pathologist J.F.R. Kerr (1934-2019)
 }
 
 

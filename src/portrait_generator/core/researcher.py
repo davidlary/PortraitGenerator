@@ -74,22 +74,32 @@ class BiographicalResearcher:
 
         logger.info(f"Researching subject: {name}")
 
+        # Strip any lifespan disambiguation suffix before sending to Gemini/Wikipedia.
+        # The full canonical name (e.g. "Mike Fisher (1962-Present)") is used for YAML
+        # lookups and filename creation; Gemini and Wikipedia get the bare name so they
+        # find the correct person without being confused by the suffix.
+        search_name = re.sub(
+            r'\s*\(\d{4}-(?:Present|\d{4})\)\s*$', '', name
+        ).strip() or name
+
         # Create research prompt
-        prompt = self._create_research_prompt(name)
+        prompt = self._create_research_prompt(search_name)
 
         try:
             # Use Gemini for research
             response = self._query_gemini(prompt)
 
-            # Parse response into structured data
-            subject_data = self._parse_research_response(name, response)
+            # Parse response into structured data (uses search_name so Gemini returns the
+            # clean name; we then restore the canonical name with any disambiguation suffix)
+            subject_data = self._parse_research_response(search_name, response)
+            subject_data.name = name  # restore full canonical name (may include lifespan)
 
             # Cross-validate and enrich with multi-source ground truth cascade
             # (Wikipedia REST → Wikipedia Search → Wikidata → DBpedia → Gemini)
             try:
                 # Pass Gemini client to enable Tier 5 (AI web search fallback)
                 verifier = GroundTruthVerifier(gemini_client=self.gemini_client)
-                ground_truth = verifier.fetch(name)
+                ground_truth = verifier.fetch(search_name)  # use bare name for external lookup
                 # Always run cross-validate to log conflicts (even at low confidence)
                 conflicts = verifier.cross_validate(subject_data, ground_truth)
                 if conflicts:

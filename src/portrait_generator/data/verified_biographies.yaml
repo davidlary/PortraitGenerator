@@ -160,10 +160,11 @@ Henri Poincaré:
   death_year: 1912
   gender: male
 
-John Pyle:
-  birth_year: 1950
+John A. Pyle:
+  birth_year: 1951
   death_year: null
   gender: male
+  notes: "Cambridge atmospheric chemist, FRS CBE; full name John Adrian Pyle (born 4 Apr 1951); name disambiguated from other John Pyles"
 
 Joseph-Louis Lagrange:
   birth_year: 1736
@@ -202,11 +203,11 @@ Ulrich Platt:
   gender: male
 
 # ── Chapter-Assimilation ─────────────────────────────────────────────────────
-Andrew Lorenc:
+Andrew C. Lorenc:
   birth_year: 1951
   death_year: null
   gender: male
-  notes: "Met Office/ECMWF data assimilation scientist; Gemini confuses with other Andrew Lorenc (1948-2024)"
+  notes: "Met Office/ECMWF data assimilation scientist; full name Andrew C. Lorenc (C confirmed from all publications); Gemini confuses with other Andrew Lorenc (1948-2024)"
 
 David Lary:
   birth_year: 1965
@@ -220,11 +221,11 @@ Eugenia Kalnay:
   gender: female
   notes: "Argentine-American meteorologist; Gemini occasionally researches as male"
 
-Mike Fisher:
+Mike Fisher (1962-Present):
   birth_year: 1962
   death_year: null
   gender: male
-  notes: "ECMWF data assimilation scientist; name collision with NHL hockey player born 1980"
+  notes: "ECMWF data assimilation scientist; no middle initial found in any publication; lifespan suffix disambiguates from NHL hockey player Mike Fisher (born 1980)"
 
 Norbert Wiener:
   birth_year: 1894

@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.5.0] - 2026-03-06
+
+### Added
+- **Name collision disambiguation** (`reference_finder.py`, `verified_biographies.yaml`, `test_book_portraits.py`) — Three subjects whose names collide with more-famous people on Wikipedia/Commons are now given canonical disambiguated names:
+  - `John Pyle` → **`John A. Pyle`** (full name: John Adrian Pyle CBE FRS, born 4 Apr 1951, Cambridge atmospheric chemist)
+  - `Andrew Lorenc` → **`Andrew C. Lorenc`** (Met Office/ECMWF data assimilation scientist; "C" confirmed in all publications including the landmark 1986 QJRMS paper)
+  - `Mike Fisher` → **`Mike Fisher (1962-Present)`** (ECMWF scientist; no middle initial found in any publication; lifespan suffix disambiguates from NHL hockey player Mike Fisher born 1980)
+- **Lifespan suffix support** (`generator_enhanced.py`, `researcher.py`) — When a canonical name includes a lifespan suffix `(YYYY-Present)` or `(YYYY-YYYY)`, it is automatically stripped for:
+  - Gemini biographical research (Gemini receives clean name for accurate lookup)
+  - Wikipedia/Wikidata ground-truth lookups
+  - Portrait overlay (overlay displays clean name without the suffix; years already shown on second line)
+  - Only the *filename* retains the full canonical name, achieving the disambiguation goal
+
+### Fixed
+- **John A. Pyle birth year** — Corrected from 1950 → 1951 (confirmed: born 4 April 1951, per Who's Who and Wikipedia)
+- **PascalCase filename generation** — `_create_filename()` and `_generator_filename()` now preserve case of digit-starting word segments. Previously `"1962Present"` would be lowercased to `"1962present"` by `capitalize()`; now kept as-is since `capitalize()` is only applied to alpha-starting words.
+
+### Changed
+- All 4 locations updated for each renamed subject (test parametrize list, `verified_biographies.yaml`, `_CONFIRMED_REFERENCE_URLS` dict, `_NAME_COLLISION_SUBJECTS` set)
+- Existing portrait files renamed to match new canonical filenames:
+  - `JohnPyle_Painting.png` → `JohnAPyle_Painting.png`
+  - `AndrewLorenc_Painting.png` → `AndrewCLorenc_Painting.png`
+  - `MikeFisher_Painting.png` → `MikeFisher1962Present_Painting.png`
+
+---
+
 ## [2.4.2] - 2026-03-06
 
 ### Added

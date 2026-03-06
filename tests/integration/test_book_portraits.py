@@ -94,7 +94,7 @@ BOOK_PORTRAIT_SUBJECTS = [
     # Chapter-Simulating
     ("Aleksandr Lyapunov",            1857, 1918, "Chapter-Simulating"),
     ("Henri Poincaré",                1854, 1912, "Chapter-Simulating"),
-    ("John Pyle",                     1950, None, "Chapter-Simulating"),
+    ("John A. Pyle",                  1951, None, "Chapter-Simulating"),
     ("Joseph-Louis Lagrange",         1736, 1813, "Chapter-Simulating"),
     ("Leonhard Euler",                1707, 1783, "Chapter-Simulating"),
     ("Sherwood Rowland",              1927, 2012, "Chapter-Simulating"),
@@ -106,10 +106,10 @@ BOOK_PORTRAIT_SUBJECTS = [
     ("Ulrich Platt",                  1944, None, "Chapter-Observing"),
 
     # Chapter-Assimilation
-    ("Andrew Lorenc",                 1951, None, "Chapter-Assimilation"),
+    ("Andrew C. Lorenc",              1951, None, "Chapter-Assimilation"),
     ("David Lary",                    1965, None, "Chapter-Assimilation"),
     ("Eugenia Kalnay",                1942, None, "Chapter-Assimilation"),
-    ("Mike Fisher",                   1962, None, "Chapter-Assimilation"),
+    ("Mike Fisher (1962-Present)",    1962, None, "Chapter-Assimilation"),
     ("Norbert Wiener",                1894, 1964, "Chapter-Assimilation"),
     ("Roger Daley",                   1941, 1999, "Chapter-Assimilation"),
     ("Rudolf Kalman",                 1930, 2016, "Chapter-Assimilation"),
@@ -242,14 +242,18 @@ def _generator_filename(name: str, style: str) -> str:
     The generator uses:
       1. Keep only alphanumeric chars and spaces (removes hyphens, apostrophes, etc.)
       2. Split on spaces → list of words
-      3. capitalize() each word (first char upper, rest lower)
+      3. capitalize() each alpha-starting word (first char upper, rest lower);
+         digit-starting words (e.g. "1962Present") are kept as-is to preserve case.
       4. Join + append style suffix
 
     This MUST stay in sync with generator_enhanced.py::_create_filename().
     """
     clean_name = "".join(c for c in name if c.isalnum() or c.isspace())
     parts = clean_name.split()
-    base = "".join(word.capitalize() for word in parts)
+    base = "".join(
+        word.capitalize() if word and word[0].isalpha() else word
+        for word in parts
+    )
     return f"{base}_{style}"
 
 

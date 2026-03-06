@@ -8,6 +8,7 @@ This module extends the base generator with:
 """
 
 import logging
+import re
 import time
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -395,11 +396,19 @@ class EnhancedPortraitGenerator:
                     else:
                         styled_image = base_image
 
-                    # Add overlay
+                    # Add overlay — strip lifespan disambiguation suffix for clean display.
+                    # e.g. "Mike Fisher (1962-Present)" → "Mike Fisher" in the overlay.
+                    # The full canonical name (with lifespan) is preserved in subject_data.name
+                    # and used for the filename; the overlay shows only the human-readable name.
                     logger.debug("Adding title overlay...")
+                    _display_name = re.sub(
+                        r'\s*\(\d{4}-(?:Present|\d{4})\)\s*$',
+                        '',
+                        subject_data.name,
+                    ).strip() or subject_data.name
                     final_image = self.overlay_engine.add_overlay(
                         styled_image,
-                        name=subject_data.name,
+                        name=_display_name,
                         years=subject_data.formatted_years,
                     )
 
@@ -655,9 +664,14 @@ Please address this issue and ensure:
         # Remove spaces and special characters
         clean_name = "".join(c for c in name if c.isalnum() or c.isspace())
 
-        # Convert to PascalCase
+        # Convert to PascalCase.
+        # Use capitalize() for alpha-starting words (uppercases first char, lowercases rest).
+        # Keep digit-starting words as-is so e.g. "1962Present" stays "1962Present" not "1962present".
         parts = clean_name.split()
-        filename = "".join(word.capitalize() for word in parts)
+        filename = "".join(
+            word.capitalize() if word and word[0].isalpha() else word
+            for word in parts
+        )
 
         # Add style suffix
         filename = f"{filename}_{style}"
