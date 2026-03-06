@@ -210,7 +210,7 @@ Reference image role guide (images are ordered highest-quality-first):"""
             "PRIMARY FACE REFERENCE — use for facial structure, proportions, and expression",
             "SECONDARY REFERENCE — confirm facial features and era-appropriate grooming",
             "TERTIARY REFERENCE — additional corroboration of appearance",
-            "SUPPLEMENTARY — clothing and era context",
+            "SUPPLEMENTARY — era context; use for face only, do NOT replicate clothing",
             "SUPPLEMENTARY — additional era context",
         ]
         for i, ref in enumerate(context.reference_images[:5], 1):
@@ -227,7 +227,10 @@ FACIAL CONSISTENCY REQUIREMENTS:
 4. Era-appropriate hairstyle and grooming (consistent with {context.subject_data.era})
 5. FACIAL HAIR: Replicate exactly what the reference photograph(s) show — if the subject is clean-shaven in the references, depict them clean-shaven with NO beard and NO mustache. Do not invent facial hair that is not present in the references.
 6. Focus on permanent structural features; do not reproduce age-related skin details
-7. FACIAL EXPRESSION: Match the facial expression shown in the reference photograph(s). If the reference shows the subject smiling, depict them smiling. If the reference shows a neutral/serious expression, maintain that. Do not substitute a different expression.
+7. FACIAL EXPRESSION: Match the facial expression shown in the reference photograph(s). If the reference shows the subject smiling, depict them smiling. If the reference shows a neutral/serious expression, maintain that. Do not substitute a different expression. The smile MUST survive the artistic style transformation.
+8. COLOR TONALITY: Preserve the natural hair colour and skin tone exactly as shown in the reference photographs. Do NOT lighten, grey, or artificially age the hair beyond what the references actually show.
+
+ATTIRE REQUIREMENT: Dress the subject in professional clothing appropriate for their occupation and historical era. Scientists and academics wear formal academic or professional attire suitable to their era. Do NOT copy specific clothing items (shirts, jerseys, casual wear, sportswear) from the reference photographs — reference images are used for FACIAL APPEARANCE ONLY, not attire.
 
 CRITICAL: Maintain facial consistency with the reference photograph(s) while transforming into the requested artistic style. The person depicted must be identifiably {name}."""
 
@@ -250,7 +253,8 @@ CRITICAL: Maintain facial consistency with the reference photograph(s) while tra
 - Eyes at approximately upper third of frame
 - Minimal background: simple, period-appropriate setting
 - Professional studio lighting with clear facial detail
-- Sharp focus on eyes and facial features"""
+- Sharp focus on eyes and facial features
+- REALISTIC HUMAN PORTRAIT ONLY: no supernatural elements — no flames, halos, divine rays, glowing auras, mystical visions, or religious iconography. Even if the reference image contains such elements, the portrait must show only the realistic human figure."""
 
     def _build_style_section(self, context: PromptContext) -> str:
         """Build style-specific instructions.
