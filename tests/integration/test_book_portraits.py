@@ -83,6 +83,7 @@ BOOK_PORTRAIT_SUBJECTS = [
     ("Tor Bergeron",                  1891, 1977, "Chapter-Global-Chemistry"),
     ("Tycho Brahe",                   1546, 1601, "Chapter-Global-Chemistry"),
     ("Walter Findeisen",              1909, 1945, "Chapter-Global-Chemistry"),
+    ("George Hadley",                 1685, 1768, "Chapter-Global-Chemistry"),
 
     # Chapter-Air-Quality
     ("C. William Gear",               1935, 2022, "Chapter-Air-Quality"),
@@ -90,6 +91,8 @@ BOOK_PORTRAIT_SUBJECTS = [
     ("Mario Molina",                  1943, 2020, "Chapter-Air-Quality"),
     ("Mark Jacobson",                 1967, None, "Chapter-Air-Quality"),
     ("Paul Crutzen",                  1933, 2021, "Chapter-Air-Quality"),
+    ("Guy Brasseur",                  1948, None, "Chapter-Air-Quality"),
+    ("Susan Solomon",                 1956, None, "Chapter-Air-Quality"),
 
     # Chapter-Simulating
     ("Aleksandr Lyapunov",            1857, 1918, "Chapter-Simulating"),
@@ -98,6 +101,7 @@ BOOK_PORTRAIT_SUBJECTS = [
     ("Joseph-Louis Lagrange",         1736, 1813, "Chapter-Simulating"),
     ("Leonhard Euler",                1707, 1783, "Chapter-Simulating"),
     ("Sherwood Rowland",              1927, 2012, "Chapter-Simulating"),
+    ("Martyn Chipperfield",           1963, None, "Chapter-Simulating"),
 
     # Chapter-Observing
     ("Clive Rodgers",                 1940, None, "Chapter-Observing"),
@@ -168,6 +172,7 @@ BOOK_PORTRAIT_SUBJECTS = [
     ("Ronald Ross",                   1857, 1932, "Chapter-Health-Impacts"),
     ("Rudolf Virchow",                1821, 1902, "Chapter-Health-Impacts"),
     ("Theophrastus",                   371,  287, "Chapter-Health-Impacts"),  # approx BCE
+    ("Walter Bradford Cannon",        1871, 1945, "Chapter-Health-Impacts"),
 
     # Chapter-AQ-Plants-Birds-Animals
     ("Eugene P. Odum",                1913, 2002, "Chapter-AQ-Plants-Birds-Animals"),

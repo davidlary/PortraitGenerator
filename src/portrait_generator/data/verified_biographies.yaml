@@ -123,6 +123,12 @@ Walter Findeisen:
   death_year: 1945
   gender: male
 
+George Hadley:
+  birth_year: 1685
+  death_year: 1768
+  gender: male
+  notes: "English lawyer and amateur meteorologist; described the Hadley circulation (trade winds); b. 12 Feb 1685, d. 28 Jun 1768"
+
 # ── Chapter-Air-Quality ──────────────────────────────────────────────────────
 C. William Gear:
   birth_year: 1935
@@ -148,6 +154,18 @@ Paul Crutzen:
   birth_year: 1933
   death_year: 2021
   gender: male
+
+Guy Brasseur:
+  birth_year: 1948
+  death_year: null
+  gender: male
+  notes: "Belgian atmospheric chemist; NCAR Boulder CO and Max Planck Institute for Meteorology Hamburg; ozone layer and climate research"
+
+Susan Solomon:
+  birth_year: 1956
+  death_year: null
+  gender: female
+  notes: "American atmospheric chemist; NOAA then MIT Ellen Swallow Richards Professor; b. 19 Jan 1956; explained Antarctic ozone hole mechanism; National Medal of Science 1999"
 
 # ── Chapter-Simulating ───────────────────────────────────────────────────────
 Aleksandr Lyapunov:
@@ -180,6 +198,12 @@ Sherwood Rowland:
   birth_year: 1927
   death_year: 2012
   gender: male
+
+Martyn Chipperfield:
+  birth_year: 1963
+  death_year: null
+  gender: male
+  notes: "British atmospheric scientist; Professor at University of Leeds; atmospheric chemistry and ozone modelling"
 
 # ── Chapter-Observing ────────────────────────────────────────────────────────
 Clive Rodgers:
@@ -467,6 +491,12 @@ Rudolf Virchow:
   birth_year: 1821
   death_year: 1902
   gender: male
+
+Walter Bradford Cannon:
+  birth_year: 1871
+  death_year: 1945
+  gender: male
+  notes: "American physiologist; Harvard Medical School; coined 'fight or flight response'; developed homeostasis theory; b. 19 Oct 1871, d. 1 Oct 1945"
 
 Theophrastus:
   birth_year: -371

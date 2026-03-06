@@ -39,6 +39,7 @@ from loguru import logger
 from PIL import Image
 
 from .api.models import SubjectData
+from .utils.http_cache import HTTP_CACHE, HttpResponseCache
 
 # ---------------------------------------------------------------------------
 # Verified institutional photo URLs (confirmed HTTP 200)
@@ -46,13 +47,14 @@ from .api.models import SubjectData
 # ---------------------------------------------------------------------------
 _CONFIRMED_URLS: Dict[str, str] = {
     # ==========================================================================
-    # Pre-verified portrait image URLs for all 77 book portrait subjects.
-    # Each URL was confirmed HTTP 200 by parallel research agents (v2.4.0).
+    # Pre-verified portrait image URLs for all 82 book portrait subjects.
+    # Each URL was confirmed HTTP 200 by parallel research agents (v2.4.0+).
     # Sources in priority order: Wikimedia Commons > Wikipedia > Institutional.
     #
     # Note: Francis John Welsh Whipple, Georg Pfotzer, and Walter Findeisen now
     # have human-verified local files in ExampleReferenceImages/ (Tier 0).
     # Frank John Scrase: extremely obscure — no digitized portrait found.
+    # Ralph Markson (1930-2022): no publicly accessible portrait found.
     # ==========================================================================
 
     # ── Chapter-Introduction ──────────────────────────────────────────────────
@@ -76,6 +78,10 @@ _CONFIRMED_URLS: Dict[str, str] = {
     ),
 
     # ── Chapter-Global-Chemistry ──────────────────────────────────────────────
+    # George Hadley (1685-1768): Wikimedia Commons portrait — HTTP 200 verified
+    "George Hadley": (
+        "https://upload.wikimedia.org/wikipedia/commons/2/25/George_G._Hadley.jpg"
+    ),
     "Carl-Gustaf Rossby": (
         "https://upload.wikimedia.org/wikipedia/commons/e/ea/Carl_G._A._Rossby_LCCN2016875745_%28cropped%29.jpg"
     ),
@@ -140,8 +146,20 @@ _CONFIRMED_URLS: Dict[str, str] = {
     "Paul Crutzen": (
         "https://upload.wikimedia.org/wikipedia/commons/0/00/Paul_Crutzen.jpg"
     ),
+    # Guy Brasseur: NCAR official staff photo — HTTP 200 verified
+    "Guy Brasseur": (
+        "https://ncar.ucar.edu/sites/default/files/inline-images/Guy%20Brasseur.jpg"
+    ),
+    # Susan Solomon: MIT EAPS faculty photo — HTTP 200 verified
+    "Susan Solomon": (
+        "https://eaps.mit.edu/wp-content/uploads/2024/01/Solomon_-aspect-ratio-1-1-1-272x0-c-default.jpg"
+    ),
 
     # ── Chapter-Simulating ────────────────────────────────────────────────────
+    # Martyn Chipperfield: Leeds University group photo — HTTP 200 verified
+    "Martyn Chipperfield": (
+        "https://homepages.see.leeds.ac.uk/~lecmc/images/group_martyn.jpg"
+    ),
     "Aleksandr Lyapunov": (
         "https://upload.wikimedia.org/wikipedia/commons/1/1c/Aleksandr_Lyapunov.jpg"
     ),
@@ -352,6 +370,10 @@ _CONFIRMED_URLS: Dict[str, str] = {
     "Theophrastus": (
         "https://upload.wikimedia.org/wikipedia/commons/d/d3/Teofrasto_Orto_botanico_detail.jpg"
     ),
+    # Walter Bradford Cannon (1871-1945): Wikimedia Commons photo — HTTP 200 verified
+    "Walter Bradford Cannon": (
+        "https://upload.wikimedia.org/wikipedia/commons/9/9c/Walter_Bradford_Cannon.jpg"
+    ),
 
     # ── Chapter-AQ-Plants-Birds-Animals ───────────────────────────────────────
     "Eugene P. Odum": (
@@ -511,12 +533,48 @@ class ReferenceImageFinder:
         self.download_dir = download_dir or Path(".cpf/reference_images")
         self.download_dir.mkdir(parents=True, exist_ok=True)
 
+        # HTTP API response cache — stored adjacent to download_dir so that
+        # isolated tmp_path fixtures (tests) automatically get a fresh cache,
+        # while real runs reuse a persistent per-project cache.
+        self._http_cache = HttpResponseCache(
+            cache_dir=self.download_dir.parent / ".http_cache"
+        )
+
         # HTTP client for downloading (httpx for async-compatible)
         self.http_client = httpx.Client(
             timeout=_TIMEOUT,
             follow_redirects=True,
             headers={"User-Agent": _HEADERS["User-Agent"]},
         )
+
+    # ------------------------------------------------------------------ #
+    # Private: cached HTTP helper                                          #
+    # ------------------------------------------------------------------ #
+
+    def _cached_get_json(
+        self,
+        url: str,
+        params: Optional[Dict] = None,
+    ):
+        """GET a URL and return its JSON, using the local HTTP response cache.
+
+        Checks the on-disk cache first (TTL 30 days).  On a cache miss, makes
+        the real HTTP request and stores the successful response.
+        Returns None on error.
+        """
+        data = self._http_cache.get_json(url, params)
+        if data is not None:
+            return data
+        try:
+            resp = requests.get(url, params=params, headers=_HEADERS, timeout=_TIMEOUT)
+            if resp.status_code != 200:
+                return None
+            data = resp.json()
+            self._http_cache.put_json(url, params, data)
+            return data
+        except Exception as e:
+            logger.debug(f"HTTP request failed for {url!r}: {e}")
+            return None
 
     # ------------------------------------------------------------------ #
     # Public API                                                           #
@@ -1106,14 +1164,11 @@ class ReferenceImageFinder:
         """
         try:
             encoded = urllib.parse.quote(name.replace(" ", "_"), safe="")
-            resp = requests.get(
-                f"https://en.wikipedia.org/api/rest_v1/page/summary/{encoded}",
-                headers=_HEADERS,
-                timeout=_TIMEOUT,
+            data = self._cached_get_json(
+                f"https://en.wikipedia.org/api/rest_v1/page/summary/{encoded}"
             )
-            if resp.status_code != 200:
+            if not data:
                 return None
-            data = resp.json()
             # Prefer full-resolution original if available
             original_url = data.get("originalimage", {}).get("source", "")
             thumb_url = data.get("thumbnail", {}).get("source", "")
@@ -1144,7 +1199,7 @@ class ReferenceImageFinder:
         """
         # Step 1: Resolve name → QID
         try:
-            resp = requests.get(
+            search_data = self._cached_get_json(
                 "https://www.wikidata.org/w/api.php",
                 params={
                     "action": "wbsearchentities",
@@ -1154,12 +1209,10 @@ class ReferenceImageFinder:
                     "format": "json",
                     "limit": 3,
                 },
-                headers=_HEADERS,
-                timeout=_TIMEOUT,
             )
-            if resp.status_code != 200:
+            if not search_data:
                 return None
-            results = resp.json().get("search", [])
+            results = search_data.get("search", [])
             if not results:
                 return None
             entity_id = results[0]["id"]  # e.g. "Q7259"
@@ -1169,7 +1222,7 @@ class ReferenceImageFinder:
 
         # Step 2: Fetch P18 (image) claim
         try:
-            resp2 = requests.get(
+            claims_data = self._cached_get_json(
                 "https://www.wikidata.org/w/api.php",
                 params={
                     "action": "wbgetclaims",
@@ -1177,12 +1230,10 @@ class ReferenceImageFinder:
                     "property": "P18",
                     "format": "json",
                 },
-                headers=_HEADERS,
-                timeout=_TIMEOUT,
             )
-            if resp2.status_code != 200:
+            if not claims_data:
                 return None
-            claims = resp2.json().get("claims", {}).get("P18", [])
+            claims = claims_data.get("claims", {}).get("P18", [])
             if not claims:
                 return None
             filename: str = claims[0]["mainsnak"]["datavalue"]["value"]
@@ -1222,7 +1273,7 @@ class ReferenceImageFinder:
         """
         results: List[ReferenceImage] = []
         try:
-            resp = requests.get(
+            search_data = self._cached_get_json(
                 "https://commons.wikimedia.org/w/api.php",
                 params={
                     "action": "query",
@@ -1232,12 +1283,10 @@ class ReferenceImageFinder:
                     "format": "json",
                     "srlimit": limit + 5,
                 },
-                headers=_HEADERS,
-                timeout=_TIMEOUT,
             )
-            if resp.status_code != 200:
+            if not search_data:
                 return results
-            search_hits = resp.json().get("query", {}).get("search", [])
+            search_hits = search_data.get("query", {}).get("search", [])
         except Exception as e:
             logger.debug(f"Wikimedia Commons search failed for '{name}': {e}")
             return results
@@ -1269,7 +1318,7 @@ class ReferenceImageFinder:
                 continue
 
             try:
-                resp2 = requests.get(
+                img_data = self._cached_get_json(
                     "https://commons.wikimedia.org/w/api.php",
                     params={
                         "action": "query",
@@ -1278,12 +1327,10 @@ class ReferenceImageFinder:
                         "iiprop": "url",
                         "format": "json",
                     },
-                    headers=_HEADERS,
-                    timeout=_TIMEOUT,
                 )
-                if resp2.status_code != 200:
+                if not img_data:
                     continue
-                pages = resp2.json().get("query", {}).get("pages", {})
+                pages = img_data.get("query", {}).get("pages", {})
                 for page in pages.values():
                     for ii in page.get("imageinfo", []):
                         url = ii.get("url", "")
@@ -1315,14 +1362,12 @@ class ReferenceImageFinder:
         """
         try:
             encoded = urllib.parse.quote(name, safe="")
-            resp = requests.get(
-                f"https://lookup.dbpedia.org/api/search?query={encoded}&format=json&maxResults=5",
-                headers=_HEADERS,
-                timeout=_TIMEOUT,
+            resp_data = self._cached_get_json(
+                f"https://lookup.dbpedia.org/api/search?query={encoded}&format=json&maxResults=5"
             )
-            if resp.status_code != 200:
+            if not resp_data:
                 return None
-            docs = resp.json().get("docs", [])
+            docs = resp_data.get("docs", [])
         except Exception as e:
             logger.debug(f"DBpedia lookup failed for '{name}': {e}")
             return None
@@ -1364,21 +1409,19 @@ class ReferenceImageFinder:
 
         # Step 1: Get list of image filenames from the Wikipedia page
         try:
-            resp = requests.get(
+            page_data = self._cached_get_json(
                 api_url,
                 params={
                     "action": "query",
                     "titles": name.replace(" ", "_"),
                     "prop": "images",
                     "format": "json",
-                    "imlimit": limit + 5,  # overshoot; we'll filter
+                    "imlimit": limit + 5,
                 },
-                headers=_HEADERS,
-                timeout=_TIMEOUT,
             )
-            if resp.status_code != 200:
+            if not page_data:
                 return results
-            pages = resp.json().get("query", {}).get("pages", {})
+            pages = page_data.get("query", {}).get("pages", {})
         except Exception as e:
             logger.debug(f"Wikipedia images list failed for '{name}': {e}")
             return results
@@ -1401,7 +1444,7 @@ class ReferenceImageFinder:
         # Step 2: Resolve each filename to a direct URL
         for title in image_titles[:limit + 2]:
             try:
-                resp2 = requests.get(
+                img_data = self._cached_get_json(
                     api_url,
                     params={
                         "action": "query",
@@ -1410,12 +1453,10 @@ class ReferenceImageFinder:
                         "iiprop": "url",
                         "format": "json",
                     },
-                    headers=_HEADERS,
-                    timeout=_TIMEOUT,
                 )
-                if resp2.status_code != 200:
+                if not img_data:
                     continue
-                pages2 = resp2.json().get("query", {}).get("pages", {})
+                pages2 = img_data.get("query", {}).get("pages", {})
                 for page2 in pages2.values():
                     for ii in page2.get("imageinfo", []):
                         direct_url = ii.get("url", "")

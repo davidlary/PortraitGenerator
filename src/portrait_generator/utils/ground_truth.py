@@ -15,9 +15,11 @@ import logging
 import re
 import urllib.parse
 from dataclasses import dataclass, field
-from typing import List, Optional, Any
+from typing import Any, Dict, List, Optional
 
 import requests
+
+from .http_cache import HTTP_CACHE
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +68,35 @@ class GroundTruthVerifier:
                            When provided, enables the Gemini biographical search tier.
         """
         self._gemini_client = gemini_client
+
+    # ------------------------------------------------------------------ #
+    # Private: cached HTTP helper                                          #
+    # ------------------------------------------------------------------ #
+
+    def _cached_get_json(
+        self,
+        url: str,
+        params: Optional[Dict[str, Any]] = None,
+    ) -> Optional[Any]:
+        """GET a URL and return its JSON, using the local HTTP response cache.
+
+        Checks the on-disk cache first (TTL 30 days).  On a cache miss, makes
+        the real request and stores the successful response for future runs.
+        Returns None on HTTP error or parse failure.
+        """
+        data = HTTP_CACHE.get_json(url, params)
+        if data is not None:
+            return data
+        try:
+            resp = requests.get(url, params=params, headers=_HEADERS, timeout=_TIMEOUT)
+            if resp.status_code != 200:
+                return None
+            data = resp.json()
+            HTTP_CACHE.put_json(url, params, data)
+            return data
+        except Exception as e:
+            logger.debug(f"HTTP request failed for {url!r}: {e}")
+            return None
 
     # ------------------------------------------------------------------ #
     # Public API                                                           #
@@ -329,14 +360,10 @@ class GroundTruthVerifier:
         """Fetch page summary via Wikipedia REST API (direct page name lookup)."""
         encoded = urllib.parse.quote(name.replace(" ", "_"))
         url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{encoded}"
-        try:
-            resp = requests.get(url, headers=_HEADERS, timeout=_TIMEOUT)
-            if resp.status_code == 200:
-                return resp.json()
-            logger.debug(f"Wikipedia direct lookup: HTTP {resp.status_code} for '{name}'")
-        except Exception as e:
-            logger.debug(f"Wikipedia direct lookup failed for '{name}': {e}")
-        return None
+        data = self._cached_get_json(url)
+        if data is None:
+            logger.debug(f"Wikipedia direct lookup: no data for '{name}'")
+        return data
 
     # ------------------------------------------------------------------ #
     # Private: Tier 2 — Wikipedia Search API fallback                     #
@@ -345,32 +372,25 @@ class GroundTruthVerifier:
     def _fetch_wikipedia_search(self, name: str) -> Optional[dict]:
         """Use Wikipedia search API to find the most relevant article then fetch its summary."""
         search_url = "https://en.wikipedia.org/w/api.php"
+        params = {
+            "action": "query",
+            "list": "search",
+            "srsearch": name,
+            "srnamespace": 0,
+            "srlimit": 3,
+            "format": "json",
+        }
         try:
-            resp = requests.get(
-                search_url,
-                params={
-                    "action": "query",
-                    "list": "search",
-                    "srsearch": name,
-                    "srnamespace": 0,
-                    "srlimit": 3,
-                    "format": "json",
-                },
-                headers=_HEADERS,
-                timeout=_TIMEOUT,
-            )
-            if resp.status_code != 200:
+            search_data = self._cached_get_json(search_url, params)
+            if not search_data:
                 return None
-            results = resp.json().get("query", {}).get("search", [])
+            results = search_data.get("query", {}).get("search", [])
             for item in results:
                 title = item.get("title", "")
-                # Only use result if title is plausibly about the right person
                 if self._name_matches(name, title):
                     encoded = urllib.parse.quote(title.replace(" ", "_"))
                     summary_url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{encoded}"
-                    r2 = requests.get(summary_url, headers=_HEADERS, timeout=_TIMEOUT)
-                    if r2.status_code == 200:
-                        return r2.json()
+                    return self._cached_get_json(summary_url)
         except Exception as e:
             logger.debug(f"Wikipedia search failed for '{name}': {e}")
         return None
@@ -403,27 +423,19 @@ class GroundTruthVerifier:
 
     def _wikidata_search_entity(self, name: str) -> Optional[str]:
         """Search Wikidata for a person entity by name. Returns entity ID (e.g., 'Q12345')."""
+        params = {
+            "action": "wbsearchentities",
+            "search": name,
+            "language": "en",
+            "type": "item",
+            "limit": 5,
+            "format": "json",
+        }
         try:
-            resp = requests.get(
-                "https://www.wikidata.org/w/api.php",
-                params={
-                    "action": "wbsearchentities",
-                    "search": name,
-                    "language": "en",
-                    "type": "item",
-                    "limit": 5,
-                    "format": "json",
-                },
-                headers=_HEADERS,
-                timeout=_TIMEOUT,
-            )
-            if resp.status_code != 200:
+            data = self._cached_get_json("https://www.wikidata.org/w/api.php", params)
+            if not data:
                 return None
-
-            for item in resp.json().get("search", []):
-                # Match: description mentions "physicist", "scientist", "chemist", etc. or just a person
-                desc = (item.get("description") or "").lower()
-                label = (item.get("label") or "").lower()
+            for item in data.get("search", []):
                 if self._name_matches(name, item.get("label", "")):
                     return item["id"]
         except Exception as e:
@@ -432,22 +444,18 @@ class GroundTruthVerifier:
 
     def _wikidata_get_claims(self, entity_id: str) -> Optional[dict]:
         """Fetch P21 (gender), P569 (birth), P570 (death), P18 (image) for an entity."""
+        params = {
+            "action": "wbgetentities",
+            "ids": entity_id,
+            "props": "claims",
+            "format": "json",
+        }
         try:
-            resp = requests.get(
-                "https://www.wikidata.org/w/api.php",
-                params={
-                    "action": "wbgetentities",
-                    "ids": entity_id,
-                    "props": "claims",
-                    "format": "json",
-                },
-                headers=_HEADERS,
-                timeout=_TIMEOUT,
-            )
-            if resp.status_code != 200:
+            resp_data = self._cached_get_json("https://www.wikidata.org/w/api.php", params)
+            if not resp_data:
                 return None
 
-            entity = resp.json().get("entities", {}).get(entity_id, {})
+            entity = resp_data.get("entities", {}).get(entity_id, {})
             claims = entity.get("claims", {})
             result = {}
 
@@ -538,17 +546,13 @@ SELECT ?birth ?death ?gender WHERE {{
 }}
 LIMIT 2
 """
+        dbpedia_params = {"format": "application/sparql-results+json", "query": sparql}
         try:
-            resp = requests.get(
-                "https://dbpedia.org/sparql",
-                params={"format": "application/sparql-results+json", "query": sparql},
-                headers=_HEADERS,
-                timeout=_TIMEOUT,
-            )
-            if resp.status_code != 200:
+            resp_data = self._cached_get_json("https://dbpedia.org/sparql", dbpedia_params)
+            if resp_data is None:
                 return None
 
-            bindings = resp.json().get("results", {}).get("bindings", [])
+            bindings = resp_data.get("results", {}).get("bindings", [])
             if not bindings:
                 return None
 
