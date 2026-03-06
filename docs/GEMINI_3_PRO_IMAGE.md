@@ -1,6 +1,6 @@
 ## Gemini Image Models - Advanced Features Guide
 
-**Version 2.2.0** | **Default Model: gemini-3.1-flash-image-preview (Nano Banana 2)**
+**Version 2.4.0** | **Default Model: gemini-3.1-flash-image-preview (Nano Banana 2)**
 > Also supports: gemini-3-pro-image-preview (maximum quality) and gemini-exp-1206 (legacy)
 
 ---
@@ -45,8 +45,8 @@ Real-time fact-checking and verification using Google Search.
 from portrait_generator import PortraitClient
 
 client = PortraitClient(
-    model="gemini-3-pro-image-preview",
-    enable_search_grounding=True  # Default: True
+    model="gemini-3.1-flash-image-preview",
+    enable_search_grounding=False  # Default: False (changed in v2.1.0 — grounding API returns empty results)
 )
 
 result = client.generate("Marie Curie")
@@ -56,7 +56,7 @@ result = client.generate("Marie Curie")
 **Configuration:**
 ```bash
 # .env file
-ENABLE_SEARCH_GROUNDING=true
+ENABLE_SEARCH_GROUNDING=false  # Default: false (grounding API returns empty results since v2.1.0)
 ```
 
 ---
@@ -274,7 +274,7 @@ ENABLE_REFERENCE_IMAGES=true
 MAX_REFERENCE_IMAGES=5
 
 # Google Search Grounding
-ENABLE_SEARCH_GROUNDING=true
+ENABLE_SEARCH_GROUNDING=false  # Default: false — grounding API returns empty results (see README Known Issues)
 
 # Internal Reasoning
 ENABLE_INTERNAL_REASONING=true
@@ -590,7 +590,7 @@ Gemini 3 Pro Image with advanced features costs more per generation than basic m
 - Export evaluation reports as PDF
 - Video portrait generation
 
-**Planned for 2.2.0:**
+**Planned for future releases:**
 - Multi-model ensemble (combine outputs from multiple models)
 - Style transfer from reference images
 - Interactive refinement workflow

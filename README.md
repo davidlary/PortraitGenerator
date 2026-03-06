@@ -28,13 +28,13 @@
 
 ### NEW in 2.4.0: Zero-Tolerance Reference Image Pipeline
 
-- 🔍 **9-Tier Progressive Cascade**: Hardcoded table → URL cache → Wikipedia REST → Wikidata P18
+- 🔍 **10-Tier Progressive Cascade (Tiers 0-9)**: Local images → Hardcoded table → URL cache → Wikipedia REST → Wikidata P18
   → Gemini web search → Wikipedia page images → Wikimedia Commons → DBpedia — stops at first success
 - 🤖 **AI-Powered Fallback**: Gemini web search understands era, field, and institutional context
   to find portraits for any subject; results self-cache for instant future access
 - ✅ **Held-Out Independent Validation**: Reference images split into generation set (used for creation)
   and held-out set (withheld for independent post-generation identity verification)
-- 📚 **89-Entry Confirmed URL Table**: All 77 book portrait subjects pre-researched by parallel agents
+- 📚 **90-Entry Confirmed URL Table**: All 77 book portrait subjects pre-researched by parallel agents
 - 🔄 **Self-Caching**: Gemini discoveries persisted to disk; repeat runs are free
 - 🪪 **Sidecar Metadata**: `.meta.json` alongside every portrait for deterministic verification
 - 📐 **3-Stage Gender Verification**: Direct → contextual → elimination; 2/3 majority required
@@ -205,7 +205,7 @@ curl -X POST "http://localhost:8000/api/v1/generate" \
 
 ### Google Search Grounding — Resolved in v2.4.0
 
-**Status:** ✅ Fixed in v2.4.0 via 9-tier reference image cascade
+**Status:** ✅ Fixed in v2.4.0 via 10-tier reference image cascade (Tiers 0-9)
 
 In v2.1.0, the Google Search Grounding API was returning empty results, causing `enable_reference_images`
 to be disabled by default. v2.4.0 completely replaces the grounding-API approach with a
@@ -496,7 +496,7 @@ Once the server is running, visit `http://localhost:8000/docs` for interactive A
 1. **GeminiImageClient**: Google Gemini Flash Image API integration for image + text generation
 2. **BiographicalResearcher**: Deep research with Gemini; cross-validated against ground truth
 3. **GroundTruthVerifier**: 5-tier cascade (Wikipedia REST → Wikipedia Search → Wikidata → DBpedia → Gemini web search) for date/gender verification
-4. **ReferenceFinder**: 9-tier cascade for authentic reference images (hardcoded table → Wikimedia → Gemini web → ...)
+4. **ReferenceFinder**: 10-tier cascade for authentic reference images (Tiers 0-9: local images → hardcoded table → URL cache → Wikipedia → Wikidata → Gemini web → Commons → DBpedia)
 5. **TitleOverlayEngine**: Professional title overlays with name, dates, and era
 6. **PortraitVerifier**: Post-generation verification (file size, overlay OCR, gender, identity vs reference)
 7. **EnhancedPortraitGenerator**: Orchestrates complete workflow with retry on verification failure
@@ -509,7 +509,7 @@ Once the server is running, visit `http://localhost:8000/docs` for interactive A
 Subject Name
   → BiographicalResearcher (Gemini text research)
   → GroundTruthVerifier (Wikipedia/Wikidata cross-validation, 5-tier cascade)
-  → ReferenceFinder (authentic portrait images, 9-tier cascade)
+  → ReferenceFinder (authentic portrait images, 10-tier cascade Tiers 0-9)
   → Generate image (Gemini Flash Image, reference images injected)
   → TitleOverlayEngine (name + dates overlay)
   → PortraitVerifier (file size, OCR dates, gender check)
@@ -619,7 +619,7 @@ PortraitGenerator/
 │   ├── cli.py                       # CLI: generate / batch / status / serve / health-check
 │   ├── intelligence_coordinator.py  # Orchestrates research → generation → verification
 │   ├── prompt_builder.py            # Builds structured Gemini prompts with gender/dates/appearance
-│   ├── reference_finder.py          # 9-tier reference image cascade
+│   ├── reference_finder.py          # 10-tier reference image cascade (Tiers 0-9)
 │   ├── pre_generation_validator.py  # Pre-flight validation before generation
 │   ├── api/                         # REST API (FastAPI)
 │   │   ├── models.py                # SubjectData, GenerationResult dataclasses
@@ -1049,12 +1049,12 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Status
 
-🚀 **Version 2.2.0** - Production Ready
+🚀 **Version 2.4.0** - Production Ready
 
-- **Release Date**: March 4, 2026
+- **Release Date**: March 5, 2026
 - **Default Model**: gemini-3.1-flash-image-preview (Nano Banana 2)
 - **Python Support**: 3.10, 3.11, 3.12
-- **Test Coverage**: 66% (399+ tests passing)
+- **Test Coverage**: 67% (480+ tests passing; 96/96 integration tests)
 - **Package Status**: Available on PyPI and Conda
 - **API Status**: Stable (v1) - Backward Compatible
 - **Documentation**: Complete with advanced features guide

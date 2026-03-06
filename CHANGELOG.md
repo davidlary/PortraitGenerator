@@ -49,7 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Disjoint sets enforced; best-scored images go to generation
 - Forms the basis of zero-trust portrait verification: "always verify, never assume"
 
-**89-Entry `_CONFIRMED_URLS` Table** (was 15 entries)
+**90-Entry `_CONFIRMED_URLS` Table** (was 15 entries)
 - All 77 book portrait subjects researched by 7 parallel research agents
 - Every URL verified HTTP 200 by agents (Wikipedia Commons, institutional pages, NAS, etc.)
 - 4 subjects have no publicly available portrait (Whipple, Scrase, Findeisen, Pfotzer) —
