@@ -11,14 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Reference-photo age matching** (`prompt_builder.py`) — When reference images are available, portraits are now instructed to match the *apparent age, hair colour, and skin appearance shown in the reference photographs* rather than a mathematically calculated age. Previously, a living subject born in 1965 would be depicted with age-65-appropriate white hair even when reference photos showed dark/mixed hair. Subjects without reference images continue to use the calculated age as before.
-- **`_NoRef` filename suffix** (`generator_enhanced.py`) — Portraits generated with *zero* reference images now get a `_NoRef` suffix (e.g. `WalterFindeisen_Painting_NoRef.png`). This immediately signals that the AI had no real photograph to work from, and the result is a best-effort interpretation only. Affects the 4 subjects for whom no portrait exists anywhere (Whipple, Scrase, Findeisen, Pfotzer) plus any future subjects the cascade cannot find.
-- **No-frame rule for Painting style** (`prompt_builder.py`) — Explicit instruction added: "NO decorative frames, gilded borders, or ornamental surrounds — frameless canvas only." Previously, subjects without reference images (who trigger a fully AI-imagined painting) sometimes received ornate gold frames.
+- **`_NoRef` filename suffix** (`generator_enhanced.py`) — Portraits generated with *zero* reference images now get a `_NoRef` suffix (e.g. `WalterFindeisen_Painting_NoRef.png`). This immediately signals that the AI had no real photograph to work from, and the result is a best-effort interpretation only. Affects subjects for whom no portrait exists anywhere (Scrase, Findeisen, Markson) plus any future subjects the cascade cannot find.
+- **No-frame rule for Painting style** (`prompt_builder.py`) — Explicit instruction: "NO decorative frames, gilded borders, or ornamental surrounds — frameless canvas only."
+- **Color tonality matching (#8)** (`prompt_builder.py`) — New facial consistency requirement: preserve natural hair colour and skin tone exactly as shown in reference photographs; do NOT lighten or grey hair beyond what references show.
+- **Profession-appropriate attire rule** (`prompt_builder.py`) — Scientists and academics must wear professional/academic attire appropriate to their era; reference photographs are for FACIAL APPEARANCE ONLY, not clothing. Prevents sports shirts, casual wear, or era-inappropriate dress.
+- **No supernatural elements rule** (`prompt_builder.py`) — Composition requirement: portraits show realistic humans only — no flames, halos, divine rays, glowing auras, mystical visions, or religious iconography, even if the reference image contains such elements.
 
 ### Fixed
-- **David Lary white hair** — Reference-photo age matching now ensures the portrait matches his dark/mixed hair from reference photos, not the hair colour implied by a calculated age of 61.
+- **David Lary white hair** — Color tonality requirement (#8) preserves the dark/mixed hair colour from reference photos.
+- **Hildegard von Bingen fire** — No-supernatural-elements rule prevents the flames from her Scivias illumination reference from appearing in the portrait.
+- **Mike Fisher sports shirt** — Profession-appropriate attire rule ensures scientists are depicted in professional academic dress, not casual/sports clothing seen in reference photos.
 - **John Pyle apparent age** — Portrait now matches the age shown in his Cambridge reference photographs rather than a capped value of 65.
-- **Roger Daley appearing too young / inappropriate setting** — Midpoint age for a 1941–1999 subject was 29; portrait now matches the age shown in the CMOS memorial reference photo.
-- **Walter Findeisen gold frame** — No-frame rule prevents the ornate frame artefact that appeared when the AI had no reference to guide it.
+- **Roger Daley appearing too young** — Midpoint age for a 1941–1999 subject was 29; portrait now matches the age shown in the CMOS memorial reference photo.
+- **Walter Findeisen gold frame** — No-frame rule prevents the ornate frame artefact.
 
 ### Changed
 - `test_book_portraits.py`: `_portrait_exists()` now checks both `_Painting.png` and `_Painting_NoRef.png` variants so skip-logic works for all subjects.
