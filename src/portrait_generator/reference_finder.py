@@ -374,7 +374,7 @@ _CONFIRMED_URLS: Dict[str, str] = {
 
 _HEADERS = {
     "User-Agent": (
-        "PortraitGenerator/2.6.0 "
+        "PortraitGenerator/2.7.0 "
         "(https://github.com/davidlary/PortraitGenerator; educational use)"
     )
 }

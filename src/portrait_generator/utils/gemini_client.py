@@ -1,33 +1,24 @@
-"""Google Gemini API client for image generation with advanced capabilities.
+"""Google Gemini API client for image generation with automatic model cascade.
 
-This module provides an enhanced client supporting multiple models with automatic
-rate-limit cascade recovery:
+On initialisation the client queries the Gemini API for all available image-
+generation models and builds an ordered cascade automatically:
 
-- Gemini 3.1 Flash Image (Nano Banana 2) — PRIMARY / RECOMMENDED
-  * ~22s generation time
-  * Image Search grounding (text + image search results)
-  * Thinking mode for enhanced accuracy
-  * New resolutions: 0.5K, 1K, 2K, 4K
-  * New aspect ratios: 1:4, 4:1, 1:8, 8:1 + standard set
-  * Improved international text rendering
-  * Batch API support
+  Tier 1 — Thinking Flash models (Gemini 3.x Flash):  thinking mode + search-as-tool
+  Tier 2 — Thinking Pro models  (Gemini 3.x Pro):   thinking mode + search-as-tool
+  Tier 3 — Pure image models    (2.5-flash-*):        no search-as-tool, no thinking
 
-- Gemini 3 Pro Image (Nano Banana Pro) — SECONDARY (quota cascade fallback)
-  * ~45s generation time
-  * Deepest reasoning and physics-aware synthesis
-  * Highest accuracy for complex/obscure historical subjects
+As new Gemini image models are released they are picked up automatically —
+no code changes required.
 
-- Gemini 2.5 Flash Image (Nano Banana, model ID "gemini-2.5-flash-image") — TERTIARY fallback
-  * Pure image-generation model — NO search-as-tool, NO thinking mode
-  * Separate daily quota bucket from Gemini 3.x models
-  * Good portrait quality via multi-image reference support
+Cascade behaviour: when a generation call hits a quota / rate-limit error the
+client advances to the next model in the cascade and retries.  After a full
+cycle through all models the client pauses 5 s before cycling back, giving the
+primary model's quota window time to begin recovering:
 
-Cascade behavior: when a generation call hits a quota / rate-limit error the
-client automatically advances to the next model and retries.  After exhausting
-all models in one cycle the client pauses 5 s before cycling back:
+    Flash-thinking  →  Pro-thinking  →  image-only  →  (pause 5 s)  →  Flash-thinking …
 
-    Nano Banana 2  →  Nano Banana Pro  →  Nano Banana  →  (pause 5 s)  →  Nano Banana 2 …
-    (thinking+search)  (thinking+search)  (image-only)
+The static QUOTA_CASCADE from model_configs is used as a fallback if the live
+model-discovery API call fails (e.g. no network at startup).
 """
 
 import io
@@ -88,29 +79,18 @@ class PreGenerationCheck:
 class GeminiImageClient:
     """Enhanced client for Google Gemini image generation API.
 
-    Default model is gemini-3.1-flash-image-preview (Nano Banana 2) which
-    provides the best combination of speed and accuracy:
-    - ~22s generation vs ~45s for Pro
-    - Image Search grounding (text + image results)
-    - Thinking mode for accuracy-critical generations
-    - 4K resolution support with extended aspect ratios
-    - Batch API support for high-volume use
+    On init, queries the Gemini API to discover all available image models and
+    builds the cascade automatically:
+      · Thinking-Flash models first (fastest + thinking mode + search grounding)
+      · Thinking-Pro models next  (highest quality + thinking mode + search)
+      · Pure-image-only models last (2.5-flash-*; no tool/search support)
 
-    For maximum quality on complex historical subjects, use
-    gemini-3-pro-image-preview (Nano Banana Pro) instead.
+    When a generation call hits a quota / rate-limit error the client advances
+    to the next model and retries.  After a full cycle through all discovered
+    models a 5-second pause is inserted before cycling back, giving the primary
+    model's quota window time to recover:
 
-    Model cascade (automatic rate-limit recovery):
-    When a generation call hits a quota / rate-limit error the client
-    automatically advances to the next model in the cascade and retries,
-    allowing each model's daily quota to be used in turn.  After exhausting
-    all models in one full cycle the client pauses briefly before cycling
-    back to the primary model (which has had time to recover):
-
-        Nano Banana 2  →  Nano Banana Pro  →  Nano Banana  →  (cycle back)
-        gemini-3.1-flash-image-preview
-                       →  gemini-3-pro-image-preview
-                                          →  gemini-2.5-flash-image
-                                                           →  gemini-3.1-flash-image-preview …
+        [Flash-thinking]  →  [Pro-thinking]  →  [image-only]  →  (pause 5s)  →  cycle
     """
 
     def __init__(
@@ -124,13 +104,24 @@ class GeminiImageClient:
     ) -> None:
         """Initialize Gemini client with advanced capabilities.
 
+        The client automatically discovers all available Gemini image-generation
+        models from the API and builds a cascade ordered as:
+          1. Thinking models — Flash first (fastest), then Pro (highest quality)
+          2. Pure image-only fallbacks (2.5-flash-*) — no tool support
+
+        When a generation call hits a quota / rate-limit error the client
+        advances to the next model in the cascade and retries, cycling back
+        to the primary model after a full round (with a brief pause so the
+        primary quota has time to start recovering).
+
         Args:
             api_key: Google API key
-            model: Primary Gemini model name (default: gemini-3.1-flash-image-preview)
-            model_cascade: Ordered list of fallback models for rate-limit recovery.
-                           Defaults to QUOTA_CASCADE (NB2 → NB Pro → NB) starting at
-                           the position of *model* in the cascade.  Pass ``[model]``
-                           to disable cascading entirely.
+            model: Primary Gemini model name (default: gemini-3.1-flash-image-preview).
+                   The cascade always starts at this model's position.
+            model_cascade: Explicit ordered list of models for rate-limit recovery.
+                           When None (default), the cascade is built automatically
+                           by querying the Gemini API for available image models.
+                           Pass ``[model]`` to disable cascading entirely.
             enable_grounding: Enable Google Search / Image Search grounding
             enable_reasoning: Enable internal reasoning capabilities
             thinking_level: Thinking depth for accuracy (minimal/low/medium/high)
@@ -150,24 +141,6 @@ class GeminiImageClient:
         self.enable_reasoning = enable_reasoning
         self.thinking_level = thinking_level
 
-        # --- Model cascade setup ---
-        # Import here to avoid circular imports at module level
-        from ..config.model_configs import QUOTA_CASCADE as _DEFAULT_CASCADE
-        if model_cascade is None:
-            self._model_cascade: List[str] = _DEFAULT_CASCADE
-        else:
-            self._model_cascade = list(model_cascade)
-
-        # Start at the requested model's position in the cascade (or 0 if not found)
-        if model in self._model_cascade:
-            self._cascade_index: int = self._model_cascade.index(model)
-        else:
-            # Requested model not in cascade — prepend it so it is tried first
-            self._model_cascade = [model] + self._model_cascade
-            self._cascade_index = 0
-
-        self.model: str = self._model_cascade[self._cascade_index]
-
         try:
             import google.genai as genai
             from google.genai import types
@@ -175,9 +148,31 @@ class GeminiImageClient:
             self.genai = genai
             self.types = types
             self.client = genai.Client(api_key=api_key)
-            logger.info(f"Initialized Gemini client with model: {model}")
 
-            # Check model capabilities
+            # --- Model cascade setup ---
+            # Build the cascade from the live API (discovers new models automatically)
+            # or from the explicit override if provided.
+            if model_cascade is None:
+                self._model_cascade: List[str] = self._discover_image_models()
+            else:
+                self._model_cascade = list(model_cascade)
+
+            # Position cascade at the requested model's slot.
+            # If the model isn't in the discovered list, prepend it so it is
+            # tried first (handles preview / custom model IDs gracefully).
+            if model in self._model_cascade:
+                self._cascade_index: int = self._model_cascade.index(model)
+            else:
+                self._model_cascade = [model] + self._model_cascade
+                self._cascade_index = 0
+
+            self.model: str = self._model_cascade[self._cascade_index]
+            logger.info(
+                f"Initialized Gemini client: primary={self.model}  "
+                f"cascade={self._model_cascade}"
+            )
+
+            # Detect capabilities for the active model
             self._detect_capabilities()
 
         except ImportError as e:
@@ -185,6 +180,75 @@ class GeminiImageClient:
                 "google-genai package not installed. "
                 "Install with: pip install google-genai"
             ) from e
+
+    def _discover_image_models(self) -> List[str]:
+        """Query the Gemini API for available image-generation models.
+
+        Builds a cascade ordered as:
+          1. Thinking Flash models (Gemini 3.x Flash) — fastest, thinking + search
+          2. Thinking Pro models  (Gemini 3.x Pro)   — highest quality, thinking + search
+          3. Other Gemini 3.x image models           — thinking + search, unknown speed
+          4. Pure image-only models (2.5-flash-*)    — no search-as-tool, no thinking
+
+        Falls back silently to the static QUOTA_CASCADE from model_configs if the
+        API call fails (no network, insufficient permissions, etc.).
+
+        Returns:
+            Ordered list of model name strings (no "models/" prefix).
+        """
+        from ..config.model_configs import QUOTA_CASCADE as _STATIC_CASCADE
+
+        try:
+            all_models = list(self.client.models.list())
+        except Exception as exc:
+            logger.debug(
+                f"Model discovery unavailable — falling back to static cascade: {exc}"
+            )
+            return list(_STATIC_CASCADE)
+
+        thinking_flash: List[str] = []   # Gemini 3.x Flash — thinking + fastest
+        thinking_pro: List[str] = []     # Gemini 3.x Pro   — thinking + highest quality
+        thinking_other: List[str] = []   # Gemini 3.x other — thinking, unknown tier
+        image_only: List[str] = []       # 2.5-flash-* — pure image, no tool support
+
+        for m in all_models:
+            raw_name: str = getattr(m, "name", "") or ""
+            # The API returns names like "models/gemini-3.1-flash-image-preview"
+            name = raw_name[len("models/"):] if raw_name.startswith("models/") else raw_name
+
+            # Only image-generation models
+            if "image" not in name:
+                continue
+
+            # Classify using the same rules as _detect_capabilities()
+            is_flash = "3.1-flash" in name
+            is_pro = "3-pro" in name
+            is_gemini3 = "gemini-3" in name or is_flash or is_pro
+            is_pure_image = "2.5-flash" in name and not is_gemini3
+
+            if is_flash:
+                thinking_flash.append(name)
+            elif is_pro:
+                thinking_pro.append(name)
+            elif is_gemini3:
+                thinking_other.append(name)
+            elif is_pure_image:
+                image_only.append(name)
+            # else: unknown image model variant — skip
+
+        result = thinking_flash + thinking_pro + thinking_other + image_only
+
+        if result:
+            logger.info(
+                f"Auto-discovered {len(result)} image models — "
+                f"thinking-flash: {thinking_flash}, "
+                f"thinking-pro: {thinking_pro}, "
+                f"image-only: {image_only}"
+            )
+            return result
+
+        logger.debug("No image models found via discovery — using static cascade")
+        return list(_STATIC_CASCADE)
 
     def _detect_capabilities(self) -> None:
         """Detect capabilities of the configured model.

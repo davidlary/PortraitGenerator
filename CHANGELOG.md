@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.7.0] - 2026-03-06
+
+### Added
+- **Runtime auto-discovery of image models** (`utils/gemini_client.py`) — `GeminiImageClient.__init__()` now queries the Gemini API at startup to discover all available image-generation models and builds the cascade dynamically, so new Gemini image models are picked up automatically without any code changes:
+  - Tier 1 — Thinking Flash models (Gemini 3.x Flash): thinking mode + search grounding, fastest
+  - Tier 2 — Thinking Pro models  (Gemini 3.x Pro):   thinking mode + search grounding, highest quality
+  - Tier 3 — Pure image-only models (2.5-flash-*):     no search-as-tool, no thinking mode
+  - Falls back to the static `QUOTA_CASCADE` from `model_configs.py` if the discovery API call fails
+  - New `_discover_image_models()` method on `GeminiImageClient`
+  - `model_cascade` constructor parameter still allows explicit override of the auto-built cascade
+
+### Fixed
+- **2.5-flash pure-image model detection** (`utils/gemini_client.py`) — The previous `is_gemini25_image_only` guard only matched the exact string `"gemini-2.5-flash-image"`. The longer alias `"gemini-2.5-flash-preview-image-generation"` (or any future `2.5-flash-*` variant) would have incorrectly set `supports_grounding=True` and sent an unsupported `google_search` tool to a pure image model. Replaced with a broad pattern: `is_pure_image_model = "2.5-flash" in model and not is_gemini3`
+- **`model_configs.py` consistency** — `GenerationConfig.enable_search_grounding` for `gemini-2.5-flash-image` corrected from `True` → `False` to match `capabilities.google_search_grounding=False`; docstring references updated from `gemini-2.5-flash-preview-image-generation` to the canonical ID `gemini-2.5-flash-image`
+
+---
+
 ## [2.6.0] - 2026-03-06
 
 ### Added

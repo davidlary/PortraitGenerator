@@ -3,8 +3,8 @@
 > Generate historically accurate, publication-quality portrait images using Google Gemini Flash Image (Nano Banana 2)
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![PyPI version](https://img.shields.io/badge/pypi-v2.6.0-blue.svg)](https://pypi.org/project/portrait-generator/)
-[![Conda version](https://img.shields.io/badge/conda-v2.6.0-blue.svg)](https://anaconda.org/conda-forge/portrait-generator)
+[![PyPI version](https://img.shields.io/badge/pypi-v2.7.0-blue.svg)](https://pypi.org/project/portrait-generator/)
+[![Conda version](https://img.shields.io/badge/conda-v2.7.0-blue.svg)](https://anaconda.org/conda-forge/portrait-generator)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://img.shields.io/badge/tests-480%20passed-green.svg)](tests/)
 [![Coverage](https://img.shields.io/badge/coverage-67%25-orange.svg)](htmlcov/)
@@ -26,17 +26,22 @@
 - 🔒 **Secure**: Environment-based credentials only
 - 📝 **Fully Documented**: Complete API documentation and examples
 
+### NEW in 2.7.0: Runtime Auto-Discovery of Image Models
+
+- 🔍 **Runtime Model Discovery** (`GeminiImageClient`): On startup, queries the Gemini API for all available image-generation models and builds the cascade automatically — new Gemini image models are used without any code changes:
+  - **Cascade order** (auto-built): Thinking Flash → Thinking Pro → pure-image fallbacks
+  - Thinking Flash (Gemini 3.x Flash): thinking mode + search grounding, fastest
+  - Thinking Pro (Gemini 3.x Pro): thinking mode + search grounding, highest quality
+  - Pure-image-only (2.5-flash-*): no search-as-tool, no thinking mode, separate quota bucket
+  - Falls back to static `QUOTA_CASCADE` if the discovery API call fails at startup
+  - When quota / rate-limit is hit: auto-advance to next model → **5-second pause** after full cycle → cycle back to primary
+  - Pass `model_cascade=[model]` to disable cascading for a single-model setup
+- 🛡️ **Pure-Image Model Detection Fix** (v2.7.0): All `2.5-flash-*` variants (including the longer `gemini-2.5-flash-preview-image-generation` alias) are correctly excluded from search-as-tool and thinking mode, preventing API errors
+
 ### NEW in 2.6.0: Automatic Model Cascade for Rate-Limit Recovery
 
-- 🔄 **Automatic Model Cascade** (`GeminiImageClient`): When a generation call hits a quota / rate-limit error the client automatically advances to the next model in the cascade and retries — cycling back after a full round so the primary model's quota has time to recover:
-  - **Cascade order**: Nano Banana 2 → Nano Banana Pro → Nano Banana → *(cycle back)*
-  - `gemini-3.1-flash-image-preview` → `gemini-3-pro-image-preview` → `gemini-2.5-flash-preview-image-generation`
-  - Up to **2 full cycles** (6 attempts) before raising an error
-  - **5-second pause** inserted after each full cycle to allow quota recovery
-  - Each model switch re-detects capabilities (grounding, thinking mode, extended ratios) — fully transparent to all callers
-  - Aspect ratio gracefully downgraded when cascading to a model that lacks extended-ratio support (e.g. `1:4` → `3:4`)
-  - Pass `model_cascade=[model]` to `GeminiImageClient` to disable cascading for a single-model setup
-- 🔎 **`get_cascade_status()`** — New diagnostic method on `GeminiImageClient` returning current model, index, and full cascade list
+- 🔄 **Automatic Model Cascade** (`GeminiImageClient`): When a generation call hits a quota / rate-limit error the client automatically advances to the next model and retries — cycling back after a full round so the primary model's quota has time to recover
+- 🔎 **`get_cascade_status()`** — Diagnostic method returning current model, index, and full cascade list
 
 ### NEW in 2.5.0: Name Collision Disambiguation + Research-Verified Middle Initials
 
@@ -1150,7 +1155,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Status
 
-🚀 **Version 2.6.0** - Production Ready
+🚀 **Version 2.7.0** - Production Ready
 
 - **Release Date**: March 6, 2026
 - **Default Model**: gemini-3.1-flash-image-preview (Nano Banana 2)

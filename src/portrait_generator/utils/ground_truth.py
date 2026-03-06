@@ -31,7 +31,7 @@ _FEMALE_IDS = {_WIKIDATA_FEMALE, _WIKIDATA_TRANS_FEMALE}
 _MALE_IDS = {_WIKIDATA_MALE, _WIKIDATA_TRANS_MALE}
 
 _HEADERS = {
-    "User-Agent": "PortraitGenerator/2.6.0 (https://github.com/davidlary/PortraitGenerator; educational use)"
+    "User-Agent": "PortraitGenerator/2.7.0 (https://github.com/davidlary/PortraitGenerator; educational use)"
 }
 _TIMEOUT = 12  # seconds
 

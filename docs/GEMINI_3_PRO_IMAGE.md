@@ -1,7 +1,7 @@
 ## Gemini Image Models - Advanced Features Guide
 
-**Version 2.6.0** | **Default Model: gemini-3.1-flash-image-preview (Nano Banana 2)**
-> Also supports: gemini-3-pro-image-preview (maximum quality), gemini-2.5-flash-preview-image-generation (quota fallback), and gemini-exp-1206 (legacy)
+**Version 2.7.0** | **Default Model: gemini-3.1-flash-image-preview (Nano Banana 2)**
+> Cascade models auto-discovered at runtime. Static fallback: gemini-3-pro-image-preview (quality), gemini-2.5-flash-image (pure-image quota fallback), gemini-exp-1206 (legacy)
 
 ---
 
@@ -647,12 +647,17 @@ Gemini 3 Pro Image with advanced features costs more per generation than basic m
 
 ### Version History
 
+**2.7.0 (March 6, 2026):**
+- Runtime auto-discovery: `GeminiImageClient` now queries the Gemini API at startup to build the cascade from actually-available image models (thinking Flash → thinking Pro → pure-image fallbacks); new models are picked up automatically
+- New `_discover_image_models()` method; static `QUOTA_CASCADE` used as fallback if API unreachable
+- Fix: all `2.5-flash-*` variants (including `gemini-2.5-flash-preview-image-generation`) now correctly excluded from search-as-tool and thinking mode
+- Fix: `GenerationConfig.enable_search_grounding=False` for pure image models (was True — contradiction with capabilities)
+
 **2.6.0 (March 6, 2026):**
-- Automatic model cascade for rate-limit recovery: `GeminiImageClient` now advances through Nano Banana 2 → Nano Banana Pro → Nano Banana when quota errors are hit, cycling back after a full round (with 5s pause) so the primary model has time to recover
+- Automatic model cascade for rate-limit recovery: advances through discovered models when quota errors hit, cycling back after a full round (with 5s pause)
 - New `model_cascade` constructor parameter (pass `[model]` to disable cascading)
 - New `get_cascade_status()` diagnostic method
-- `_detect_capabilities()` re-run on every model switch to correctly refresh grounding/thinking/aspect-ratio support flags
-- Aspect ratio gracefully downgraded when cascading to a model without extended-ratio support
+- `_detect_capabilities()` re-run on every model switch
 
 **2.5.0 (March 6, 2026):**
 - Name collision disambiguation: John A. Pyle, Andrew C. Lorenc, Mike Fisher (1962-Present) — researched middle initials or lifespan suffix
