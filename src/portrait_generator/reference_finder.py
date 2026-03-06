@@ -78,10 +78,10 @@ _CONFIRMED_URLS: Dict[str, str] = {
     ),
 
     # ── Chapter-Global-Chemistry ──────────────────────────────────────────────
-    # George Hadley (1685-1768): Wikimedia Commons portrait — HTTP 200 verified
-    "George Hadley": (
-        "https://upload.wikimedia.org/wikipedia/commons/2/25/George_G._Hadley.jpg"
-    ),
+    # George Hadley (1685-1768): NO portrait survives — confirmed by Wikimedia Commons
+    # category (explicitly tagged "no image"), Royal Society archive, Wikipedia.
+    # File:George_G._Hadley.jpg on Commons is a DIFFERENT person — do NOT use it.
+    # Portrait will be generated from historical context only (18th-C English gentleman).
     "Carl-Gustaf Rossby": (
         "https://upload.wikimedia.org/wikipedia/commons/e/ea/Carl_G._A._Rossby_LCCN2016875745_%28cropped%29.jpg"
     ),
@@ -146,20 +146,23 @@ _CONFIRMED_URLS: Dict[str, str] = {
     "Paul Crutzen": (
         "https://upload.wikimedia.org/wikipedia/commons/0/00/Paul_Crutzen.jpg"
     ),
-    # Guy Brasseur: NCAR official staff photo — HTTP 200 verified
-    "Guy Brasseur": (
-        "https://ncar.ucar.edu/sites/default/files/inline-images/Guy%20Brasseur.jpg"
-    ),
-    # Susan Solomon: MIT EAPS faculty photo — HTTP 200 verified
-    "Susan Solomon": (
-        "https://eaps.mit.edu/wp-content/uploads/2024/01/Solomon_-aspect-ratio-1-1-1-272x0-c-default.jpg"
-    ),
+    # Guy Brasseur: NCAR distinguished scholar photo + Max Planck Institute portrait
+    "Guy Brasseur": [
+        "https://ncar.ucar.edu/sites/default/files/inline-images/Guy%20Brasseur.jpg",         # NCAR distinguished scholar page
+        "https://mpimet.mpg.de/fileadmin/_processed_/a/e/csm_H_Brasseur_52ee72a6ef.jpg",      # MPIMet researcher portrait
+    ],
+    # Susan Solomon: MIT EAPS 2024 headshot + Wikimedia Commons NOAA public domain image
+    "Susan Solomon": [
+        "https://eaps.mit.edu/wp-content/uploads/2024/01/Solomon_-aspect-ratio-1-1-1-272x0-c-default.jpg",  # MIT EAPS 2024 headshot
+        "https://upload.wikimedia.org/wikipedia/commons/8/80/Susan_Solomon-Desk_With_Globe.jpg",              # NOAA public domain, 1330×1119px
+    ],
 
     # ── Chapter-Simulating ────────────────────────────────────────────────────
-    # Martyn Chipperfield: Leeds University group photo — HTTP 200 verified
-    "Martyn Chipperfield": (
-        "https://homepages.see.leeds.ac.uk/~lecmc/images/group_martyn.jpg"
-    ),
+    # Martyn Chipperfield: NCEO 2024 official portrait (636×500px PNG) + Leeds fallback
+    "Martyn Chipperfield": [
+        "https://www.nceo.ac.uk/wp-content/uploads/2024/09/Martyn_Chipperfield_P1000909-e1727875950910.png",  # NCEO 2024, 636×500, highest quality
+        "https://homepages.see.leeds.ac.uk/~lecmc/images/group_martyn.jpg",   # Leeds group page, 122×180
+    ],
     "Aleksandr Lyapunov": (
         "https://upload.wikimedia.org/wikipedia/commons/1/1c/Aleksandr_Lyapunov.jpg"
     ),
@@ -370,10 +373,11 @@ _CONFIRMED_URLS: Dict[str, str] = {
     "Theophrastus": (
         "https://upload.wikimedia.org/wikipedia/commons/d/d3/Teofrasto_Orto_botanico_detail.jpg"
     ),
-    # Walter Bradford Cannon (1871-1945): Wikimedia Commons photo — HTTP 200 verified
-    "Walter Bradford Cannon": (
-        "https://upload.wikimedia.org/wikipedia/commons/9/9c/Walter_Bradford_Cannon.jpg"
-    ),
+    # Walter Bradford Cannon (1871-1945): 1934 Bachrach photo (2255×2824px, 1.74MB) is canonical
+    "Walter Bradford Cannon": [
+        "https://upload.wikimedia.org/wikipedia/commons/7/78/Walter_Bradford_Cannon_1934.jpg",  # Bachrach 1934, 2255×2824px — highest quality
+        "https://upload.wikimedia.org/wikipedia/commons/9/9c/Walter_Bradford_Cannon.jpg",        # Additional portrait
+    ],
 
     # ── Chapter-AQ-Plants-Birds-Animals ───────────────────────────────────────
     "Eugene P. Odum": (
