@@ -148,11 +148,14 @@ _CONFIRMED_URLS: Dict[str, str] = {
     "Henri Poincaré": (
         "https://upload.wikimedia.org/wikipedia/commons/f/f4/PSM_V82_D416_Henri_Poincare.png"
     ),
-    # John Pyle (atmospheric chemist, Cambridge, born ~1948, still living) — multiple confirmed URLs
-    # Royal Society 550×550 + Cambridge Chemistry 150×200 (both HTTP 200 verified)
+    # John Pyle CBE FRS (atmospheric chemist, Cambridge, born ~1948, still living) — multiple confirmed URLs
+    # All HTTP 200 verified; sorted best-quality-first
     "John Pyle": [
+        "https://www.caths.cam.ac.uk/sites/default/files/professor_john_pyle_cbe_credit_nathan_pitt_2.jpg",  # St Catharine's Nathan Pitt 2015, 1896×1422 — HIGHEST QUALITY
+        "https://www.caths.cam.ac.uk/sites/default/files/John%20Pyle%20new%20portraits-5331%20-%20Copy_0.jpg",  # St Catharine's 2015, 631×632
+        "https://www.ch.cam.ac.uk/files/portraits/jap12.jpg",  # Cambridge Chemistry original, 399×531, 160KB
         "https://imagecdn.royalsociety.org/people/P30713.jpg",   # Royal Society, 550×550
-        "https://www.ch.cam.ac.uk/files/styles/staff_portrait/public/portraits/jap12.jpg",  # Cambridge, 150×200
+        "https://cambridgechemistry.shorthandstories.com/john-pyle-symposium/assets/43ORKW36fO/john-pyle-s-retirement-symposium-12_4_24-taken-by-nathan-pitt-c-university-of-cambridge_r6b_3427-social-cover.jpg",  # Cambridge Symposium 2024, 1200×1200
     ],
     # Joseph-Louis Lagrange: LoC head-and-shoulders engraving (1233×1536) — cleaner than crop (1043×1167)
     "Joseph-Louis Lagrange": (
