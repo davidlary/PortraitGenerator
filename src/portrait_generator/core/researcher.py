@@ -10,6 +10,33 @@ from ..utils.ground_truth import GroundTruthVerifier
 logger = logging.getLogger(__name__)
 
 
+# ---------------------------------------------------------------------------
+# Verified biographical data — locked-in facts that override Gemini research
+# and ground truth lookups.  Add entries here for any subject whose birth/death
+# year or gender was incorrect in automated research.
+#
+# Format: "Full Name": {"birth_year": int, "death_year": int|None, "gender": str}
+# ---------------------------------------------------------------------------
+_VERIFIED_BIOGRAPHY: dict = {
+    # Chapter-Assimilation
+    "Andrew Lorenc":  {"birth_year": 1951, "death_year": None, "gender": "male"},
+    "David Lary":     {"birth_year": 1965, "death_year": None, "gender": "male"},
+    "Eugenia Kalnay": {"birth_year": 1942, "death_year": None, "gender": "female"},
+    "Mike Fisher":    {"birth_year": 1962, "death_year": None, "gender": "male"},
+    "Roger Daley":    {"birth_year": 1941, "death_year": 1999, "gender": "male"},
+    "Rudolf Kalman":  {"birth_year": 1930, "death_year": 2016, "gender": "male"},
+    "Norbert Wiener": {"birth_year": 1894, "death_year": 1964, "gender": "male"},
+    # Chapter-Simulating
+    "John Pyle":      {"birth_year": 1950, "death_year": None, "gender": "male"},
+    # Ancient/BCE subjects (prevent parsing errors)
+    "Hippocrates":      {"birth_year": -460, "death_year": -370, "gender": "male"},
+    "Theophrastus":     {"birth_year": -371, "death_year": -287, "gender": "male"},
+    "Pedanius Dioscorides": {"birth_year": 40,  "death_year": 90,  "gender": "male"},
+    "Avicenna":         {"birth_year": 980,  "death_year": 1037, "gender": "male"},
+    "Hildegard von Bingen": {"birth_year": 1098, "death_year": 1179, "gender": "female"},
+}
+
+
 class BiographicalResearcher:
     """
     Researcher for gathering biographical data about historical figures.
@@ -80,6 +107,18 @@ class BiographicalResearcher:
                 )
             except Exception as gt_err:
                 logger.debug(f"Ground truth lookup skipped for '{name}': {gt_err}")
+
+            # Apply verified biography overrides (highest authority — beats Gemini + ground truth)
+            if name in _VERIFIED_BIOGRAPHY:
+                bio = _VERIFIED_BIOGRAPHY[name]
+                subject_data.birth_year = bio["birth_year"]
+                subject_data.death_year = bio.get("death_year")
+                subject_data.gender = bio.get("gender", subject_data.gender)
+                logger.info(
+                    f"Applied verified biography for '{name}': "
+                    f"birth={bio['birth_year']}, death={bio.get('death_year')}, "
+                    f"gender={bio.get('gender')}"
+                )
 
             logger.info(
                 f"Research complete: {subject_data.name} "
