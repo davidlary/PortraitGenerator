@@ -1169,12 +1169,12 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Status
 
-🚀 **Version 2.7.0** - Production Ready
+🚀 **Version 2.8.0** - Production Ready
 
-- **Release Date**: March 6, 2026
+- **Release Date**: March 9, 2026
 - **Default Model**: gemini-3.1-flash-image-preview (Nano Banana 2)
 - **Python Support**: 3.10, 3.11, 3.12
-- **Test Coverage**: 67% (480+ tests passing; 96/96 integration tests)
+- **Test Coverage**: 67% (480+ tests passing; 115 integration tests)
 - **Package Status**: Available on PyPI and Conda
 - **API Status**: Stable (v1) - Backward Compatible
 - **Documentation**: Complete with advanced features guide

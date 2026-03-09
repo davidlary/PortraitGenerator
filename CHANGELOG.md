@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - `_CONFIRMED_URLS` in `reference_finder.py` now has **94 entries** (up from 89 pre-2.8.0); five new subjects use multi-URL lists (`List[str]`) for richer generation-time reference grounding
 - All `requests.get()` API calls in `ground_truth.py` (5 call sites) and `reference_finder.py` (6 call sites) replaced with `_cached_get_json()` wrappers; image-binary downloads (`_validate_url`, `download_and_prepare_references`) correctly left uncached
+- **Test API-key sentinel hardened** (all 6 unit test files) — `_NO_API_KEY` now also checks `_api_key.startswith("AIzaSy")` so that a non-Gemini `GOOGLE_API_KEY` in the shell (e.g. Google Maps or OAuth keys starting with `google_a`) no longer causes real-API tests to run and fail; they correctly skip instead. `test_build_simple_prompt` assertion updated from the fragile `"reference" not in prompt` to the precise `"SUBJECT FROM REFERENCE PHOTOGRAPHS:" not in prompt` to match the new anti-supernatural composition clause wording.
 
 ---
 
