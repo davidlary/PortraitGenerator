@@ -554,9 +554,9 @@ client = PortraitClient(
 
 | Version | Release Date | Default Model | Key Features | Tests |
 |---------|-------------|---------------|--------------|-------|
-| **2.8.0** | 2026-03-09 | gemini-3.1-flash-image-preview | HTTP response cache; 5 new subjects; 94 confirmed URLs | 484 unit |
-| 2.7.0 | 2026-03-06 | gemini-3.1-flash-image-preview | Runtime model auto-discovery; pure-image model detection | 484 unit |
-| 2.6.0 | 2026-03-06 | gemini-3.1-flash-image-preview | Automatic model cascade for rate-limit recovery | 484 unit |
+| **2.8.0** | 2026-03-09 | gemini-3.1-flash-image-preview | HTTP response cache; 5 new subjects; 94 confirmed URLs | 440 passing |
+| 2.7.0 | 2026-03-06 | gemini-3.1-flash-image-preview | Runtime model auto-discovery; pure-image model detection | 440 passing |
+| 2.6.0 | 2026-03-06 | gemini-3.1-flash-image-preview | Automatic model cascade for rate-limit recovery | 440 passing |
 | 2.5.0 | 2026-03-06 | gemini-3.1-flash-image-preview | Name collision disambiguation (middle initials / lifespan) | 480+ unit |
 | 2.4.2 | 2026-03-06 | gemini-3.1-flash-image-preview | Reference-photo age matching; `_NoRef` suffix; no-frame rule | 480+ unit |
 | 2.4.1 | 2026-03-06 | gemini-3.1-flash-image-preview | YAML verified biographies; facial expression/hair matching | 480+ unit |
@@ -572,6 +572,8 @@ client = PortraitClient(
 [2.7.0]: https://github.com/davidlary/PortraitGenerator/compare/v2.6.0...v2.7.0
 [2.6.0]: https://github.com/davidlary/PortraitGenerator/compare/v2.5.0...v2.6.0
 [2.5.0]: https://github.com/davidlary/PortraitGenerator/compare/v2.4.2...v2.5.0
+[2.4.2]: https://github.com/davidlary/PortraitGenerator/compare/v2.4.1...v2.4.2
+[2.4.1]: https://github.com/davidlary/PortraitGenerator/compare/v2.4.0...v2.4.1
 [2.4.0]: https://github.com/davidlary/PortraitGenerator/compare/v2.2.0...v2.4.0
 [2.2.0]: https://github.com/davidlary/PortraitGenerator/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/davidlary/PortraitGenerator/compare/v2.0.0...v2.1.0

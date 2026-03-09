@@ -548,11 +548,10 @@ Content-Type: application/json
 POST /api/v1/batch
 Content-Type: application/json
 
-{
-  "subject_names": ["Ada Lovelace", "Grace Hopper"],
-  "styles": ["BW"],                  # Optional
-  "force_regenerate": false          # Optional
-}
+[
+  {"subject_name": "Ada Lovelace", "styles": ["BW"], "force_regenerate": false},
+  {"subject_name": "Grace Hopper", "styles": ["BW"], "force_regenerate": false}
+]
 ```
 
 **Check Status**
@@ -1325,7 +1324,7 @@ A: The cost depends on Google Gemini API pricing. Typically ~$0.01-0.05 per port
 A: Yes, the code is MIT licensed. However, check Google's API terms for commercial usage.
 
 **Q: How long does it take to generate a portrait?**
-A: Typically 20-60 seconds per style, so ~2-4 minutes for all 4 styles.
+A: Typically 20-60 seconds for the default Painting style. Generating all 4 styles (BW, Sepia, Color, Painting) takes ~2-4 minutes total.
 
 **Q: Can I customize the portrait styles?**
 A: Yes, you can modify the style prompts in the code or wait for the custom styles feature in a future release.

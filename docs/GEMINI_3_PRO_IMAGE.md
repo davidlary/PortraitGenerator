@@ -481,11 +481,11 @@ client = PortraitClient(
     quality_threshold=0.95,  # Very high threshold
 )
 
-result = client.generate("Ada Lovelace")
+result = client.generate("Ada Lovelace", styles=["Painting"])
 
-# Check evaluation details
-print(f"Quality score: {result.evaluation['BW'].scores.get('overall', 0):.2f}")
-print(f"Fact-checked: {result.evaluation['BW'].scores.get('historical_accuracy', 0):.2f}")
+# Check evaluation details (keys match the styles generated)
+print(f"Quality score: {result.evaluation['Painting'].scores.get('overall', 0):.2f}")
+print(f"Fact-checked: {result.evaluation['Painting'].scores.get('historical_accuracy', 0):.2f}")
 ```
 
 #### Example 2: Academic Research Use
