@@ -83,6 +83,9 @@ BOOK_PORTRAIT_SUBJECTS = [
     ("Tor Bergeron",                  1891, 1977, "Chapter-Global-Chemistry"),
     ("Tycho Brahe",                   1546, 1601, "Chapter-Global-Chemistry"),
     ("Walter Findeisen",              1909, 1945, "Chapter-Global-Chemistry"),
+    # George Hadley: no self-portrait survives; reference images are of brother
+    # John Hadley FRS (1682-1744, sextant inventor) for familial likeness.
+    # Sources: Cambridge Fitzwilliam Museum + Royal Museums Greenwich (both HTTP 200).
     ("George Hadley",                 1685, 1768, "Chapter-Global-Chemistry"),
 
     # Chapter-Air-Quality
