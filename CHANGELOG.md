@@ -552,29 +552,28 @@ client = PortraitClient(
 
 ## Version History Summary
 
-| Version | Release Date | Model | Key Features | Test Coverage |
-|---------|-------------|-------|--------------|---------------|
-| **2.0.0** | 2026-01-30 | gemini-3-pro-image-preview | Advanced AI features | 91%+ (350+ tests) |
-| 1.0.0 | 2026-01-30 | gemini-exp-1206 | Basic generation | 93%+ (308 tests) |
+| Version | Release Date | Default Model | Key Features | Tests |
+|---------|-------------|---------------|--------------|-------|
+| **2.8.0** | 2026-03-09 | gemini-3.1-flash-image-preview | HTTP response cache; 5 new subjects; 94 confirmed URLs | 484 unit |
+| 2.7.0 | 2026-03-06 | gemini-3.1-flash-image-preview | Runtime model auto-discovery; pure-image model detection | 484 unit |
+| 2.6.0 | 2026-03-06 | gemini-3.1-flash-image-preview | Automatic model cascade for rate-limit recovery | 484 unit |
+| 2.5.0 | 2026-03-06 | gemini-3.1-flash-image-preview | Name collision disambiguation (middle initials / lifespan) | 480+ unit |
+| 2.4.2 | 2026-03-06 | gemini-3.1-flash-image-preview | Reference-photo age matching; `_NoRef` suffix; no-frame rule | 480+ unit |
+| 2.4.1 | 2026-03-06 | gemini-3.1-flash-image-preview | YAML verified biographies; facial expression/hair matching | 480+ unit |
+| 2.4.0 | 2026-03-05 | gemini-3.1-flash-image-preview | 10-tier reference cascade; portrait verifier; BCE dates | 480+ unit |
+| 2.2.0 | 2026-03-04 | gemini-3.1-flash-image-preview | Flash model default (2x faster); zero mock tests | 389+ unit |
+| 2.1.0 | 2026-02-03 | gemini-3.1-flash-image-preview | Reference/grounding disabled (API returns empty); 2x speedup | — |
+| 2.0.0 | 2026-01-30 | gemini-3-pro-image-preview | Advanced AI features (grounding, reasoning, multi-image) | 350+ |
+| 1.0.0 | 2026-01-30 | gemini-exp-1206 | Initial release — 4 styles, basic generation, CLI, REST API | 308 |
 
 ---
 
-## Roadmap
-
-### Planned for 2.1.0
-- Batch parallel processing with concurrent reference finding
-- Custom reference image upload
-- Fine-grained physics control (lighting direction, etc.)
-- Export evaluation reports as PDF
-- Video portrait generation
-
-### Planned for 2.2.0
-- Multi-model ensemble (combine outputs)
-- Style transfer from reference images
-- Interactive refinement workflow
-- Additional search provider integration
-
----
-
+[2.8.0]: https://github.com/davidlary/PortraitGenerator/compare/v2.7.0...v2.8.0
+[2.7.0]: https://github.com/davidlary/PortraitGenerator/compare/v2.6.0...v2.7.0
+[2.6.0]: https://github.com/davidlary/PortraitGenerator/compare/v2.5.0...v2.6.0
+[2.5.0]: https://github.com/davidlary/PortraitGenerator/compare/v2.4.2...v2.5.0
+[2.4.0]: https://github.com/davidlary/PortraitGenerator/compare/v2.2.0...v2.4.0
+[2.2.0]: https://github.com/davidlary/PortraitGenerator/compare/v2.1.0...v2.2.0
+[2.1.0]: https://github.com/davidlary/PortraitGenerator/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/davidlary/PortraitGenerator/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/davidlary/PortraitGenerator/releases/tag/v1.0.0

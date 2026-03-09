@@ -285,17 +285,22 @@ MAX_GENERATION_ATTEMPTS=2
 
 #### Model Selection
 
+The model is **auto-discovered at runtime** — you normally don't need to set it. The cascade is built from all available Gemini image models and falls back gracefully on rate-limit errors.
+
 ```python
 from portrait_generator import PortraitClient
 
-# Use gemini-3-pro-image-preview (recommended)
+# Default: auto-discovered Flash model (gemini-3.1-flash-image-preview) — recommended
+client = PortraitClient()
+
+# Override to maximum quality Pro model
 client = PortraitClient(model="gemini-3-pro-image-preview")
 
-# Use legacy model (basic features only)
-client = PortraitClient(model="gemini-exp-1206")
+# Single-model setup (disable cascade)
+client = PortraitClient(model_cascade=["gemini-3.1-flash-image-preview"])
 
-# Use fast model
-client = PortraitClient(model="gemini-2.0-flash-exp")
+# Legacy model (basic features only)
+client = PortraitClient(model="gemini-exp-1206")
 ```
 
 #### Environment Variables
@@ -378,18 +383,18 @@ client = PortraitClient(
 
 ### Model Comparison
 
-| Feature | gemini-3-pro-image-preview | gemini-exp-1206 | gemini-2.0-flash-exp |
-|---------|----------------------------|-----------------|----------------------|
-| **Google Search Grounding** | ✓ | ✗ | ✗ |
-| **Multi-Image Reference** | ✓ (14 max) | ✗ | ✗ |
-| **Internal Reasoning** | ✓ | ✗ | ✗ |
-| **Physics-Aware Synthesis** | ✓ | ✗ | ✗ |
-| **Native Text Rendering** | ✓ | ✗ | ✓ (basic) |
-| **Iterative Refinement** | ✓ | ✗ | ✗ |
-| **Max Resolution** | 4096x4096 | 1024x1024 | 1024x1024 |
-| **Quality Threshold** | 0.90 | 0.80 | 0.75 |
-| **Typical Gen Time** | 45s | 30s | 20s |
-| **Recommended** | ✓ | ✗ | ✗ |
+| Feature | gemini-3.1-flash-image-preview | gemini-3-pro-image-preview | gemini-2.5-flash-image | gemini-exp-1206 |
+|---------|--------------------------------|----------------------------|------------------------|-----------------|
+| **Auto-discovered** | ✓ (Tier 1 — default) | ✓ (Tier 2) | ✓ (Tier 3 — quota fallback) | ✗ (legacy) |
+| **Thinking Mode** | ✓ | ✓ | ✗ | ✗ |
+| **Google Search Grounding** | ✓ | ✓ | ✗ | ✗ |
+| **Multi-Image Reference** | ✓ (14 max) | ✓ (14 max) | ✗ | ✗ |
+| **Internal Reasoning** | ✓ | ✓ | ✗ | ✗ |
+| **Extended Aspect Ratios** | ✓ | ✓ | ✗ | ✗ |
+| **Batch API** | ✓ | ✓ | ✗ | ✗ |
+| **Quality Threshold** | 0.90 | 0.90 | 0.80 | 0.80 |
+| **Typical Gen Time** | ~22s | ~45s | ~25s | ~30s |
+| **Use Case** | **Default — best balance** | Maximum quality | Rate-limit fallback | Legacy only |
 
 ---
 
@@ -452,23 +457,22 @@ client = PortraitClient(
 # Slower but highest quality
 ```
 
-**Balanced (Default):**
+**Balanced (Default — auto-discovered Flash):**
+```python
+client = PortraitClient()
+# gemini-3.1-flash-image-preview auto-selected; ~22s per style
+```
+
+**Maximum Quality (Pro model):**
 ```python
 client = PortraitClient(
     model="gemini-3-pro-image-preview",
-    # Uses default settings
+    max_reference_images=10,
+    max_internal_iterations=5,
+    reasoning_passes=3,
+    quality_threshold=0.95,
 )
-# Optimized balance of quality and speed
-```
-
-**Fast Mode:**
-```python
-client = PortraitClient(
-    model="gemini-2.0-flash-exp",
-    enable_advanced_features=False,
-    max_generation_attempts=1,
-)
-# Faster generation, lower quality
+# ~45s per style, highest quality
 ```
 
 ---
@@ -624,17 +628,11 @@ Gemini 3 Pro Image with advanced features costs more per generation than basic m
 
 ### Feature Roadmap
 
-**Planned for 2.1.0:**
-- Batch parallel processing with concurrent reference finding
-- Custom reference image upload
-- Fine-grained physics control (lighting direction, etc.)
-- Export evaluation reports as PDF
-- Video portrait generation
-
 **Planned for future releases:**
 - Multi-model ensemble (combine outputs from multiple models)
 - Style transfer from reference images
-- Interactive refinement workflow
+- Interactive web UI for non-technical users
+- Additional portrait styles (sketch, watercolor)
 - Integration with additional search providers
 
 ---

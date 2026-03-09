@@ -354,7 +354,7 @@ result = generate_portrait(
     api_key=None,              # Uses GOOGLE_API_KEY env var if not provided
     output_dir=None,            # Uses ./output if not provided
     force_regenerate=False,     # Skip existing portraits
-    styles=None                 # Generate all 4 styles if not specified
+    styles=None                 # Default: ["Painting"] — best quality; pass list for other styles
 )
 ```
 
@@ -645,7 +645,7 @@ Subject Name
 
 ```bash
 # Load API keys (sets GOOGLE_API_KEY, GEMINI_API_KEY, GITHUB_TOKEN, etc.)
-source /Users/davidlary/Dropbox/Environments/load_api_keys.sh
+source /path/to/load_api_keys.sh
 
 # Run all unit tests with coverage
 pytest tests/unit/ --cov=portrait_generator --cov-report=html --cov-report=term
@@ -656,7 +656,7 @@ pytest tests/unit/ -v           # Unit tests (480+ tests)
 # Run end-to-end tests with real API (requires GOOGLE_API_KEY to be set)
 pytest tests/integration/test_e2e_real_api.py -m e2e -v
 
-# Run all 94 book portrait tests in parallel (12 workers, ~5-10 min total)
+# Run all 94 book portrait tests in parallel (12 workers, ~12-15 min total)
 # Requires GOOGLE_API_KEY; existing portraits are skipped automatically
 pytest tests/integration/test_book_portraits.py -n 12 --no-cov -m integration --timeout=600
 
@@ -684,7 +684,7 @@ open htmlcov/index.html
 
 ```bash
 # Load all credentials (Google, OpenAI, Anthropic, GitHub, etc.)
-source /Users/davidlary/Dropbox/Environments/load_api_keys.sh
+source /path/to/load_api_keys.sh
 
 # Or set manually
 export GOOGLE_API_KEY="your_gemini_api_key"
@@ -694,18 +694,27 @@ export GOOGLE_API_KEY="your_gemini_api_key"
 
 ```
 tests/
-├── unit/                       # Unit tests (real objects, no mocks)
-│   ├── test_client.py         # Python API client tests
-│   ├── test_gemini_client.py  # Gemini API client tests
-│   ├── test_generator.py      # Portrait generator tests
-│   ├── test_researcher.py     # Biographical research tests
-│   ├── test_overlay.py        # Title overlay tests
-│   └── test_evaluator.py      # Quality evaluation tests
-├── integration/                # Integration tests
-│   ├── test_book_portraits.py # 94-subject portrait generation (12 parallel workers)
-│   └── test_e2e_real_api.py   # End-to-end API tests (requires GOOGLE_API_KEY)
-├── ExamplePortraitTests/       # Generated portrait output (gitignored)
-└── fixtures/                   # Test data and fixtures
+├── unit/                           # Unit tests (real objects, no mocks; 440+ tests)
+│   ├── test_client.py             # Python API client (PortraitClient, generate_portrait)
+│   ├── test_gemini_client.py      # GeminiImageClient — image generation + cascade
+│   ├── test_generator.py          # PortraitGenerator — core generation pipeline
+│   ├── test_researcher.py         # BiographicalResearcher — Gemini text research
+│   ├── test_ground_truth.py       # GroundTruthVerifier — Wikipedia/Wikidata cascade
+│   ├── test_reference_finder.py   # ReferenceImageFinder — 10-tier image cascade
+│   ├── test_portrait_verifier.py  # PortraitVerifier — post-generation verification
+│   ├── test_prompt_builder.py     # PromptBuilder — gender/dates/appearance injection
+│   ├── test_overlay.py            # TitleOverlayEngine — name+dates text overlay
+│   ├── test_evaluator.py          # QualityEvaluator — quality scoring
+│   ├── test_pre_generation_validator.py  # Pre-generation feasibility checks
+│   ├── test_model_configs.py      # Model profiles and capability detection
+│   ├── test_api_models.py         # SubjectData, GenerationResult dataclasses
+│   ├── test_api_server.py         # FastAPI routes and server
+│   ├── test_image_utils.py        # Image format conversion helpers
+│   └── test_validators.py         # Input validation helpers
+├── integration/                    # Integration tests (115 tests)
+│   ├── test_book_portraits.py     # 94-subject portrait generation (12 parallel workers)
+│   └── test_e2e_real_api.py       # End-to-end API tests (requires GOOGLE_API_KEY)
+└── ExamplePortraitTests/           # Generated portrait output (gitignored)
 ```
 
 ### Running E2E Tests
@@ -755,8 +764,9 @@ PortraitGenerator/
 │   │   ├── portrait_verifier.py    # PortraitVerifier (size, OCR, gender, identity)
 │   │   └── evaluator_enhanced.py   # EnhancedQualityEvaluator (Gemini Vision)
 │   └── utils/
-│       ├── gemini_client.py        # GeminiImageClient (image + text generation)
+│       ├── gemini_client.py        # GeminiImageClient (image + text, runtime model discovery, cascade)
 │       ├── ground_truth.py         # GroundTruthVerifier (5-tier cascade: Wikipedia → Wikidata → DBpedia → Gemini)
+│       ├── http_cache.py           # HttpResponseCache (on-disk JSON cache, 30-day TTL, thread-safe)
 │       ├── image_utils.py          # Image format conversion utilities
 │       └── validators.py           # Input validation helpers
 ├── tests/                           # Test suite (480+ tests, 67% coverage)
@@ -796,7 +806,7 @@ black src/ tests/ && ruff check src/ tests/ && mypy src/ && pytest
 **Build Python package:**
 ```bash
 python -m build
-# Creates dist/portrait_generator-1.0.0.tar.gz and .whl
+# Creates dist/portrait_generator-2.8.0.tar.gz and .whl
 ```
 
 **Build Conda package:**
@@ -819,18 +829,22 @@ Portrait Generator can be configured via environment variables:
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
-| `GOOGLE_API_KEY` | Google Gemini API key | - | **Yes** |
-| `GEMINI_MODEL` | Gemini model name | `gemini-3.1-flash-image-preview` | No |
+| `GOOGLE_API_KEY` | Google Gemini API key | — | **Yes** |
+| `GEMINI_MODEL` | Gemini model (auto-discovered at startup) | `gemini-3.1-flash-image-preview` | No |
 | `IMAGE_RESOLUTION` | Image size as `width,height` | `1024,1024` | No |
 | `OUTPUT_DIR` | Output directory for portraits | `./output` | No |
-| `LOG_LEVEL` | Logging level | `INFO` | No |
-| `ENABLE_ADVANCED_FEATURES` | Enable Gemini 3 Pro features | `true` | No |
-| `ENABLE_REFERENCE_IMAGES` | Use reference images | `false` | No |
-| `MAX_REFERENCE_IMAGES` | Max reference images (0-14) | `5` | No |
-| `ENABLE_SEARCH_GROUNDING` | Enable Google Search | `false` | No |
-| `ENABLE_INTERNAL_REASONING` | Enable model reasoning | `true` | No |
-| `QUALITY_THRESHOLD` | Min quality score (0.0-1.0) | `0.90` | No |
-| `USE_HOLISTIC_REASONING` | Use AI evaluation | `true` | No |
+| `LOG_LEVEL` | Logging level (`DEBUG`/`INFO`/`WARNING`) | `INFO` | No |
+| `ENABLE_ADVANCED_FEATURES` | Enable all advanced AI features | `true` | No |
+| `ENABLE_REFERENCE_IMAGES` | Use 10-tier reference image cascade | `true` | No |
+| `MAX_REFERENCE_IMAGES` | Max reference images sent to Gemini (0-14) | `5` | No |
+| `ENABLE_SEARCH_GROUNDING` | Enable Google Search grounding (currently returns empty results) | `false` | No |
+| `ENABLE_INTERNAL_REASONING` | Enable Gemini thinking mode | `true` | No |
+| `QUALITY_THRESHOLD` | Min quality score for acceptance (0.0-1.0) | `0.90` | No |
+| `USE_HOLISTIC_REASONING` | Use Gemini Vision for holistic evaluation | `true` | No |
+| `ENABLE_PORTRAIT_VERIFICATION` | Post-generation size/OCR/gender verification | `true` | No |
+| `ENABLE_GROUND_TRUTH_LOOKUP` | Cross-validate with Wikipedia/Wikidata | `true` | No |
+| `PORTRAIT_VERIFICATION_MIN_SIZE_KB` | Minimum portrait file size in KB | `300` | No |
+| `SAVE_PROMPTS` | Save `_prompt.md` sidecar alongside each portrait | `true` | No |
 
 **[See complete configuration reference →](docs/GEMINI_3_PRO_IMAGE.md#configuration-reference)**
 
@@ -853,7 +867,7 @@ LOG_LEVEL=INFO
 
 # Advanced Features
 ENABLE_ADVANCED_FEATURES=true
-ENABLE_REFERENCE_IMAGES=false
+ENABLE_REFERENCE_IMAGES=true
 MAX_REFERENCE_IMAGES=5
 ENABLE_SEARCH_GROUNDING=false
 ENABLE_INTERNAL_REASONING=true
@@ -1154,7 +1168,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ## Authors
 
 - **Dr. David Lary** - University of Texas at Dallas
-- **Claude Sonnet 4.5** - AI Assistant (Anthropic)
+- **Claude Sonnet 4.6** - AI Assistant (Anthropic)
 
 ---
 
@@ -1179,14 +1193,16 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - **API Status**: Stable (v1) - Backward Compatible
 - **Documentation**: Complete with advanced features guide
 
-### What's New in 2.2.0
+### What's New — Recent Highlights
 
-- **Default model changed** from `gemini-3-pro-image-preview` to `gemini-3.1-flash-image-preview` (~22s vs ~45s)
-- **Zero mock code**: All tests use real objects; API tests skip gracefully without `GOOGLE_API_KEY`
-- **Long name overlay fix**: Auto-wraps or shrinks font so names like "Nicolas-Théodore de Saussure" never clip
-- **Reference image finding disabled** by default (Google API returns empty results)
-- **Search grounding disabled** by default (Google API returns empty results)
-- **100% backward compatible** with v1.x and older models
+See [CHANGELOG.md](CHANGELOG.md) for the complete version history. Key milestones:
+
+- **v2.8.0** — HTTP response cache prevents Wikimedia rate-limiting; 5 new portrait subjects; 94-entry confirmed URL table
+- **v2.7.0** — Runtime auto-discovery of Gemini image models; no code change needed for new models
+- **v2.6.0** — Automatic model cascade for rate-limit recovery (Flash → Pro → fallback)
+- **v2.5.0** — Name collision disambiguation (John A. Pyle, Andrew C. Lorenc, Mike Fisher)
+- **v2.4.x** — 10-tier reference image cascade; YAML verified biographies; portrait verifier; BCE date support
+- **v2.2.0** — `gemini-3.1-flash-image-preview` as default model (~22s vs ~45s); zero mock code in tests
 
 ### Version History
 
@@ -1223,12 +1239,12 @@ anaconda upload <path-to-tarball>
 
 ```bash
 # Tag the release
-git tag -a v1.0.0 -m "Release version 1.0.0"
-git push origin v1.0.0
+git tag -a v2.8.0 -m "Release version 2.8.0"
+git push origin v2.8.0
 
 # Create GitHub release
-gh release create v1.0.0 \
-  --title "Portrait Generator v1.0.0" \
+gh release create v2.8.0 \
+  --title "Portrait Generator v2.8.0" \
   --notes "See CHANGELOG.md for details"
 ```
 
