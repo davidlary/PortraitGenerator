@@ -15,6 +15,7 @@ from .models import (
 )
 from ..intelligence_coordinator import IntelligenceCoordinator
 from ..config.settings import get_settings
+from .. import __version__
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +61,7 @@ async def health_check():
 
     return HealthCheckResponse(
         status="healthy",
-        version="2.0.0",
+        version=__version__,
         gemini_configured=gemini_configured,
         output_dir_writable=output_dir_writable,
         timestamp=datetime.now().isoformat(),

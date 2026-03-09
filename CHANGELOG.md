@@ -94,7 +94,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **PascalCase filename generation** — `_create_filename()` and `_generator_filename()` now preserve case of digit-starting word segments. Previously `"1962Present"` would be lowercased to `"1962present"` by `capitalize()`; now kept as-is since `capitalize()` is only applied to alpha-starting words.
 
 ### Changed
-- All 4 locations updated for each renamed subject (test parametrize list, `verified_biographies.yaml`, `_CONFIRMED_REFERENCE_URLS` dict, `_NAME_COLLISION_SUBJECTS` set)
+- All 4 locations updated for each renamed subject (test parametrize list, `verified_biographies.yaml`, `_CONFIRMED_URLS` dict, `_NAME_COLLISION_SUBJECTS` set)
 - Existing portrait files renamed to match new canonical filenames:
   - `JohnPyle_Painting.png` → `JohnAPyle_Painting.png`
   - `AndrewLorenc_Painting.png` → `AndrewCLorenc_Painting.png`
@@ -562,7 +562,7 @@ client = PortraitClient(
 | 2.4.1 | 2026-03-06 | gemini-3.1-flash-image-preview | YAML verified biographies; facial expression/hair matching | 480+ unit |
 | 2.4.0 | 2026-03-05 | gemini-3.1-flash-image-preview | 10-tier reference cascade; portrait verifier; BCE dates | 480+ unit |
 | 2.2.0 | 2026-03-04 | gemini-3.1-flash-image-preview | Flash model default (2x faster); zero mock tests | 389+ unit |
-| 2.1.0 | 2026-02-03 | gemini-3.1-flash-image-preview | Reference/grounding disabled (API returns empty); 2x speedup | — |
+| 2.1.0 | 2026-02-03 | gemini-3-pro-image-preview | Reference/grounding disabled (API returns empty); 2x speedup | — |
 | 2.0.0 | 2026-01-30 | gemini-3-pro-image-preview | Advanced AI features (grounding, reasoning, multi-image) | 350+ |
 | 1.0.0 | 2026-01-30 | gemini-exp-1206 | Initial release — 4 styles, basic generation, CLI, REST API | 308 |
 

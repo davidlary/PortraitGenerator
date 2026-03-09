@@ -76,7 +76,7 @@
 - ✅ **Held-Out Independent Validation**: Reference images split into generation set (used for creation)
   and held-out set (withheld for independent post-generation identity verification)
 - 📚 **94-Entry Confirmed URL Table**: All 94 book portrait subjects pre-researched by parallel agents
-- 👤 **26 Subjects with Tier 0 Local Photos**: Human-verified reference images at highest priority (score 1.09)
+- 👤 **27 Subjects with Tier 0 Local Photos**: Human-verified reference images at highest priority (score 1.09)
 - 🔄 **Self-Caching**: Gemini discoveries persisted to disk; repeat runs are free
 - 🪪 **Sidecar Metadata**: `.meta.json` alongside every portrait for deterministic verification
 - 📐 **3-Stage Gender Verification**: Direct → contextual → elimination; 2/3 majority required
@@ -88,7 +88,7 @@
 
 When you have actual photographs of a subject, placing them in the `ExampleReferenceImages/`
 directory gives the pipeline the most accurate reference data possible. Local images are
-**always used first** (Tier 0, score 1.092) and outrank all online sources (Tier 1 confirmed
+**always used first** (Tier 0, score 1.09) and outrank all online sources (Tier 1 confirmed
 URLs score 1.038, Tier 4+ Wikipedia scores 0.88-0.95).
 
 ### Step 1 — Drop images into `ExampleReferenceImages/`
@@ -528,7 +528,7 @@ portrait-generator health-check --verbose
 
 **Health Check**
 ```bash
-GET /health
+GET /api/v1/health
 ```
 
 **Generate Single Portrait**

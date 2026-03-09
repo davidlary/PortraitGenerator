@@ -59,13 +59,10 @@ Real-time fact-checking and verification using Google Search.
 ```python
 from portrait_generator import PortraitClient
 
-client = PortraitClient(
-    model="gemini-3.1-flash-image-preview",
-    enable_search_grounding=False  # Default: False (changed in v2.1.0 — grounding API returns empty results)
-)
-
+# Search grounding is disabled by default (grounding API returns empty results since v2.1.0)
+# Configure via ENABLE_SEARCH_GROUNDING env var (see Configuration Reference)
+client = PortraitClient()
 result = client.generate("Marie Curie")
-# Automatically fact-checks biographical data and visual elements
 ```
 
 **Configuration:**
@@ -117,11 +114,9 @@ portrait-generator generate "Jane Smith" --styles Painting
 ```python
 from portrait_generator import PortraitClient
 
-client = PortraitClient(
-    enable_reference_images=True,  # Default: True
-    max_reference_images=5  # Default: 5, max: 14
-)
-
+# Reference images are enabled by default (ENABLE_REFERENCE_IMAGES=true)
+# The 10-tier cascade runs automatically — no extra configuration needed
+client = PortraitClient()
 result = client.generate("Alan Turing")
 # Automatically finds and uses historical photographs
 ```
@@ -148,13 +143,13 @@ Model thinks through the task and refines internally before outputting.
 
 **Usage:**
 ```python
-client = PortraitClient(
-    enable_internal_reasoning=True,  # Default: True
-    max_internal_iterations=3  # Default: 3
-)
+from portrait_generator import PortraitClient
 
+# Internal reasoning is enabled by default (ENABLE_INTERNAL_REASONING=true)
+# Configure depth via MAX_INTERNAL_ITERATIONS env var (default: 3)
+client = PortraitClient()
 result = client.generate("Ada Lovelace")
-# Model internally refines the portrait 3 times before final output
+# Model internally refines the portrait before final output
 ```
 
 **Configuration:**
@@ -179,11 +174,10 @@ Ensures physically accurate rendering of lighting, shadows, and materials.
 
 **Usage:**
 ```python
-# Automatically enabled for gemini-3-pro-image-preview
-client = PortraitClient(
-    enable_visual_coherence_checking=True  # Default: True
-)
+from portrait_generator import PortraitClient
 
+# Visual coherence checking is enabled by default (ENABLE_VISUAL_COHERENCE_CHECKING=true)
+client = PortraitClient()
 result = client.generate("Claude Shannon")
 # Evaluator checks for physics-aware coherence
 ```
@@ -203,10 +197,10 @@ Proactive error detection before generation starts.
 
 **Usage:**
 ```python
-client = PortraitClient(
-    enable_pre_generation_checks=True  # Default: True
-)
+from portrait_generator import PortraitClient
 
+# Pre-generation checks are enabled by default (ENABLE_PRE_GENERATION_CHECKS=true)
+client = PortraitClient()
 result = client.generate("Grace Hopper")
 # Validates inputs before spending API credits
 ```
@@ -232,11 +226,10 @@ Multi-pass reasoning-based quality assessment.
 
 **Usage:**
 ```python
-client = PortraitClient(
-    use_holistic_reasoning=True,  # Default: True
-    reasoning_passes=2  # Default: 2
-)
+from portrait_generator import PortraitClient
 
+# Holistic reasoning is enabled by default (USE_HOLISTIC_REASONING=true, REASONING_PASSES=2)
+client = PortraitClient()
 result = client.generate("Donald Knuth")
 # Evaluation uses AI reasoning across 2 passes
 ```
@@ -263,11 +256,10 @@ Intelligent retry logic with prompt refinement.
 
 **Usage:**
 ```python
-client = PortraitClient(
-    enable_smart_retry=True,  # Default: True
-    max_generation_attempts=2  # Default: 2
-)
+from portrait_generator import PortraitClient
 
+# Smart retry is enabled by default (ENABLE_SMART_RETRY=true, MAX_GENERATION_ATTEMPTS=2)
+client = PortraitClient()
 result = client.generate("Margaret Hamilton")
 # Automatically retries with refined prompt if first attempt fails
 ```
@@ -296,8 +288,8 @@ client = PortraitClient()
 # Override to maximum quality Pro model
 client = PortraitClient(model="gemini-3-pro-image-preview")
 
-# Single-model setup (disable cascade)
-client = PortraitClient(model_cascade=["gemini-3.1-flash-image-preview"])
+# Single-model setup (no cascade — pass a fixed model name)
+client = PortraitClient(model="gemini-3.1-flash-image-preview")
 
 # Legacy model (basic features only)
 client = PortraitClient(model="gemini-exp-1206")
@@ -349,12 +341,29 @@ USE_NATIVE_TEXT_RENDERING=true
 
 #### Programmatic Configuration
 
-```python
-from portrait_generator import PortraitClient
+`PortraitClient` accepts only `api_key`, `output_dir`, and `model`. All other settings come from environment variables (via Pydantic `BaseSettings`) or from `Settings` + `IntelligenceCoordinator`:
 
-client = PortraitClient(
-    api_key="your_api_key",
-    model="gemini-3-pro-image-preview",
+```python
+# Method 1: Environment variables (simplest — all settings via .env or os.environ)
+import os
+os.environ["GEMINI_MODEL"] = "gemini-3-pro-image-preview"
+os.environ["MAX_REFERENCE_IMAGES"] = "5"
+os.environ["QUALITY_THRESHOLD"] = "0.90"
+os.environ["REASONING_PASSES"] = "2"
+
+from portrait_generator import PortraitClient
+client = PortraitClient(api_key="your_api_key")
+result = client.generate("Ada Lovelace")
+```
+
+```python
+# Method 2: Settings + IntelligenceCoordinator (fully programmatic, no env vars needed)
+from portrait_generator.config.settings import Settings
+from portrait_generator.intelligence_coordinator import IntelligenceCoordinator
+
+settings = Settings(
+    google_api_key="your_api_key",
+    gemini_model="gemini-3-pro-image-preview",
 
     # Advanced features
     enable_advanced_features=True,
@@ -377,6 +386,9 @@ client = PortraitClient(
     max_generation_attempts=2,
     enable_smart_retry=True,
 )
+
+coordinator = IntelligenceCoordinator(settings=settings)
+result = coordinator.generate_portrait("Ada Lovelace")
 ```
 
 ---
@@ -388,12 +400,12 @@ client = PortraitClient(
 | **Auto-discovered** | ✓ (Tier 1 — default) | ✓ (Tier 2) | ✓ (Tier 3 — quota fallback) | ✗ (legacy) |
 | **Thinking Mode** | ✓ | ✓ | ✗ | ✗ |
 | **Google Search Grounding** | ✓ | ✓ | ✗ | ✗ |
-| **Multi-Image Reference** | ✓ (14 max) | ✓ (14 max) | ✗ | ✗ |
-| **Internal Reasoning** | ✓ | ✓ | ✗ | ✗ |
+| **Multi-Image Reference** | ✓ (14 max) | ✓ (14 max) | ✓ (5 max) | ✗ |
+| **Internal Reasoning** | ✓ | ✓ | ✓ | ✗ |
 | **Extended Aspect Ratios** | ✓ | ✓ | ✗ | ✗ |
-| **Batch API** | ✓ | ✓ | ✗ | ✗ |
-| **Quality Threshold** | 0.90 | 0.90 | 0.80 | 0.80 |
-| **Typical Gen Time** | ~22s | ~45s | ~25s | ~30s |
+| **Batch API** | ✓ | ✗ | ✗ | ✗ |
+| **Quality Threshold** | 0.90 | 0.90 | 0.82 | 0.80 |
+| **Typical Gen Time** | ~22s | ~45s | ~35s | ~30s |
 | **Use Case** | **Default — best balance** | Maximum quality | Rate-limit fallback | Legacy only |
 
 ---
@@ -428,15 +440,20 @@ result = client.generate("Alan Turing")
 
 #### Option 3: Gradual Migration
 
-Enable advanced features selectively:
+Enable advanced features selectively via `Settings` + `IntelligenceCoordinator`:
 
 ```python
-client = PortraitClient(
-    model="gemini-3-pro-image-preview",
-    enable_reference_images=True,  # Start with references
-    enable_search_grounding=False,  # Disable grounding initially
-    enable_internal_reasoning=False,  # Disable reasoning initially
+from portrait_generator.config.settings import Settings
+from portrait_generator.intelligence_coordinator import IntelligenceCoordinator
+
+settings = Settings(
+    gemini_model="gemini-3-pro-image-preview",
+    enable_reference_images=True,       # Start with references only
+    enable_search_grounding=False,      # Disable grounding initially
+    enable_internal_reasoning=False,    # Disable reasoning initially
 )
+coordinator = IntelligenceCoordinator(settings=settings)
+result = coordinator.generate_portrait("Alan Turing")
 ```
 
 ---
@@ -453,13 +470,18 @@ client = PortraitClient()
 
 **Maximum Quality (Pro model):**
 ```python
-client = PortraitClient(
-    model="gemini-3-pro-image-preview",
+from portrait_generator.config.settings import Settings
+from portrait_generator.intelligence_coordinator import IntelligenceCoordinator
+
+settings = Settings(
+    gemini_model="gemini-3-pro-image-preview",
     max_reference_images=10,
     max_internal_iterations=5,
     reasoning_passes=3,
     quality_threshold=0.95,
 )
+coordinator = IntelligenceCoordinator(settings=settings)
+result = coordinator.generate_portrait("Isaac Newton")
 # ~45s per style, highest quality
 ```
 
@@ -470,18 +492,19 @@ client = PortraitClient(
 #### Example 1: Maximum Authenticity
 
 ```python
-from portrait_generator import PortraitClient
+from portrait_generator.config.settings import Settings
+from portrait_generator.intelligence_coordinator import IntelligenceCoordinator
 
-client = PortraitClient(
-    model="gemini-3-pro-image-preview",
+settings = Settings(
+    gemini_model="gemini-3-pro-image-preview",
     enable_reference_images=True,
-    max_reference_images=14,  # Use maximum references
+    max_reference_images=14,       # Use maximum references
     enable_search_grounding=True,
     enable_pre_generation_checks=True,
-    quality_threshold=0.95,  # Very high threshold
+    quality_threshold=0.95,        # Very high threshold
 )
-
-result = client.generate("Ada Lovelace", styles=["Painting"])
+coordinator = IntelligenceCoordinator(settings=settings)
+result = coordinator.generate_portrait("Ada Lovelace", styles=["Painting"])
 
 # Check evaluation details (keys match the styles generated)
 print(f"Quality score: {result.evaluation['Painting'].scores.get('overall', 0):.2f}")
@@ -491,13 +514,17 @@ print(f"Fact-checked: {result.evaluation['Painting'].scores.get('historical_accu
 #### Example 2: Academic Research Use
 
 ```python
-client = PortraitClient(
-    model="gemini-3-pro-image-preview",
-    enable_search_grounding=True,  # Verify all facts
-    enable_visual_coherence_checking=True,  # Physics accuracy
-    reasoning_passes=3,  # Triple-check consistency
+from portrait_generator.config.settings import Settings
+from portrait_generator.intelligence_coordinator import IntelligenceCoordinator
+
+settings = Settings(
+    gemini_model="gemini-3-pro-image-preview",
+    enable_search_grounding=True,          # Verify all facts
+    enable_visual_coherence_checking=True, # Physics accuracy
+    reasoning_passes=3,                    # Triple-check consistency
     max_reference_images=10,
 )
+coordinator = IntelligenceCoordinator(settings=settings)
 
 # Generate for a list of historical figures
 subjects = [
@@ -507,7 +534,7 @@ subjects = [
     "Alan Turing",
 ]
 
-results = client.generate_batch(subjects, styles=["BW", "Sepia"])
+results = coordinator.generate_batch(subjects, styles=["BW", "Sepia"])
 
 # Verify all passed evaluation
 for result in results:
@@ -582,23 +609,37 @@ portrait-generator generate "<Subject Name>" --styles Painting
 
 #### Issue: Quality threshold too high, all fail
 
-**Solution:** Lower threshold for specific model:
+**Solution:** Lower threshold via environment variable or `Settings`:
+```bash
+# .env file or shell export
+QUALITY_THRESHOLD=0.85
+CONFIDENCE_THRESHOLD=0.80
+```
 ```python
-client = PortraitClient(
-    quality_threshold=0.85,  # Lower from default 0.90
-    confidence_threshold=0.80,
-)
+# Or programmatically via Settings + IntelligenceCoordinator
+from portrait_generator.config.settings import Settings
+from portrait_generator.intelligence_coordinator import IntelligenceCoordinator
+
+settings = Settings(quality_threshold=0.85, confidence_threshold=0.80)
+coordinator = IntelligenceCoordinator(settings=settings)
 ```
 
 #### Issue: Generation too slow
 
-**Solution:** Reduce advanced features:
+**Solution:** Reduce advanced features via environment variable or `Settings`:
+```bash
+# .env file or shell export
+MAX_REFERENCE_IMAGES=3
+MAX_INTERNAL_ITERATIONS=2
+REASONING_PASSES=1
+```
 ```python
-client = PortraitClient(
-    max_reference_images=3,  # Reduce from 5
-    max_internal_iterations=2,  # Reduce from 3
-    reasoning_passes=1,  # Reduce from 2
-)
+# Or programmatically via Settings + IntelligenceCoordinator
+from portrait_generator.config.settings import Settings
+from portrait_generator.intelligence_coordinator import IntelligenceCoordinator
+
+settings = Settings(max_reference_images=3, max_internal_iterations=2, reasoning_passes=1)
+coordinator = IntelligenceCoordinator(settings=settings)
 ```
 
 ---
