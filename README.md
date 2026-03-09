@@ -6,7 +6,7 @@
 [![PyPI version](https://img.shields.io/badge/pypi-v2.8.0-blue.svg)](https://pypi.org/project/portrait-generator/)
 [![Conda version](https://img.shields.io/badge/conda-v2.8.0-blue.svg)](https://anaconda.org/conda-forge/portrait-generator)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/tests-480%20passed-green.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-555%2B%20passed-green.svg)](tests/)
 [![Coverage](https://img.shields.io/badge/coverage-67%25-orange.svg)](htmlcov/)
 
 ---
@@ -22,7 +22,7 @@
 - 🖥️ **CLI Commands**: Easy command-line interface for quick generation
 - 🚀 **REST API**: FastAPI-based RESTful API for remote integration
 - 📦 **PyPI & Conda**: Install via pip or conda
-- 📊 **480+ Tests**: 480+ tests including end-to-end with real API; no mock code
+- 📊 **555+ Tests**: 440+ unit tests + 115 integration tests, including end-to-end with real API; no mock code
 - 🔒 **Secure**: Environment-based credentials only
 - 📝 **Fully Documented**: Complete API documentation and examples
 
@@ -419,7 +419,7 @@ Options:
 
 **Examples:**
 ```bash
-# Generate all styles
+# Generate painting portrait (default — best quality)
 portrait-generator generate "Alan Turing"
 
 # Generate specific styles
@@ -651,7 +651,7 @@ source /path/to/load_api_keys.sh
 pytest tests/unit/ --cov=portrait_generator --cov-report=html --cov-report=term
 
 # Run specific test types
-pytest tests/unit/ -v           # Unit tests (480+ tests)
+pytest tests/unit/ -v           # Unit tests (440+ tests)
 
 # Run end-to-end tests with real API (requires GOOGLE_API_KEY to be set)
 pytest tests/integration/test_e2e_real_api.py -m e2e -v
@@ -674,7 +674,7 @@ open htmlcov/index.html
 
 **Current Coverage: 67%** (threshold: 55%)
 
-- **480+ unit tests** covering all core functionality
+- **440+ unit tests** covering all core functionality
 - **No mock code**: All tests use real objects with test/real API keys
 - **End-to-end tests** with real Google Gemini API calls (requires `GOOGLE_API_KEY`)
 - **94-subject integration test** covering every book portrait subject
@@ -769,7 +769,7 @@ PortraitGenerator/
 │       ├── http_cache.py           # HttpResponseCache (on-disk JSON cache, 30-day TTL, thread-safe)
 │       ├── image_utils.py          # Image format conversion utilities
 │       └── validators.py           # Input validation helpers
-├── tests/                           # Test suite (480+ tests, 67% coverage)
+├── tests/                           # Test suite (555+ tests, 67% coverage)
 │   ├── unit/                        # Unit tests (no mocks, real objects)
 │   ├── integration/
 │   │   ├── test_book_portraits.py   # 94-subject parametrized portrait generation
@@ -955,7 +955,7 @@ Both commands provide identical functionality.
 ```python
 from portrait_generator import generate_portrait
 
-# Generate all 4 styles with default settings
+# Generate painting portrait (default — best quality)
 result = generate_portrait("Ada Lovelace")
 
 if result.success:
@@ -1188,7 +1188,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - **Release Date**: March 9, 2026
 - **Default Model**: gemini-3.1-flash-image-preview (Nano Banana 2)
 - **Python Support**: 3.10, 3.11, 3.12
-- **Test Coverage**: 67% (480+ tests passing; 115 integration tests)
+- **Test Coverage**: 67% (440+ unit tests; 115 integration tests; 555+ total)
 - **Package Status**: Available on PyPI and Conda
 - **API Status**: Stable (v1) - Backward Compatible
 - **Documentation**: Complete with advanced features guide
@@ -1262,7 +1262,7 @@ gh release create v2.8.0 \
 ### Local Documentation
 
 - [CHANGELOG.md](CHANGELOG.md) - Version history and release notes
-- [ImplementationPlan.md](ImplementationPlan.md) - Technical implementation details
+- [docs/GEMINI_3_PRO_IMAGE.md](docs/GEMINI_3_PRO_IMAGE.md) - Advanced Gemini model features guide
 - [LICENSE](LICENSE) - MIT License
 - [Examples/](Examples/) - Usage examples and tutorials
 

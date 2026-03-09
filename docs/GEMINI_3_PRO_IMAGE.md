@@ -360,7 +360,7 @@ client = PortraitClient(
     enable_advanced_features=True,
     enable_reference_images=True,
     max_reference_images=5,
-    enable_search_grounding=True,
+    enable_search_grounding=False,  # Default: False — grounding API returns empty results
     enable_internal_reasoning=True,
     max_internal_iterations=3,
 
@@ -444,18 +444,6 @@ client = PortraitClient(
 ### Performance Optimization
 
 #### Quality vs Speed Tradeoffs
-
-**Maximum Quality (Recommended):**
-```python
-client = PortraitClient(
-    model="gemini-3-pro-image-preview",
-    max_reference_images=10,
-    max_internal_iterations=5,
-    reasoning_passes=3,
-    quality_threshold=0.95,
-)
-# Slower but highest quality
-```
 
 **Balanced (Default — auto-discovered Flash):**
 ```python
@@ -580,10 +568,16 @@ if hasattr(client, '_compatibility'):
 
 #### Issue: Reference images not found
 
-**Solution:** Enable grounding and check availability:
+**Solution:** The 10-tier cascade finds images automatically — search grounding is unrelated to reference image discovery. Check that `ENABLE_REFERENCE_IMAGES=true` (the default) and that the subject name is recognizable. For subjects whose names collide with more-famous people on Wikipedia, use a disambiguated name (e.g. `"John A. Pyle"` instead of `"John Pyle"`). For subjects you have photographs of, register them as Tier 0:
 ```bash
-# Enable search grounding for reference finding
-export ENABLE_SEARCH_GROUNDING=true
+# Confirm reference images are enabled (default: true)
+export ENABLE_REFERENCE_IMAGES=true
+
+# For subjects with local photos: add to ExampleReferenceImages/
+# and register in _LOCAL_REFERENCE_FILES in reference_finder.py
+# Then clear the cache and regenerate:
+rm -rf .cpf/reference_images/<subject_slug>/
+portrait-generator generate "<Subject Name>" --styles Painting
 ```
 
 #### Issue: Quality threshold too high, all fail
