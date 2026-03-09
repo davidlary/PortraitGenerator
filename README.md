@@ -3,8 +3,8 @@
 > Generate historically accurate, publication-quality portrait images using Google Gemini Flash Image (Nano Banana 2)
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![PyPI version](https://img.shields.io/badge/pypi-v2.7.0-blue.svg)](https://pypi.org/project/portrait-generator/)
-[![Conda version](https://img.shields.io/badge/conda-v2.7.0-blue.svg)](https://anaconda.org/conda-forge/portrait-generator)
+[![PyPI version](https://img.shields.io/badge/pypi-v2.8.0-blue.svg)](https://pypi.org/project/portrait-generator/)
+[![Conda version](https://img.shields.io/badge/conda-v2.8.0-blue.svg)](https://anaconda.org/conda-forge/portrait-generator)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://img.shields.io/badge/tests-480%20passed-green.svg)](tests/)
 [![Coverage](https://img.shields.io/badge/coverage-67%25-orange.svg)](htmlcov/)
@@ -25,6 +25,20 @@
 - 📊 **480+ Tests**: 480+ tests including end-to-end with real API; no mock code
 - 🔒 **Secure**: Environment-based credentials only
 - 📝 **Fully Documented**: Complete API documentation and examples
+
+### NEW in 2.8.0: HTTP Response Cache + 5 New Portrait Subjects
+
+- 💾 **Persistent HTTP Response Cache** (`utils/http_cache.py`): All Wikipedia, Wikidata, Wikimedia Commons, and DBpedia API calls are now cached on-disk (30-day TTL) — prevents rate-limiting and 403 blocks from repeated requests to the same endpoints across runs:
+  - Cache stored at `{download_dir}/../.http_cache/` (per-project, isolated per `tmp_path` in tests)
+  - Atomic file writes (tmp → rename) for thread-safe concurrent portrait generation
+  - Both `ground_truth.py` and `reference_finder.py` share the same caching helper
+- 👥 **5 New Portrait Subjects** added to `_CONFIRMED_URLS`, `verified_biographies.yaml`, and integration tests:
+  - **George Hadley** (1685–1768) — English lawyer/meteorologist who described the Hadley circulation; *no self-portrait survives* — portrait guided by familial-likeness images of his brother **John Hadley FRS** (inventor of the nautical sextant)
+  - **Guy Brasseur** (b.1948) — Belgian atmospheric chemist (NCAR/Max Planck Institute); NCAR + MPIMet reference photos
+  - **Susan Solomon** (b.1956) — MIT atmospheric chemist, Antarctic ozone-hole mechanism; MIT EAPS + NOAA Commons photos
+  - **Martyn Chipperfield** (b.1963) — University of Leeds atmospheric scientist; NCEO 2024 portrait + Leeds
+  - **Walter Bradford Cannon** (1871–1945) — Harvard physiologist, coined "fight or flight"; canonical 1934 Bachrach photo
+- 🔗 **URL Accuracy Improvements**: Upgraded reference images to highest-quality verified sources (Bachrach 1934 photo for Cannon, NCEO 2024 for Chipperfield, Wikimedia NOAA for Solomon, MPIMet for Brasseur); confirmed all 94 `_CONFIRMED_URLS` entries as HTTP 200
 
 ### NEW in 2.7.0: Runtime Auto-Discovery of Image Models
 
@@ -61,7 +75,7 @@
   to find portraits for any subject; results self-cache for instant future access
 - ✅ **Held-Out Independent Validation**: Reference images split into generation set (used for creation)
   and held-out set (withheld for independent post-generation identity verification)
-- 📚 **89-Entry Confirmed URL Table**: All 94 book portrait subjects pre-researched by parallel agents
+- 📚 **94-Entry Confirmed URL Table**: All 94 book portrait subjects pre-researched by parallel agents
 - 👤 **26 Subjects with Tier 0 Local Photos**: Human-verified reference images at highest priority (score 1.09)
 - 🔄 **Self-Caching**: Gemini discoveries persisted to disk; repeat runs are free
 - 🪪 **Sidecar Metadata**: `.meta.json` alongside every portrait for deterministic verification

@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.8.0] - 2026-03-09
+
+### Added
+- **Persistent HTTP response cache** (`utils/http_cache.py`) — New `HttpResponseCache` class provides on-disk JSON caching (30-day TTL) for all Wikipedia, Wikidata, Wikimedia Commons, and DBpedia API calls, preventing rate-limiting and 403 blocks from repeated requests across portrait-generation runs:
+  - `HTTP_CACHE` module-level singleton shared between `ground_truth.py` and `reference_finder.py`
+  - `ReferenceImageFinder` uses an instance-level cache stored adjacent to `download_dir`, so test fixtures with `tmp_path` automatically get fresh isolated caches — no test changes required
+  - Atomic writes (tmp → rename) for thread-safe concurrent access
+  - `get_json(url, params)` / `put_json(url, params, data)` API with transparent cache miss fall-through
+  - `clear_expired()` utility to reclaim disk space
+- **5 new portrait subjects** — added to `_CONFIRMED_URLS`, `verified_biographies.yaml`, and `test_book_portraits.py`:
+  - **George Hadley** (1685–1768, Chapter-Global-Chemistry) — English lawyer/meteorologist; no self-portrait survives; reference images are of brother John Hadley FRS (Cambridge Fitzwilliam Museum + Royal Museums Greenwich) for familial likeness
+  - **Guy Brasseur** (b.1948, Chapter-Air-Quality) — NCAR distinguished scholar photo + Max Planck Institute for Meteorology portrait
+  - **Susan Solomon** (b.1956, Chapter-Air-Quality) — MIT EAPS 2024 faculty headshot + Wikimedia Commons NOAA public-domain image (1330×1119)
+  - **Martyn Chipperfield** (b.1963, Chapter-Simulating) — NCEO 2024 official portrait (636×500) + Leeds University fallback
+  - **Walter Bradford Cannon** (1871–1945, Chapter-Health-Impacts) — canonical 1934 Bachrach photograph (2255×2824, Wikimedia Commons) + additional portrait
+
+### Fixed
+- **George Hadley erroneous reference URL** — `File:George_G._Hadley.jpg` on Wikimedia Commons is a different person; the erroneous URL has been removed; replaced with verified portraits of his brother John Hadley FRS for familial-likeness generation
+- **`_CONFIRMED_URLS` duplicate chapter header** — removed duplicate `Chapter-Air-Quality` comment introduced during new subject insertion
+- **`_CONFIRMED_URLS` entry count** — corrected internal comment from 77 → 82 → 94 across additions; README "89-Entry" corrected to "94-Entry"
+
+### Changed
+- `_CONFIRMED_URLS` in `reference_finder.py` now has **94 entries** (up from 89 pre-2.8.0); five new subjects use multi-URL lists (`List[str]`) for richer generation-time reference grounding
+- All `requests.get()` API calls in `ground_truth.py` (5 call sites) and `reference_finder.py` (6 call sites) replaced with `_cached_get_json()` wrappers; image-binary downloads (`_validate_url`, `download_and_prepare_references`) correctly left uncached
+
+---
+
 ## [2.7.0] - 2026-03-06
 
 ### Added

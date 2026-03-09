@@ -1,17 +1,31 @@
 ## Gemini Image Models - Advanced Features Guide
 
-**Version 2.7.0** | **Default Model: gemini-3.1-flash-image-preview (Nano Banana 2)**
+**Version 2.8.0** | **Default Model: gemini-3.1-flash-image-preview (Nano Banana 2)**
 > Cascade models auto-discovered at runtime. Static fallback: gemini-3-pro-image-preview (quality), gemini-2.5-flash-image (pure-image quota fallback), gemini-exp-1206 (legacy)
 
 ---
 
 ### Overview
 
-Portrait Generator 2.0.0 introduces comprehensive support for Gemini 3 Pro Image (code-named "Nano Banana Pro"), Google's most advanced image generation model. This upgrade brings state-of-the-art AI capabilities to portrait generation with an autonomous, intelligent pipeline designed for 85%+ first-attempt success rate.
+Portrait Generator provides a fully autonomous, multi-stage pipeline for generating historically accurate, publication-quality portraits using Google Gemini image models.
 
-### What's New in 2.0.0
+**Current default model:** `gemini-3.1-flash-image-preview` (Nano Banana 2) — fastest with thinking mode and search grounding.
+**Cascade (auto-discovered at runtime):** Flash → Pro → pure-image fallback, cycling back after a full round.
 
-**Core Enhancements:**
+#### What's New in 2.8.0
+
+- **Persistent HTTP response cache** (`utils/http_cache.py`) — Wikipedia/Wikidata/DBpedia API responses cached on-disk (30-day TTL) to prevent rate-limiting and 403 blocks across runs
+- **5 new portrait subjects** — George Hadley (familial-reference via brother John Hadley FRS), Guy Brasseur, Susan Solomon, Martyn Chipperfield, Walter Bradford Cannon
+- **94-entry `_CONFIRMED_URLS` table** — all verified HTTP 200; multi-URL lists for richer reference grounding
+
+#### What's New in 2.7.0
+
+- **Runtime model auto-discovery** — `GeminiImageClient` queries the Gemini API at startup, builds the cascade from all available image models dynamically
+- **Pure-image model detection** — All `2.5-flash-*` variants correctly excluded from search-as-tool and thinking mode
+
+#### What's New in 2.0.0 (historical reference)
+
+**Core Enhancements introduced in 2.0.0:**
 - Google Search grounding for real-time fact-checking
 - Multi-image reference support (up to 14 reference images)
 - Internal reasoning and iterative refinement
@@ -21,9 +35,10 @@ Portrait Generator 2.0.0 introduces comprehensive support for Gemini 3 Pro Image
 - Autonomous error detection and prevention
 - Smart retry with prompt refinement
 
-**Model Change:**
-- **Previous Default:** `gemini-exp-1206` (legacy)
-- **New Default:** `gemini-3-pro-image-preview` (recommended)
+**Model Change (2.0.0):**
+- **Previous Default (pre-2.0.0):** `gemini-exp-1206` (legacy)
+- **2.0.0 Default:** `gemini-3-pro-image-preview`
+- **Current Default (2.2.0+):** `gemini-3.1-flash-image-preview` (faster + thinking mode)
 - Backward compatible with all existing models
 
 ---
@@ -288,11 +303,11 @@ client = PortraitClient(model="gemini-2.0-flash-exp")
 Complete list of environment variables for Gemini 3 Pro Image:
 
 ```bash
-# Core Settings
-GEMINI_MODEL=gemini-3-pro-image-preview
+# Core Settings (default model is auto-discovered Flash; override here if needed)
+GEMINI_MODEL=gemini-3.1-flash-image-preview
 GOOGLE_API_KEY=your_api_key_here
 
-# Advanced Features (all default to true for gemini-3-pro-image-preview)
+# Advanced Features (all default to true for gemini-3.1-flash-image-preview and above)
 ENABLE_ADVANCED_FEATURES=true
 
 # Reference Images
@@ -646,6 +661,12 @@ Gemini 3 Pro Image with advanced features costs more per generation than basic m
 ---
 
 ### Version History
+
+**2.8.0 (March 9, 2026):**
+- HTTP response cache (`utils/http_cache.py`): all Wikipedia/Wikidata/DBpedia API calls cached on-disk (30-day TTL) — prevents rate-limiting and 403 blocks; instance-level cache on `ReferenceImageFinder` for automatic test isolation
+- 5 new portrait subjects: George Hadley (brother John Hadley FRS as familial reference), Guy Brasseur, Susan Solomon, Martyn Chipperfield, Walter Bradford Cannon
+- `_CONFIRMED_URLS` now 94 entries; multi-URL lists for richer reference grounding
+- URL corrections: Bachrach 1934 photo for Cannon, NCEO 2024 for Chipperfield, NOAA Commons for Solomon, MPIMet for Brasseur
 
 **2.7.0 (March 6, 2026):**
 - Runtime auto-discovery: `GeminiImageClient` now queries the Gemini API at startup to build the cascade from actually-available image models (thinking Flash → thinking Pro → pure-image fallbacks); new models are picked up automatically

@@ -31,7 +31,7 @@ if dev_requirements_file.exists():
 
 setup(
     name="portrait-generator",
-    version="2.7.0",
+    version="2.8.0",
     author="Dr. David Lary",
     author_email="david.lary@utdallas.edu",
     description="AI-powered historical portrait generation using Google Gemini",
