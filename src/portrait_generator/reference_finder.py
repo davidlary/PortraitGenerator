@@ -78,10 +78,15 @@ _CONFIRMED_URLS: Dict[str, str] = {
     ),
 
     # ── Chapter-Global-Chemistry ──────────────────────────────────────────────
-    # George Hadley (1685-1768): NO portrait survives — confirmed by Wikimedia Commons
-    # category (explicitly tagged "no image"), Royal Society archive, Wikipedia.
-    # File:George_G._Hadley.jpg on Commons is a DIFFERENT person — do NOT use it.
-    # Portrait will be generated from historical context only (18th-C English gentleman).
+    # George Hadley (1685-1768): No self-portrait survives (confirmed: Commons category
+    # explicitly tagged "no image", Royal Society archive, Wikipedia).
+    # Using portraits of his brother John Hadley FRS (1682-1744, inventor of the
+    # sextant) for FAMILIAL LIKENESS only — brothers shared physical features.
+    # Cambridge Fitzwilliam Museum + Royal Museums Greenwich — both HTTP 200 verified.
+    "George Hadley": [
+        "https://api.repository.cam.ac.uk/server/api/core/bitstreams/88cd54ce-d26c-44bb-8123-935ce6b0d07a/content",  # Cambridge: portrait of brother John Hadley FRS (familial reference)
+        "https://collections.rmg.co.uk/media/400/916/bhc2731.jpg",  # Royal Museums Greenwich: brother John Hadley (familial reference)
+    ],
     "Carl-Gustaf Rossby": (
         "https://upload.wikimedia.org/wikipedia/commons/e/ea/Carl_G._A._Rossby_LCCN2016875745_%28cropped%29.jpg"
     ),
