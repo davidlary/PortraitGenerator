@@ -246,8 +246,8 @@ class TestPromptBuilder:
 
         assert "Ada Lovelace" in prompt
         assert len(prompt) > 50
-        # Should not have advanced features
-        assert "reference" not in prompt.lower() or len(prompt) < 500
+        # Should not have a reference photographs section (only added when reference images provided)
+        assert "SUBJECT FROM REFERENCE PHOTOGRAPHS:" not in prompt
 
     def test_enhance_prompt_with_reasoning(self, prompt_builder):
         """Test enhancing prompt with reasoning instructions."""

@@ -11,10 +11,11 @@ from PIL import Image, ImageDraw, ImageFont
 from portrait_generator.core.portrait_verifier import PortraitVerifier, VerificationResult
 from portrait_generator.api.models import SubjectData
 
-# Skip tests that need Vision API (need a valid GOOGLE_API_KEY)
-_NO_API_KEY = not os.getenv("GOOGLE_API_KEY")
+# Skip tests that need Vision API — requires a valid Gemini API key (AIzaSy... format).
+_api_key = os.getenv("GOOGLE_API_KEY", "")
+_NO_API_KEY = not _api_key or not _api_key.startswith("AIzaSy")
 _SKIP_NO_KEY = pytest.mark.skipif(
-    _NO_API_KEY, reason="Requires real Gemini API — set GOOGLE_API_KEY"
+    _NO_API_KEY, reason="Requires real Gemini API — set GOOGLE_API_KEY (AIzaSy... format)"
 )
 
 

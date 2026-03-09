@@ -11,9 +11,11 @@ from portrait_generator.client import (
 )
 from portrait_generator.api.models import PortraitResult, SubjectData
 
-# Sentinel for tests that require a real Gemini API key
-_NO_API_KEY = not os.getenv("GOOGLE_API_KEY")
-_SKIP_NO_KEY = pytest.mark.skipif(_NO_API_KEY, reason="Requires real Gemini API access - set GOOGLE_API_KEY")
+# Sentinel for tests that require a real Gemini API key.
+# Gemini keys are 39-char strings starting with "AIzaSy"; skip if absent or wrong format.
+_api_key = os.getenv("GOOGLE_API_KEY", "")
+_NO_API_KEY = not _api_key or not _api_key.startswith("AIzaSy")
+_SKIP_NO_KEY = pytest.mark.skipif(_NO_API_KEY, reason="Requires real Gemini API access - set GOOGLE_API_KEY (AIzaSy... format)")
 
 TEST_API_KEY = "test_api_key_1234567890_abcdefghij"
 
