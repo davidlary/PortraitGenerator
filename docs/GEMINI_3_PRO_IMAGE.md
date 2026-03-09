@@ -416,13 +416,15 @@ Portrait Generator 2.0.0 is **100% backward compatible** with gemini-exp-1206 an
 
 #### Option 1: Automatic Migration (Recommended)
 
-Simply update to v2.0.0 - the new default model is gemini-3-pro-image-preview:
+Simply update to the latest version — advanced features are enabled automatically:
 
 ```bash
 pip install --upgrade portrait-generator
 ```
 
 All advanced features are automatically enabled. No code changes required.
+
+> **Note:** Since v2.2.0 the default model is `gemini-3.1-flash-image-preview` (Nano Banana 2, ~22s, thinking mode). The Pro model (`gemini-3-pro-image-preview`) remains available for maximum quality use cases. See the [Model Comparison](#model-comparison) table above.
 
 #### Option 2: Explicit Model Selection
 
@@ -507,8 +509,10 @@ coordinator = IntelligenceCoordinator(settings=settings)
 result = coordinator.generate_portrait("Ada Lovelace", styles=["Painting"])
 
 # Check evaluation details (keys match the styles generated)
-print(f"Quality score: {result.evaluation['Painting'].scores.get('overall', 0):.2f}")
-print(f"Fact-checked: {result.evaluation['Painting'].scores.get('historical_accuracy', 0):.2f}")
+eval_result = result.evaluation['Painting']
+print(f"Passed: {eval_result.passed}")
+print(f"Overall score: {eval_result.overall_score:.2f}")   # average of all score dimensions
+print(f"Fact-checked: {eval_result.scores.get('historical_accuracy', 0):.2f}")
 ```
 
 #### Example 2: Academic Research Use
@@ -547,7 +551,7 @@ for result in results:
 
 ```python
 from portrait_generator.intelligence_coordinator import IntelligenceCoordinator
-from portrait_generator.config import Settings
+from portrait_generator.config.settings import Settings
 
 # Create custom settings
 settings = Settings(
@@ -581,16 +585,22 @@ result = coordinator.generate_portrait("Donald Knuth")
 
 #### Issue: Advanced features not working
 
-**Solution:** Verify model supports features:
+**Solution:** Verify model capabilities via `IntelligenceCoordinator`:
 ```python
-from portrait_generator import PortraitClient
+from portrait_generator.config.settings import Settings
+from portrait_generator.intelligence_coordinator import IntelligenceCoordinator
 
-client = PortraitClient(model="gemini-3-pro-image-preview")
+settings = Settings(gemini_model="gemini-3-pro-image-preview")
+coordinator = IntelligenceCoordinator(settings=settings)
 
 # Check capabilities
-if hasattr(client, '_compatibility'):
-    print(f"Grounding: {client._compatibility.supports_google_search_grounding()}")
-    print(f"Multi-image: {client._compatibility.supports_multi_image_reference()}")
+print(f"Grounding: {coordinator.compatibility.supports_google_search_grounding()}")
+print(f"Multi-image: {coordinator.compatibility.supports_multi_image_reference()}")
+
+# Validate full setup
+is_valid, issues = coordinator.validate_setup()
+if not is_valid:
+    print(f"Issues: {issues}")
 ```
 
 #### Issue: Reference images not found
@@ -732,7 +742,7 @@ Gemini 3 Pro Image with advanced features costs more per generation than basic m
 - David Lary: 3 user-provided local photos registered as Tier 0 (score 1.09, highest priority)
 - John A. Pyle: expanded to 5 confirmed Cambridge URLs (St Catharine's 1896×1422 as primary)
 - Andrew C. Lorenc: upgraded to RMetS full portrait (1429×1382), name collision noted in YAML
-- _LOCAL_REFERENCE_FILES expanded to 26 subjects
+- _LOCAL_REFERENCE_FILES expanded to 26 subjects (27 as of v2.8.0 with John Kerr addition)
 
 **2.0.0 (January 30, 2026):**
 - Added Gemini 3 Pro Image (Nano Banana Pro) support

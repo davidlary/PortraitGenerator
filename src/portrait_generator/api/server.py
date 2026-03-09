@@ -18,8 +18,8 @@ async def lifespan(app: FastAPI):
     # Startup
     settings = get_settings()
     logger.info("Starting Portrait Generator API")
-    logger.info(f"Output directory: {settings.OUTPUT_DIR}")
-    logger.info(f"Model: {settings.GEMINI_MODEL}")
+    logger.info(f"Output directory: {settings.output_dir}")
+    logger.info(f"Model: {settings.gemini_model}")
 
     yield
 
@@ -38,8 +38,8 @@ def create_app() -> FastAPI:
 
     app = FastAPI(
         title="Portrait Generator API",
-        description="AI-powered historical portrait generation with Google Gemini 3 Pro Image",
-        version="2.0.0",
+        description="AI-powered historical portrait generation with Google Gemini (default: gemini-3.1-flash-image-preview)",
+        version="2.8.0",
         lifespan=lifespan,
     )
 

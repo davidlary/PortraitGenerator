@@ -6,7 +6,7 @@
 [![PyPI version](https://img.shields.io/badge/pypi-v2.8.0-blue.svg)](https://pypi.org/project/portrait-generator/)
 [![Conda version](https://img.shields.io/badge/conda-v2.8.0-blue.svg)](https://anaconda.org/conda-forge/portrait-generator)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/tests-555%2B%20passed-green.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-599%2B%20passed-green.svg)](tests/)
 [![Coverage](https://img.shields.io/badge/coverage-67%25-orange.svg)](htmlcov/)
 
 ---
@@ -22,7 +22,7 @@
 - 🖥️ **CLI Commands**: Easy command-line interface for quick generation
 - 🚀 **REST API**: FastAPI-based RESTful API for remote integration
 - 📦 **PyPI & Conda**: Install via pip or conda
-- 📊 **555+ Tests**: 440+ unit tests + 115 integration tests, including end-to-end with real API; no mock code
+- 📊 **599+ Tests**: 484+ unit tests + 115 integration tests, including end-to-end with real API; no mock code
 - 🔒 **Secure**: Environment-based credentials only
 - 📝 **Fully Documented**: Complete API documentation and examples
 
@@ -89,7 +89,7 @@
 When you have actual photographs of a subject, placing them in the `ExampleReferenceImages/`
 directory gives the pipeline the most accurate reference data possible. Local images are
 **always used first** (Tier 0, score 1.09) and outrank all online sources (Tier 1 confirmed
-URLs score 1.038, Tier 4+ Wikipedia scores 0.88-0.95).
+URLs score 1.04, Tier 4+ Wikipedia scores 0.88-0.95).
 
 ### Step 1 — Drop images into `ExampleReferenceImages/`
 
@@ -107,7 +107,7 @@ lighting conditions improve likeness fidelity. Minimum 256×256 px recommended.
 ### Step 2 — Register the filenames in `reference_finder.py`
 
 Open `src/portrait_generator/reference_finder.py` and find the `_LOCAL_REFERENCE_FILES`
-dictionary (around line 385). Add your subject:
+dictionary (around line 425). Add your subject:
 
 ```python
 _LOCAL_REFERENCE_FILES: Dict[str, list] = {
@@ -650,7 +650,7 @@ source /path/to/load_api_keys.sh
 pytest tests/unit/ --cov=portrait_generator --cov-report=html --cov-report=term
 
 # Run specific test types
-pytest tests/unit/ -v           # Unit tests (440+ tests)
+pytest tests/unit/ -v           # Unit tests (484+ tests)
 
 # Run end-to-end tests with real API (requires GOOGLE_API_KEY to be set)
 pytest tests/integration/test_e2e_real_api.py -m e2e -v
@@ -673,7 +673,7 @@ open htmlcov/index.html
 
 **Current Coverage: 67%** (threshold: 55%)
 
-- **440+ unit tests** covering all core functionality
+- **484+ unit tests** covering all core functionality
 - **No mock code**: All tests use real objects with test/real API keys
 - **End-to-end tests** with real Google Gemini API calls (requires `GOOGLE_API_KEY`)
 - **94-subject integration test** covering every book portrait subject
@@ -693,7 +693,7 @@ export GOOGLE_API_KEY="your_gemini_api_key"
 
 ```
 tests/
-├── unit/                           # Unit tests (real objects, no mocks; 440+ tests)
+├── unit/                           # Unit tests (real objects, no mocks; 484+ tests)
 │   ├── test_client.py             # Python API client (PortraitClient, generate_portrait)
 │   ├── test_gemini_client.py      # GeminiImageClient — image generation + cascade
 │   ├── test_generator.py          # PortraitGenerator — core generation pipeline
@@ -768,7 +768,7 @@ PortraitGenerator/
 │       ├── http_cache.py           # HttpResponseCache (on-disk JSON cache, 30-day TTL, thread-safe)
 │       ├── image_utils.py          # Image format conversion utilities
 │       └── validators.py           # Input validation helpers
-├── tests/                           # Test suite (555+ tests, 67% coverage)
+├── tests/                           # Test suite (599+ tests, 67% coverage)
 │   ├── unit/                        # Unit tests (no mocks, real objects)
 │   ├── integration/
 │   │   ├── test_book_portraits.py   # 94-subject parametrized portrait generation
@@ -1187,7 +1187,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - **Release Date**: March 9, 2026
 - **Default Model**: gemini-3.1-flash-image-preview (Nano Banana 2)
 - **Python Support**: 3.10, 3.11, 3.12
-- **Test Coverage**: 67% (440+ unit tests; 115 integration tests; 555+ total)
+- **Test Coverage**: 67% (484+ unit tests; 115 integration tests; 599+ total)
 - **Package Status**: Available on PyPI and Conda
 - **API Status**: Stable (v1) - Backward Compatible
 - **Documentation**: Complete with advanced features guide

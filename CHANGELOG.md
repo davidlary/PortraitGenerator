@@ -510,11 +510,19 @@ client = PortraitClient(model="gemini-exp-1206")
 **Gradual Feature Adoption:**
 ```python
 # Start with new model but selective features
-client = PortraitClient(
-    model="gemini-3-pro-image-preview",
-    enable_reference_images=True,  # Enable one feature at a time
+# PortraitClient only accepts api_key, output_dir, model.
+# Use Settings + IntelligenceCoordinator to configure individual features:
+from portrait_generator.config.settings import Settings
+from portrait_generator.intelligence_coordinator import IntelligenceCoordinator
+
+settings = Settings(
+    gemini_model="gemini-3-pro-image-preview",
+    enable_reference_images=True,   # Enable one feature at a time
     enable_search_grounding=False,
+    enable_internal_reasoning=False,
 )
+coordinator = IntelligenceCoordinator(settings=settings)
+result = coordinator.generate_portrait("Alan Turing")
 ```
 
 **See [docs/GEMINI_3_PRO_IMAGE.md](docs/GEMINI_3_PRO_IMAGE.md) for complete migration guide.**
@@ -554,9 +562,9 @@ client = PortraitClient(
 
 | Version | Release Date | Default Model | Key Features | Tests |
 |---------|-------------|---------------|--------------|-------|
-| **2.8.0** | 2026-03-09 | gemini-3.1-flash-image-preview | HTTP response cache; 5 new subjects; 94 confirmed URLs | 440 passing |
-| 2.7.0 | 2026-03-06 | gemini-3.1-flash-image-preview | Runtime model auto-discovery; pure-image model detection | 440 passing |
-| 2.6.0 | 2026-03-06 | gemini-3.1-flash-image-preview | Automatic model cascade for rate-limit recovery | 440 passing |
+| **2.8.0** | 2026-03-09 | gemini-3.1-flash-image-preview | HTTP response cache; 5 new subjects; 94 confirmed URLs | 484+ unit |
+| 2.7.0 | 2026-03-06 | gemini-3.1-flash-image-preview | Runtime model auto-discovery; pure-image model detection | 484+ unit |
+| 2.6.0 | 2026-03-06 | gemini-3.1-flash-image-preview | Automatic model cascade for rate-limit recovery | 484+ unit |
 | 2.5.0 | 2026-03-06 | gemini-3.1-flash-image-preview | Name collision disambiguation (middle initials / lifespan) | 480+ unit |
 | 2.4.2 | 2026-03-06 | gemini-3.1-flash-image-preview | Reference-photo age matching; `_NoRef` suffix; no-frame rule | 480+ unit |
 | 2.4.1 | 2026-03-06 | gemini-3.1-flash-image-preview | YAML verified biographies; facial expression/hair matching | 480+ unit |

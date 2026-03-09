@@ -276,7 +276,7 @@ class IntelligenceCoordinator:
         if self.compatibility.is_legacy_model():
             logger.warning(
                 f"Using legacy model: {self.settings.gemini_model}. "
-                "Consider upgrading to gemini-3-pro-image-preview for advanced features."
+                "Consider upgrading to gemini-3.1-flash-image-preview for advanced features."
             )
 
         is_valid = len(issues) == 0
