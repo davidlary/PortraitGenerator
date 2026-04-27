@@ -8,10 +8,10 @@ max_images is satisfied.
 Cascade order (fastest/highest-quality → most obscure):
   Tier 0  — Local ExampleReferenceImages (human-verified, no network, instant)
   Tier 1  — _CONFIRMED_URLS hardcoded table (zero network, instant)
-  Tier 2  — Wikipedia photo from GroundTruth enrichment (zero extra network)
-  Tier 3  — Wikipedia REST API thumbnail + original image (1 API call, ~0.5s)
-  Tier 4  — Wikidata P18 image property (2 calls, ~1-2s, very reliable)
-  Tier 5  — On-disk URL cache from previous Gemini discoveries
+  Tier 2  — On-disk URL cache from previous Gemini discoveries (zero extra network)
+  Tier 3  — Wikipedia photo from GroundTruth enrichment (already fetched, no extra cost)
+  Tier 4  — Wikipedia REST API thumbnail + original image (1 API call, ~0.5s)
+  Tier 5  — Wikidata P18 image property (2 calls, ~1-2s, very reliable)
   Tier 6  — Gemini-powered web search (AI-driven, self-caching)
   Tier 7  — Wikipedia page images API (2+ calls per image, ~2-5s)
   Tier 8  — Wikimedia Commons full-text search (2+ calls per image, ~3-5s)
@@ -31,7 +31,7 @@ import urllib.parse
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 import httpx
 import requests
@@ -45,9 +45,9 @@ from .utils.http_cache import HTTP_CACHE, HttpResponseCache
 # Verified institutional photo URLs (confirmed HTTP 200)
 # Key: canonical full name, Value: direct image URL
 # ---------------------------------------------------------------------------
-_CONFIRMED_URLS: Dict[str, str] = {
+_CONFIRMED_URLS: Dict[str, Union[str, List[str]]] = {
     # ==========================================================================
-    # Pre-verified portrait image URLs for all 82 book portrait subjects.
+    # Pre-verified portrait image URLs for all 94 book portrait subjects.
     # Each URL was confirmed HTTP 200 by parallel research agents (v2.4.0+).
     # Sources in priority order: Wikimedia Commons > Wikipedia > Institutional.
     #
@@ -520,9 +520,9 @@ class ReferenceImage:
 class ReferenceImageFinder:
     """Finds and validates reference images for portrait subjects.
 
-    Uses a progressive 7-tier cascade that short-circuits as soon as
-    max_images is satisfied.  Tiers are ordered fastest/most-reliable first
-    so the common case (Wikipedia thumbnail available) completes in ~0.5s.
+    Uses a progressive 10-tier cascade (Tiers 0-9) that short-circuits as
+    soon as max_images is satisfied.  Tiers are ordered fastest/most-reliable
+    first so the common case (Wikipedia thumbnail available) completes in ~0.5s.
     """
 
     def __init__(
@@ -596,8 +596,8 @@ class ReferenceImageFinder:
     ) -> List[ReferenceImage]:
         """Find authenticated reference images for the subject.
 
-        Runs a progressive 7-tier cascade, stopping as soon as max_images
-        is satisfied.  Each candidate URL is validated (HTTP 200,
+        Runs a progressive 10-tier cascade (Tiers 0-9), stopping as soon as
+        max_images is satisfied.  Each candidate URL is validated (HTTP 200,
         PIL-openable, ≥256×256 px, ≥10 KB) before being added.
 
         Args:

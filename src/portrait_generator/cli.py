@@ -103,7 +103,7 @@ def generate(ctx, subject_name, api_key, output_dir, styles, force):
         if styles_list:
             click.echo(f"Styles: {', '.join(styles_list)}")
         else:
-            click.echo("Styles: All (BW, Sepia, Color, Painting)")
+            click.echo("Styles: Painting (default — best quality)")
 
         result = client.generate(
             subject_name=subject_name,
