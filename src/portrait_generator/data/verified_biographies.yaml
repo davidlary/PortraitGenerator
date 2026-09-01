@@ -1,3 +1,8 @@
+Adrien-Marie Legendre:
+  birth_year: 1752
+  death_year: 1833
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Alan Turing:
   birth_year: 1912
   death_year: 1954
@@ -12,6 +17,11 @@ Aleksandr Lyapunov:
   birth_year: 1857
   death_year: 1918
   gender: male
+Alexei Kitaev:
+  birth_year: 1963
+  death_year: null
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Alfred Wegener:
   birth_year: 1880
   death_year: 1930
@@ -22,6 +32,11 @@ Alice Hamilton:
   death_year: 1970
   gender: female
   notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
+Alston Householder:
+  birth_year: 1904
+  death_year: 1993
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Andrew C. Lorenc:
   birth_year: 1951
   death_year: null
@@ -29,6 +44,26 @@ Andrew C. Lorenc:
   notes: Met Office/ECMWF data assimilation scientist; full name Andrew C. Lorenc
     (C confirmed from all publications); Gemini confuses with other Andrew Lorenc
     (1948-2024)
+Andrey Kolmogorov:
+  birth_year: 1903
+  death_year: 1987
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
+Andrey Markov:
+  birth_year: 1856
+  death_year: 1922
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
+Angus Deaton:
+  birth_year: 1945
+  death_year: null
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
+Arianna Rosenbluth:
+  birth_year: 1927
+  death_year: 2020
+  gender: female
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Arie Haagen-Smit:
   birth_year: 1900
   death_year: 1977
@@ -44,6 +79,11 @@ Arthur Holmes:
   death_year: 1965
   gender: male
   notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
+Arthur Schuster:
+  birth_year: 1851
+  death_year: 1934
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Arthur Westing:
   birth_year: 1928
   death_year: 2020
@@ -52,6 +92,11 @@ Arthur Westing:
 August Wilhelm von Hofmann:
   birth_year: 1818
   death_year: 1892
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
+Augustin-Louis Cauchy:
+  birth_year: 1789
+  death_year: 1857
   gender: male
   notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Avicenna:
@@ -88,6 +133,16 @@ Carl Bosch:
   death_year: 1940
   gender: male
   notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
+Carl Friedrich Gauss:
+  birth_year: 1777
+  death_year: 1855
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
+Carl Gustav Jacob Jacobi:
+  birth_year: 1804
+  death_year: 1851
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Carl-Gustaf Rossby:
   birth_year: 1898
   death_year: 1957
@@ -96,6 +151,11 @@ Charles H. Blackley:
   birth_year: 1820
   death_year: 1900
   gender: male
+Charles Hermite:
+  birth_year: 1822
+  death_year: 1901
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Charles T. R. Wilson:
   birth_year: 1869
   death_year: 1959
@@ -122,10 +182,30 @@ Clair Patterson:
   death_year: 1995
   gender: male
   notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
+Claude-Louis Navier:
+  birth_year: 1785
+  death_year: 1836
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
+Clive Granger:
+  birth_year: 1934
+  death_year: 2009
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Clive Rodgers:
   birth_year: 1940
   death_year: null
   gender: male
+Colin Maclaurin:
+  birth_year: 1698
+  death_year: 1746
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
+Cornelius Lanczos:
+  birth_year: 1893
+  death_year: 1974
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Cyril Hinshelwood:
   birth_year: 1897
   death_year: 1967
@@ -134,6 +214,11 @@ Cyril Hinshelwood:
 David Brunt:
   birth_year: 1886
   death_year: 1965
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
+David Hilbert:
+  birth_year: 1862
+  death_year: 1943
   gender: male
   notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 David Lary:
@@ -146,6 +231,16 @@ Davis Sentman:
   birth_year: 1946
   death_year: 2011
   gender: male
+Donald Knuth:
+  birth_year: 1938
+  death_year: null
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
+Donald T. Campbell:
+  birth_year: 1916
+  death_year: 1996
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Edward Appleton:
   birth_year: 1892
   death_year: 1965
@@ -154,6 +249,11 @@ Edward O. Wilson:
   birth_year: 1929
   death_year: 2021
   gender: male
+Egon Pearson:
+  birth_year: 1895
+  death_year: 1980
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Elie Metchnikoff:
   birth_year: 1845
   death_year: 1916
@@ -198,6 +298,11 @@ Geir Evensen:
   death_year: null
   gender: male
   notes: 'Auto-saved: confidence=0.85, source=wikipedia, wikidata'
+Gene Golub:
+  birth_year: 1932
+  death_year: 2007
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Gene Likens:
   birth_year: 1935
   death_year: null
@@ -211,6 +316,11 @@ Georg Pfotzer:
   birth_year: 1909
   death_year: 1981
   gender: male
+George Dantzig:
+  birth_year: 1914
+  death_year: 2005
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 George Gabriel Stokes:
   birth_year: 1819
   death_year: 1903
@@ -225,9 +335,24 @@ George Hadley:
     reference images are of his brother John Hadley FRS (1682-1744, inventor of the
     sextant) for familial likeness — use as facial feature guide only, do not copy
     verbatim.
+George Stokes:
+  birth_year: 1819
+  death_year: 1903
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
+Gerardus Mercator:
+  birth_year: 1512
+  death_year: 1594
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Gerhard Damköhler:
   birth_year: 1908
   death_year: 1944
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
+Giuseppe Peano:
+  birth_year: 1858
+  death_year: 1932
   gender: male
   notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Gustav Mie:
@@ -268,6 +393,12 @@ Hermann Hellriegel:
   death_year: 1985
   gender: male
   notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
+Hermann Weyl:
+  birth_year: 1885
+  death_year: 1955
+  gender: male
+  notes: 'Manually corrected 2026-08-28: prior auto-saved entry (1866-1925, confidence=0.85)
+    was factually wrong -- correct dates per Wikipedia/Wikidata are 1885-1955.'
 Hildegard von Bingen:
   birth_year: 1098
   death_year: 1179
@@ -286,6 +417,11 @@ Howard Gordon:
   death_year: null
   gender: male
   notes: 'Auto-saved: confidence=0.90, source=wikipedia, dbpedia, gemini'
+Ingrid Daubechies:
+  birth_year: 1954
+  death_year: null
+  gender: female
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Isaac Newton:
   birth_year: 1643
   death_year: 1727
@@ -294,6 +430,16 @@ Isabel Joy Bear:
   birth_year: 1927
   death_year: 2021
   gender: female
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
+J. Willard Gibbs:
+  birth_year: 1839
+  death_year: 1903
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
+Jack Dongarra:
+  birth_year: 1950
+  death_year: null
+  gender: male
   notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Jacobus van't Hoff:
   birth_year: 1852
@@ -323,6 +469,16 @@ Jan Ingenhousz:
   birth_year: 1730
   death_year: 1799
   gender: male
+Jean-Baptiste Fourier:
+  birth_year: 1768
+  death_year: 1830
+  gender: male
+  notes: 'Auto-saved: confidence=0.90, source=wikipedia, gemini'
+Jerzy Neyman:
+  birth_year: 1894
+  death_year: 1981
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Johann Heinrich Lambert:
   birth_year: 1728
   death_year: 1777
@@ -337,9 +493,24 @@ John A. Pyle:
   gender: male
   notes: Cambridge atmospheric chemist, FRS CBE; full name John Adrian Pyle (born
     4 Apr 1951); name disambiguated from other John Pyles
+John Couch Adams:
+  birth_year: 1819
+  death_year: 1892
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
+John Martinis:
+  birth_year: 1958
+  death_year: null
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 John Scott Haldane:
   birth_year: 1860
   death_year: 1936
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
+John Tukey:
+  birth_year: 1915
+  death_year: 2000
   gender: male
   notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 John Tyndall:
@@ -350,6 +521,11 @@ John Winckler:
   birth_year: 1916
   death_year: 2001
   gender: male
+John von Neumann:
+  birth_year: 1903
+  death_year: 1957
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Josef Stefan:
   birth_year: 1835
   death_year: 1893
@@ -359,6 +535,11 @@ Joseph Fourier:
   birth_year: 1768
   death_year: 1830
   gender: male
+Joseph Liouville:
+  birth_year: 1809
+  death_year: 1882
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Joseph Priestley:
   birth_year: 1733
   death_year: 1804
@@ -367,6 +548,11 @@ Joseph-Louis Lagrange:
   birth_year: 1736
   death_year: 1813
   gender: male
+Judea Pearl:
+  birth_year: 1936
+  death_year: null
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Justus von Liebig:
   birth_year: 1803
   death_year: 1873
@@ -376,6 +562,11 @@ Jöns Jacob Berzelius:
   birth_year: 1779
   death_year: 1848
   gender: male
+Karl Pearson:
+  birth_year: 1857
+  death_year: 1936
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Karl Schwarzschild:
   birth_year: 1873
   death_year: 1916
@@ -390,6 +581,11 @@ Kenneth Pitzer:
   death_year: 1997
   gender: male
   notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
+Kurt Friedrichs:
+  birth_year: 1901
+  death_year: 1982
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Lance Wallace:
   birth_year: 1940
   death_year: 2022
@@ -398,6 +594,16 @@ Leonhard Euler:
   birth_year: 1707
   death_year: 1783
   gender: male
+Leonid Kantorovich:
+  birth_year: 1912
+  death_year: 1986
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
+Lewis Fry Richardson:
+  birth_year: 1881
+  death_year: 1953
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Linus Pauling:
   birth_year: 1901
   death_year: 1994
@@ -423,6 +629,11 @@ Louis-Guillaume Le Monnier:
 Ludwig Boltzmann:
   birth_year: 1844
   death_year: 1906
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
+Ludwig Prandtl:
+  birth_year: 1875
+  death_year: 1953
   gender: male
   notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Luke Howard:
@@ -493,6 +704,11 @@ Nicholas Culpeper:
   birth_year: 1616
   death_year: 1654
   gender: male
+Nicholas Metropolis:
+  birth_year: 1915
+  death_year: 1999
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Nicolas-Théodore de Saussure:
   birth_year: 1767
   death_year: 1845
@@ -510,14 +726,39 @@ Norbert Wiener:
   birth_year: 1894
   death_year: 1964
   gender: male
+Osborne Reynolds:
+  birth_year: 1842
+  death_year: 1912
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
+Otto Toeplitz:
+  birth_year: 1881
+  death_year: 1940
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
+Pafnuty Chebyshev:
+  birth_year: 1821
+  death_year: 1894
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Paul Crutzen:
   birth_year: 1933
   death_year: 2021
   gender: male
+Paul Langevin:
+  birth_year: 1872
+  death_year: 1946
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Pedanius Dioscorides:
   birth_year: 40
   death_year: 90
   gender: male
+Peter Lax:
+  birth_year: 1926
+  death_year: 2025
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Rachel Carson:
   birth_year: 1907
   death_year: 1964
@@ -555,10 +796,20 @@ Richard Axel:
   death_year: null
   gender: male
   notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
+Richard Bellman:
+  birth_year: 1920
+  death_year: 1984
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Richard Carrington:
   birth_year: 1826
   death_year: 1875
   gender: male
+Richard Courant:
+  birth_year: 1888
+  death_year: 1972
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Robert Bullard:
   birth_year: 1861
   death_year: 1947
@@ -569,6 +820,11 @@ Robert Charlson:
   death_year: 2021
   gender: male
   notes: 'Auto-saved: confidence=0.90, source=wikipedia, gemini'
+Robert Engle:
+  birth_year: 1942
+  death_year: null
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Robert Steadman:
   birth_year: 1944
   death_year: 2010
@@ -578,6 +834,16 @@ Roger Daley:
   birth_year: 1941
   death_year: 1999
   gender: male
+Roger Penrose:
+  birth_year: 1931
+  death_year: null
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
+Ronald Fisher:
+  birth_year: 1890
+  death_year: 1962
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Ronald Ross:
   birth_year: 1857
   death_year: 1932
@@ -594,10 +860,20 @@ Scott Forbush:
   birth_year: 1904
   death_year: 1984
   gender: male
+Sergei Sobolev:
+  birth_year: 1908
+  death_year: 1989
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Sherwood Rowland:
   birth_year: 1927
   death_year: 2012
   gender: male
+Stanislaw Ulam:
+  birth_year: 1909
+  death_year: 1984
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Stephen Hales:
   birth_year: 1677
   death_year: 1761
@@ -649,6 +925,11 @@ Tor Bergeron:
   birth_year: 1891
   death_year: 1977
   gender: male
+Trygve Haavelmo:
+  birth_year: 1911
+  death_year: 1999
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Tycho Brahe:
   birth_year: 1546
   death_year: 1601
@@ -666,6 +947,11 @@ Victor Hess:
   birth_year: 1883
   death_year: 1964
   gender: male
+Vilfredo Pareto:
+  birth_year: 1848
+  death_year: 1923
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Vilhelm Bjerknes:
   birth_year: 1862
   death_year: 1951
@@ -708,6 +994,11 @@ William Nazaroff:
   birth_year: 1952
   death_year: null
   gender: male
+William Rowan Hamilton:
+  birth_year: 1805
+  death_year: 1865
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Willis Carrier:
   birth_year: 1876
   death_year: 1950

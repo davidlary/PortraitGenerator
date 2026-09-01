@@ -481,6 +481,12 @@ _NAME_COLLISION_SUBJECTS: set = {
     "Mike Fisher (1962-Present)",  # Wikipedia/Commons "Mike Fisher" = NHL hockey player (not ECMWF scientist)
     "John A. Pyle",                # Commons returns 18th-century painting of different "John Pyle" (not Cambridge FRS)
     "John Kerr",                   # Wikipedia "John Kerr" = physicist (1824-1907); we want pathologist J.F.R. Kerr (1934-2019)
+    # George Green the mathematician (1793-1841, Green's theorem/functions) has NO known
+    # portraits -- Wikipedia's own article states this explicitly (pre-photography death).
+    # Tier 3/Tier 8 return "George Green (English shipbuilder)" (a different, unrelated
+    # George Green, per Wikimedia Commons File:George_Green_(English_shipbuilder).jpg,
+    # "a shipbuilder from Poplar") -- confirmed 2026-08-26 during Codex portrait batch work.
+    "George Green",
 }
 
 
