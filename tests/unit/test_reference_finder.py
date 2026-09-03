@@ -519,6 +519,69 @@ class TestCascadeTiers:
         result = finder._fetch_dbpedia_image("Alan Turing")
         assert result is None
 
+    # ── Tier 6: Gemini web search ─────────────────────────────────────────────
+
+    @pytest.fixture
+    def finder_with_gemini(self, tmp_path):
+        """A ReferenceImageFinder WITH a gemini_client -- needed for the
+        Tier 6 (Gemini web search) tests, unlike the module-level `finder`
+        fixture above which intentionally omits it to test the other
+        tiers in isolation."""
+        client = GeminiImageClient(api_key="test_api_key_1234567890")
+        return ReferenceImageFinder(gemini_client=client, download_dir=tmp_path / "refs")
+
+    def test_gemini_web_search_never_sets_response_modalities(self, finder_with_gemini, subject):
+        """Regression test for a real, confirmed-live defect (2026-09-03):
+        response_modalities=["Text"] combined with google_search grounding
+        against an image-generation model is REJECTED by Vertex AI with
+        400 INVALID_ARGUMENT (confirmed by reproducing the exact call
+        with/without this parameter -- identical otherwise, and AI Studio
+        accepted it either way). This silently killed Tier 6 for every
+        Vertex-mode caller, including real subjects who DO have a
+        findable photo (confirmed: a direct call without this parameter
+        immediately found a real university faculty-page photo for a
+        subject that had otherwise exhausted all 9 tiers). The fix
+        removes response_modalities entirely (it was redundant for a
+        text-only request in the first place) -- assert the config this
+        method builds never includes it, so this can't silently
+        regress."""
+        from unittest.mock import MagicMock
+
+        captured = {}
+
+        def fake_generate_content(model, contents, config):
+            captured["config"] = config
+            resp = MagicMock()
+            resp.candidates = []
+            return resp
+
+        finder_with_gemini.gemini_client.client.models.generate_content = fake_generate_content
+
+        finder_with_gemini._fetch_via_gemini_web_search("Alan Turing", subject)
+
+        assert "config" in captured, "generate_content was never called"
+        assert captured["config"].response_modalities is None
+
+    def test_gemini_web_search_still_uses_search_grounding(self, finder_with_gemini, subject):
+        """The google_search tool itself must still be requested -- only
+        response_modalities should have been removed, not grounding."""
+        from unittest.mock import MagicMock
+
+        captured = {}
+
+        def fake_generate_content(model, contents, config):
+            captured["config"] = config
+            resp = MagicMock()
+            resp.candidates = []
+            return resp
+
+        finder_with_gemini.gemini_client.client.models.generate_content = fake_generate_content
+
+        finder_with_gemini._fetch_via_gemini_web_search("Alan Turing", subject)
+
+        assert captured["config"].tools is not None
+        assert len(captured["config"].tools) == 1
+
     # ── URL cache (Tier 2 / Gemini self-caching) ──────────────────────────────
 
     def test_cache_discovered_url_persists_to_disk(self, tmp_path):

@@ -220,6 +220,28 @@ class TestPortraitResult:
         )
         assert result.all_passed is False
 
+    def test_reference_images_found_defaults_to_zero(self) -> None:
+        """Every pre-existing caller that doesn't set reference_images_found
+        (basic PortraitGenerator, which never does reference lookups, and
+        old code predating this field) must see 0, not a missing/None
+        value that would break callers checking `== 0`."""
+        metadata = SubjectData(name="Test", birth_year=1900, era="Test")
+        result = PortraitResult(subject="Test", metadata=metadata, success=True)
+        assert result.reference_images_found == 0
+
+    def test_reference_images_found_explicit_value(self) -> None:
+        """Regression coverage for the field itself: EnhancedPortraitGenerator
+        must be able to report how many real reference photos it located,
+        so callers can distinguish a verified-likeness portrait from one
+        generated with zero photographic grounding (confirmed live
+        2026-09-03: a contemporary academic with no locatable reference
+        photo still produced a confident, fully-detailed portrait)."""
+        metadata = SubjectData(name="Test", birth_year=1900, era="Test")
+        result = PortraitResult(
+            subject="Test", metadata=metadata, success=True, reference_images_found=3,
+        )
+        assert result.reference_images_found == 3
+
     def test_all_passed_empty(self) -> None:
         """Test all_passed with no evaluations."""
         metadata = SubjectData(

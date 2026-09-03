@@ -995,9 +995,22 @@ class ReferenceImageFinder:
             # Use grounded generation via the Gemini client
             from google.genai.types import GenerateContentConfig, Tool
 
+            # response_modalities=["Text"] is redundant here (a text-only
+            # request already defaults to text output) and, combined with
+            # google_search grounding against an image-generation model,
+            # Vertex AI rejects the request outright with 400
+            # INVALID_ARGUMENT -- confirmed live 2026-09-03 by reproducing
+            # the exact call with/without this parameter: identical
+            # request minus response_modalities succeeds on Vertex AND
+            # still works on AI Studio (both auth modes tested directly).
+            # This tier was silently dead on every Vertex-mode call before
+            # this fix, meaning "no reference image found" for real
+            # people who genuinely do have a findable photo (e.g. a
+            # contemporary academic's own university faculty page) --
+            # confirmed for a real subject where a direct photo URL was
+            # found immediately once this parameter was removed.
             config = GenerateContentConfig(
                 tools=[Tool(google_search={})],
-                response_modalities=["Text"],
                 temperature=0.1,
             )
             response = self.gemini_client.client.models.generate_content(

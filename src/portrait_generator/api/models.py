@@ -134,6 +134,25 @@ class PortraitResult(BaseModel):
         default_factory=list,
         description="Errors encountered",
     )
+    reference_images_found: int = Field(
+        default=0,
+        description=(
+            "Number of real reference photos the pipeline located for this "
+            "subject before generating (across all 9 lookup tiers -- "
+            "GroundTruth, Wikidata, Wikipedia, Commons, DBpedia, etc). "
+            "ZERO means the portrait was generated with no photographic "
+            "reference at all -- for a real (non-legendary/pre-photography) "
+            "person this is a strong signal the result is a plausible-"
+            "looking but UNVERIFIED likeness, not evidence of resemblance. "
+            "Confirmed live 2026-09-03: a contemporary academic with no "
+            "locatable reference photo and an unresolved gender still "
+            "produced a confident, fully-detailed photorealistic portrait "
+            "-- callers building a fact-verified corpus (not just "
+            "generating art) should treat reference_images_found == 0 as "
+            "a hard reason to withhold marking the result as a verified "
+            "likeness, even when success=True."
+        ),
+    )
 
     @property
     def all_passed(self) -> bool:

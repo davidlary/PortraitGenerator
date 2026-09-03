@@ -297,6 +297,7 @@ class EnhancedPortraitGenerator:
                 generation_time_seconds=generation_time,
                 success=success,
                 errors=errors,
+                reference_images_found=len(reference_images),
             )
 
         except Exception as e:

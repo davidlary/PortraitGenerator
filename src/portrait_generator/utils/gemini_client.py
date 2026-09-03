@@ -332,8 +332,18 @@ class GeminiImageClient:
 
         for m in all_models:
             raw_name: str = getattr(m, "name", "") or ""
-            # The API returns names like "models/gemini-3.1-flash-image-preview"
-            name = raw_name[len("models/"):] if raw_name.startswith("models/") else raw_name
+            # AI Studio returns names like "models/gemini-3.1-flash-image";
+            # Vertex AI returns the fully-qualified
+            # "publishers/google/models/gemini-3.1-flash-image" instead --
+            # confirmed live 2026-09-03: only stripping the "models/" prefix
+            # left the Vertex path's model names as
+            # "publishers/google/models/gemini-3.1-flash-image-preview",
+            # which never matched _KNOWN_DEPRECATED_MODELS (an exact-string
+            # set), silently defeating the deprecated-model exclusion filter
+            # for every Vertex-mode caller and causing every downstream call
+            # using that name (e.g. the Gemini web-search reference-image
+            # tier) to 400 against the deprecated, unservable model ID.
+            name = raw_name.rsplit("/", 1)[-1] if "/" in raw_name else raw_name
 
             # Only image-generation models
             if "image" not in name:
