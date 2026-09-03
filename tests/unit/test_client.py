@@ -89,6 +89,47 @@ class TestPortraitClientGenerate:
         """Create client instance."""
         return PortraitClient(api_key=TEST_API_KEY, output_dir=temp_output_dir)
 
+    def test_generate_forwards_context_to_generator(self, client, monkeypatch):
+        """client.generate(name, context=...) must forward context through
+        to generator.generate_portrait() -- hermetic test (mocks the
+        generator, no real API call). Regression coverage for the
+        disambiguation-context feature added 2026-09-03 to guard against
+        a common/reused name resolving to the wrong person (confirmed
+        live: "Richard Southwell" flagged a ~440-year birth-year mismatch
+        against an unrelated namesake without this)."""
+        captured = {}
+
+        def fake_generate_portrait(subject_name, force_regenerate=False, styles=None, context=None):
+            captured["subject_name"] = subject_name
+            captured["context"] = context
+            from portrait_generator.api.models import PortraitResult
+            return PortraitResult(subject=subject_name, success=True)
+
+        monkeypatch.setattr(client.generator, "generate_portrait", fake_generate_portrait)
+
+        client.generate(
+            "Richard Southwell",
+            context="Tudor courtier under Henry VIII, 1502-1564",
+        )
+
+        assert captured["context"] == "Tudor courtier under Henry VIII, 1502-1564"
+
+    def test_generate_context_defaults_to_none(self, client, monkeypatch):
+        """Every pre-existing caller of client.generate() (no context arg)
+        must still forward context=None, preserving current behavior."""
+        captured = {}
+
+        def fake_generate_portrait(subject_name, force_regenerate=False, styles=None, context=None):
+            captured["context"] = context
+            from portrait_generator.api.models import PortraitResult
+            return PortraitResult(subject=subject_name, success=True)
+
+        monkeypatch.setattr(client.generator, "generate_portrait", fake_generate_portrait)
+
+        client.generate("Claude Shannon")
+
+        assert captured["context"] is None
+
     @_SKIP_NO_KEY
     def test_generate_success(self, tmp_path) -> None:
         """Test successful portrait generation - covered by integration/test_e2e_real_api.py."""

@@ -261,6 +261,14 @@ result = client.generate(
     styles=["BW", "Color"]
 )
 
+# Disambiguate a common/reused name with context (field, era, role, dates)
+# -- without this, research can silently resolve to an unrelated person
+# who happens to share the name.
+result = client.generate(
+    "Richard Southwell",
+    context="Tudor courtier under Henry VIII, 1502-1564",
+)
+
 # Batch generation (paintings by default)
 subjects = ["Alan Turing", "Grace Hopper", "Claude Shannon"]
 results = client.generate_batch(subjects)
@@ -413,6 +421,9 @@ Options:
   --output-dir PATH       Output directory (default: ./output)
   --styles TEXT           Space-separated styles: BW Sepia Color Painting
   --force                 Force regeneration even if portraits exist
+  --context TEXT          Disambiguating context about this SPECIFIC person
+                          (field, era, role, dates) -- recommended for
+                          common/reused names
   --verbose              Enable verbose logging
   --help                  Show help message
 ```
@@ -427,6 +438,9 @@ portrait-generator generate "Claude Shannon" --styles BW Color
 
 # Force regeneration
 portrait-generator generate "Ada Lovelace" --force
+
+# Disambiguate a common/reused name
+portrait-generator generate "Richard Southwell" --context "Tudor courtier under Henry VIII, 1502-1564"
 
 # Custom output directory
 portrait-generator generate "Grace Hopper" --output-dir ~/portraits

@@ -55,12 +55,32 @@ class BiographicalResearcher:
         self.gemini_client = gemini_client
         logger.info("Initialized BiographicalResearcher")
 
-    def research_subject(self, name: str) -> SubjectData:
+    def research_subject(self, name: str, context: Optional[str] = None) -> SubjectData:
         """
         Research biographical data for a subject.
 
         Args:
             name: Full name of the subject
+            context: Optional disambiguating context (e.g. "Tudor courtier,
+                     1502-1564, served Henry VIII" or "mathematician,
+                     Oxford, numerical analysis, 1918-1992") -- passed
+                     into the research prompt so Gemini identifies the
+                     SAME person the caller means, not just any person
+                     sharing that name. Root cause this addresses:
+                     common/reused names (e.g. "Richard Southwell") can
+                     resolve to an unrelated modern namesake with no
+                     signal to catch it beforehand -- confirmed live
+                     2026-09-03 via GroundTruthVerifier.cross_validate()
+                     flagging a ~440-year birth-year mismatch against a
+                     different real person sharing the name. The existing
+                     "(YYYY-YYYY)" lifespan-suffix convention on `name`
+                     is stripped before it ever reaches the research
+                     prompt (see search_name below) -- it only
+                     disambiguates the YAML storage key, not the actual
+                     web/Gemini lookup -- so it does not by itself fix
+                     this. Pass a real context string when the caller
+                     has one (e.g. from an already-verified source's own
+                     description of the person) instead.
 
         Returns:
             SubjectData with biographical information
@@ -72,7 +92,7 @@ class BiographicalResearcher:
         if not name or not name.strip():
             raise ValueError("Subject name cannot be empty")
 
-        logger.info(f"Researching subject: {name}")
+        logger.info(f"Researching subject: {name}" + (f" (context: {context})" if context else ""))
 
         # Strip any lifespan disambiguation suffix before sending to Gemini/Wikipedia.
         # The full canonical name (e.g. "Mike Fisher (1962-Present)") is used for YAML
@@ -83,7 +103,7 @@ class BiographicalResearcher:
         ).strip() or name
 
         # Create research prompt
-        prompt = self._create_research_prompt(search_name)
+        prompt = self._create_research_prompt(search_name, context=context)
 
         try:
             # Use Gemini for research
@@ -227,20 +247,31 @@ class BiographicalResearcher:
         logger.debug("Validation passed")
         return True
 
-    def _create_research_prompt(self, name: str) -> str:
+    def _create_research_prompt(self, name: str, context: Optional[str] = None) -> str:
         """
         Create a research prompt for Gemini.
 
         Args:
             name: Subject name
+            context: Optional disambiguating context supplied by the
+                     caller (e.g. the person's known field/era/role) --
+                     included verbatim so Gemini identifies the specific
+                     person the caller means, not just the first/most-
+                     famous match for the bare name.
 
         Returns:
             Research prompt string
         """
+        context_block = (
+            f"\nKNOWN CONTEXT ABOUT THIS SPECIFIC PERSON (use this to identify "
+            f"the correct individual if the name is shared by multiple people): "
+            f"{context}\n"
+            if context else ""
+        )
         prompt = f"""Research the following person and provide biographical information:
 
 NAME: {name}
-
+{context_block}
 IMPORTANT: Identify the correct person by cross-checking multiple facts.
 If this is a scientist or researcher, confirm the field and institution.
 If the name could match multiple people, specify which one and why.

@@ -60,6 +60,7 @@ class PortraitGenerator:
         subject_name: str,
         force_regenerate: bool = False,
         styles: Optional[List[str]] = None,
+        context: Optional[str] = None,
     ) -> PortraitResult:
         """
         Generate portrait(s) for a subject.
@@ -68,6 +69,10 @@ class PortraitGenerator:
             subject_name: Full name of subject
             force_regenerate: If True, regenerate even if files exist
             styles: List of styles to generate (defaults to all 4)
+            context: Optional disambiguating context about this SPECIFIC
+                     person (field, era, role, dates) -- see
+                     BiographicalResearcher.research_subject()'s docstring
+                     for why this matters for common/reused names.
 
         Returns:
             PortraitResult with all generated files and evaluations
@@ -96,7 +101,7 @@ class PortraitGenerator:
         try:
             # Step 1: Research subject
             logger.info("Step 1: Researching subject...")
-            subject_data = self.researcher.research_subject(subject_name)
+            subject_data = self.researcher.research_subject(subject_name, context=context)
             logger.info(
                 f"Research complete: {subject_data.name} ({subject_data.formatted_years})"
             )

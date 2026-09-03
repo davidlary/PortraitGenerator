@@ -91,6 +91,64 @@ class TestResearchSubject:
         with pytest.raises(ValueError, match="cannot be empty"):
             researcher.research_subject("   ")
 
+    def test_research_subject_forwards_context_to_prompt(self, researcher, monkeypatch):
+        """research_subject(name, context=...) must build the prompt WITH
+        that context (not silently drop it) -- hermetic test, no real API
+        call, mocks only the prompt builder to capture its arguments."""
+        captured = {}
+
+        def fake_create_prompt(name, context=None):
+            captured["name"] = name
+            captured["context"] = context
+            return "PROMPT"
+
+        def fake_query_gemini(prompt):
+            return (
+                "FULL NAME: Richard Southwell\n"
+                "BIRTH YEAR: 1502\n"
+                "DEATH YEAR: 1564\n"
+                "ERA: Tudor\n"
+                "APPEARANCE NOTES:\n- period attire\n"
+                "HISTORICAL CONTEXT: Tudor courtier.\n"
+            )
+
+        monkeypatch.setattr(researcher, "_create_research_prompt", fake_create_prompt)
+        monkeypatch.setattr(researcher, "_query_gemini", fake_query_gemini)
+
+        researcher.research_subject(
+            "Richard Southwell",
+            context="Tudor courtier under Henry VIII, 1502-1564",
+        )
+
+        assert captured["context"] == "Tudor courtier under Henry VIII, 1502-1564"
+
+    def test_research_subject_context_defaults_to_none(self, researcher, monkeypatch):
+        """Callers that don't pass context (every pre-existing call site)
+        must see the prompt builder called with context=None, preserving
+        the exact prompt those callers already depend on."""
+        captured = {}
+
+        def fake_create_prompt(name, context=None):
+            captured["context"] = context
+            return "PROMPT"
+
+        def fake_query_gemini(prompt):
+            return (
+                "FULL NAME: Albert Einstein\n"
+                "BIRTH YEAR: 1879\n"
+                "DEATH YEAR: 1955\n"
+                "ERA: 20th Century\n"
+                "APPEARANCE NOTES:\n- wild hair\n"
+                "HISTORICAL CONTEXT: Physicist.\n"
+            )
+
+        monkeypatch.setattr(researcher, "_create_research_prompt", fake_create_prompt)
+        monkeypatch.setattr(researcher, "_query_gemini", fake_query_gemini)
+
+        researcher.research_subject("Albert Einstein")
+
+        assert captured["context"] is None
+
     @_SKIP_NO_KEY
     def test_research_subject_success(self) -> None:
         """Test successful subject research with real API."""
@@ -380,6 +438,29 @@ class TestCreateResearchPrompt:
         assert "Marie Curie" in prompt1
         assert "Alan Turing" in prompt2
         assert "Marie Curie" not in prompt2
+
+    def test_create_research_prompt_without_context_omits_context_block(self, researcher):
+        """No context arg (the default) must not add a context section --
+        keeps the prompt unchanged for every existing caller."""
+        prompt = researcher._create_research_prompt("Albert Einstein")
+        assert "KNOWN CONTEXT" not in prompt
+
+    def test_create_research_prompt_includes_context_when_given(self, researcher):
+        """Regression test for a real, confirmed-live defect (2026-09-03):
+        a bare name like "Richard Southwell" can resolve to an unrelated
+        person sharing that name -- GroundTruthVerifier.cross_validate()
+        flagged a ~440-year birth-year mismatch against a different real
+        person. Disambiguating context passed by the caller must appear
+        in the prompt actually sent to Gemini, not just be used for the
+        YAML storage key (that's what the older "(YYYY-YYYY)" suffix
+        convention on `name` already did, and it did NOT fix this)."""
+        prompt = researcher._create_research_prompt(
+            "Richard Southwell",
+            context="Tudor courtier under Henry VIII, 1502-1564",
+        )
+        assert "KNOWN CONTEXT" in prompt
+        assert "Tudor courtier under Henry VIII, 1502-1564" in prompt
+        assert "Richard Southwell" in prompt
 
 
 class TestQueryGemini:

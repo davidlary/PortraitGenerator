@@ -13,6 +13,11 @@ Albert Bernhard Frank:
   death_year: 1900
   gender: male
   notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
+Albert Einstein:
+  birth_year: 1879
+  death_year: 1955
+  gender: male
+  notes: 'Auto-saved: confidence=1.00, source=wikipedia, wikidata'
 Aleksandr Lyapunov:
   birth_year: 1857
   death_year: 1918

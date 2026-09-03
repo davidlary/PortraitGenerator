@@ -74,14 +74,24 @@ def cli(ctx, verbose):
     is_flag=True,
     help="Force regeneration even if files exist",
 )
+@click.option(
+    "--context",
+    "-c",
+    default=None,
+    help="Disambiguating context about this SPECIFIC person (field, era, "
+    "role, dates) -- strongly recommended for common/reused names, since "
+    "without it research can silently resolve to an unrelated person who "
+    "happens to share the name.",
+)
 @click.pass_context
-def generate(ctx, subject_name, api_key, output_dir, styles, force):
+def generate(ctx, subject_name, api_key, output_dir, styles, force, context):
     """Generate portraits for a subject.
 
     Examples:
         portrait-generator generate "Alan Turing"
         portrait-generator generate "Marie Curie" --styles BW Sepia
         portrait-generator generate "Claude Shannon" --force
+        portrait-generator generate "Richard Southwell" --context "Tudor courtier under Henry VIII, 1502-1564"
     """
     try:
         # Validate API key
@@ -104,11 +114,14 @@ def generate(ctx, subject_name, api_key, output_dir, styles, force):
             click.echo(f"Styles: {', '.join(styles_list)}")
         else:
             click.echo("Styles: Painting (default — best quality)")
+        if context:
+            click.echo(f"Context: {context}")
 
         result = client.generate(
             subject_name=subject_name,
             force_regenerate=force,
             styles=styles_list,
+            context=context,
         )
 
         # Report results

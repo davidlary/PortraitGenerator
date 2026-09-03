@@ -86,6 +86,7 @@ class PortraitClient:
         subject_name: str,
         force_regenerate: bool = False,
         styles: Optional[List[str]] = None,
+        context: Optional[str] = None,
     ) -> PortraitResult:
         """
         Generate portraits for a subject.
@@ -94,6 +95,16 @@ class PortraitClient:
             subject_name: Full name of the subject
             force_regenerate: Force regeneration even if files exist
             styles: List of styles to generate (defaults to ["Painting"] for best quality)
+            context: Optional disambiguating context about this SPECIFIC
+                     person -- field, era, role, or known dates. Strongly
+                     recommended for common/reused names: without it,
+                     research can silently resolve to an unrelated person
+                     who happens to share the name (confirmed live
+                     2026-09-03 -- see BiographicalResearcher.
+                     research_subject()'s docstring for the incident).
+                     E.g. context="numerical analyst, Oxford, 1918-1992"
+                     for "Leslie Fox", or context="Tudor courtier under
+                     Henry VIII, 1502-1564" for "Richard Southwell".
 
         Returns:
             PortraitResult with generated files and metadata
@@ -107,11 +118,18 @@ class PortraitClient:
             >>> result = client.generate("Claude Shannon")
             >>> print(result.files)
             {'BW': 'ClaudeShannon_BW.png', 'Sepia': '...', ...}
+
+            >>> # Disambiguate a common/reused name
+            >>> result = client.generate(
+            ...     "Richard Southwell",
+            ...     context="Tudor courtier under Henry VIII, 1502-1564",
+            ... )
         """
         return self.generator.generate_portrait(
             subject_name=subject_name,
             force_regenerate=force_regenerate,
             styles=styles,
+            context=context,
         )
 
     def generate_batch(
