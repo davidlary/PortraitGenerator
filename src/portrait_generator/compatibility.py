@@ -246,7 +246,7 @@ class CompatibilityManager:
             return []
 
         recommendations = [
-            "Consider upgrading to gemini-3-pro-image-preview for advanced features:",
+            "Consider upgrading to gemini-3-pro-image for advanced features:",
             "  - Google Search grounding for fact-checking",
             "  - Multi-image reference support (up to 14 images)",
             "  - Internal reasoning and iterative refinement",

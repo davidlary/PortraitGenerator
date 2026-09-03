@@ -23,6 +23,7 @@ model-discovery API call fails (e.g. no network at startup).
 
 import io
 import logging
+import os
 import time
 from typing import Optional, List, Dict, Any
 from pathlib import Path
@@ -31,6 +32,89 @@ from dataclasses import dataclass
 from PIL import Image
 
 logger = logging.getLogger(__name__)
+
+# Model IDs Google has deprecated (shutdown 2026-06-25 per
+# https://ai.google.dev/gemini-api/docs/deprecations) but which can still
+# appear in a live models.list() call as a stale catalog entry -- confirmed
+# live 2026-09-03: gemini-3.1-flash-image-preview was listed and callable
+# on AI Studio, but generateContent against it 404'd on Vertex AI
+# ("Publisher model ... was not found"). Excluded from both discovery
+# results and explicit model overrides so neither path can silently select
+# a model that looks available but isn't actually servable everywhere.
+# The stable, non-"-preview" replacements (gemini-3.1-flash-image,
+# gemini-3-pro-image) work on both AI Studio and Vertex -- confirmed live.
+_KNOWN_DEPRECATED_MODELS = frozenset(
+    {
+        "gemini-3.1-flash-image-preview",
+        "gemini-3-pro-image-preview",
+    }
+)
+
+
+def _build_genai_client(api_key: str):
+    """Constructs a google.genai Client, auto-detecting the right auth
+    mode from the environment instead of always passing a plain API key.
+
+    Root cause this fixes: genai.Client(api_key=...) alone does not
+    override ambient Vertex-mode env vars (GOOGLE_GENAI_USE_VERTEXAI=true,
+    set by this environment's shared credential loader for OTHER tools
+    that use Vertex AI) -- once the SDK sees that env var it routes to
+    aiplatform.googleapis.com, which rejects plain API-key auth outright
+    ("API keys are not supported by this API... Expected OAuth2 access
+    token"), confirmed live 2026-09-03 against a real portrait-generator
+    call that failed with a 401 until the Vertex env vars were unset.
+
+    Auto-detection, matching this environment's documented modality
+    order (see README.API-KEYS.md): if GOOGLE_GENAI_USE_VERTEXAI is set,
+    honor that intent, but resolve REAL credentials for it first --
+    application-default credentials via google.auth.default() (covers
+    both a user's `gcloud auth application-default login` session and a
+    service-account JSON at GOOGLE_APPLICATION_CREDENTIALS) -- and only
+    fall back to plain-API-key/AI-Studio mode if no such credentials are
+    actually resolvable, rather than passing an API key into a client
+    that will silently ignore it.
+    """
+    import google.genai as genai
+
+    wants_vertex = os.environ.get("GOOGLE_GENAI_USE_VERTEXAI", "").lower() in ("1", "true", "yes")
+    if wants_vertex:
+        try:
+            import google.auth
+
+            # google.auth.default() returns UNSCOPED credentials unless a
+            # scope is requested explicitly -- confirmed live 2026-09-03:
+            # without this, calls to aiplatform.googleapis.com failed with
+            # "invalid_scope: Invalid OAuth scope or ID token audience
+            # provided" even though the service-account JSON itself was
+            # valid and correctly resolved.
+            credentials, discovered_project = google.auth.default(
+                scopes=["https://www.googleapis.com/auth/cloud-platform"]
+            )
+            project = os.environ.get("GOOGLE_CLOUD_PROJECT") or discovered_project
+            location = os.environ.get("GOOGLE_CLOUD_LOCATION", "global")
+            if not project:
+                raise RuntimeError(
+                    "no GCP project resolved (set GOOGLE_CLOUD_PROJECT or "
+                    "ensure the ADC source includes one)"
+                )
+            logger.info(
+                f"Using Vertex AI auth (project={project}, location={location}) "
+                f"via google.auth.default()"
+            )
+            return genai.Client(
+                vertexai=True, credentials=credentials, project=project, location=location
+            )
+        except Exception as exc:  # noqa: BLE001 -- any ADC resolution failure falls back below
+            logger.warning(
+                f"GOOGLE_GENAI_USE_VERTEXAI is set but no usable Google Cloud "
+                f"credentials were found ({exc}) -- falling back to AI Studio "
+                f"API-key auth. Run 'gcloud auth application-default login' or "
+                f"set GOOGLE_APPLICATION_CREDENTIALS to use Vertex AI instead."
+            )
+
+    # Explicit vertexai=False so this path can never be silently overridden
+    # by an ambient GOOGLE_GENAI_USE_VERTEXAI env var set for other tools.
+    return genai.Client(vertexai=False, api_key=api_key)
 
 
 @dataclass
@@ -96,7 +180,7 @@ class GeminiImageClient:
     def __init__(
         self,
         api_key: str,
-        model: str = "gemini-3.1-flash-image-preview",
+        model: Optional[str] = None,
         model_cascade: Optional[List[str]] = None,
         enable_grounding: bool = True,
         enable_reasoning: bool = True,
@@ -116,8 +200,20 @@ class GeminiImageClient:
 
         Args:
             api_key: Google API key
-            model: Primary Gemini model name (default: gemini-3.1-flash-image-preview).
-                   The cascade always starts at this model's position.
+            model: Primary Gemini model name. Default (None) defers entirely
+                   to live discovery -- the best available model becomes
+                   primary automatically, so this never needs a code change
+                   when Google ships a new model or retires an old one.
+                   Root cause this replaced (2026-09-03): a hardcoded
+                   default of a specific "-preview" model ID was ALWAYS
+                   prepended ahead of the discovered cascade even though
+                   Google had already deprecated it -- the model still
+                   appeared in models.list() (a stale catalog entry) but
+                   generateContent calls against it 404'd on Vertex AI,
+                   silently defeating the whole point of auto-discovery.
+                   Pass an explicit model name only to pin a specific model
+                   (e.g. for a reproducibility test); _KNOWN_DEPRECATED_MODELS
+                   still guards against pinning a known-dead ID by mistake.
             model_cascade: Explicit ordered list of models for rate-limit recovery.
                            When None (default), the cascade is built automatically
                            by querying the Gemini API for available image models.
@@ -147,7 +243,7 @@ class GeminiImageClient:
 
             self.genai = genai
             self.types = types
-            self.client = genai.Client(api_key=api_key)
+            self.client = _build_genai_client(api_key)
 
             # --- Model cascade setup ---
             # Build the cascade from the live API (discovers new models automatically)
@@ -155,16 +251,39 @@ class GeminiImageClient:
             if model_cascade is None:
                 self._model_cascade: List[str] = self._discover_image_models()
             else:
-                self._model_cascade = list(model_cascade)
+                self._model_cascade = [
+                    m for m in model_cascade if m not in _KNOWN_DEPRECATED_MODELS
+                ]
 
-            # Position cascade at the requested model's slot.
-            # If the model isn't in the discovered list, prepend it so it is
-            # tried first (handles preview / custom model IDs gracefully).
-            if model in self._model_cascade:
-                self._cascade_index: int = self._model_cascade.index(model)
+            if model is None:
+                # True auto mode: whatever discovery (or the caller's
+                # cascade) ranked first is primary -- never override it
+                # with a hardcoded name.
+                self._cascade_index: int = 0
+            elif model in _KNOWN_DEPRECATED_MODELS:
+                logger.warning(
+                    f"Requested model {model!r} is a known-deprecated ID "
+                    f"({sorted(_KNOWN_DEPRECATED_MODELS)}) -- ignoring the "
+                    f"explicit request and using the auto-discovered "
+                    f"primary model instead."
+                )
+                self._cascade_index = 0
+            elif model in self._model_cascade:
+                # Position cascade at the requested model's slot.
+                self._cascade_index = self._model_cascade.index(model)
             else:
+                # Unknown model (e.g. a brand-new preview ID discovery
+                # hasn't caught up to yet) -- prepend it so it's tried
+                # first, same as before, just no longer the unconditional
+                # default path.
                 self._model_cascade = [model] + self._model_cascade
                 self._cascade_index = 0
+
+            if not self._model_cascade:
+                raise RuntimeError(
+                    "no usable image-generation model available -- discovery "
+                    "returned nothing and no cascade/model override was given"
+                )
 
             self.model: str = self._model_cascade[self._cascade_index]
             logger.info(
@@ -218,6 +337,11 @@ class GeminiImageClient:
 
             # Only image-generation models
             if "image" not in name:
+                continue
+
+            # Skip known-deprecated IDs even if the live catalog still
+            # lists them (see _KNOWN_DEPRECATED_MODELS docstring).
+            if name in _KNOWN_DEPRECATED_MODELS:
                 continue
 
             # Classify using the same rules as _detect_capabilities()
@@ -572,7 +696,7 @@ class GeminiImageClient:
     ) -> str:
         """Enhance prompt with reasoning and quality instructions.
 
-        For gemini-3.1-flash-image-preview (Nano Banana 2), thinking mode
+        For gemini-3.1-flash-image (Nano Banana 2), thinking mode
         provides enhanced accuracy while maintaining speed advantage. The model
         reasons through historical details, composition, and visual coherence
         before generating.

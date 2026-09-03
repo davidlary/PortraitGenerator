@@ -3,22 +3,34 @@
 This module defines capabilities and optimal parameters for different Gemini models.
 All configurations are data-driven with no hard-coded thresholds in the main code.
 
+These static profiles are a FALLBACK ONLY, used when live model discovery
+(GeminiImageClient._discover_image_models) is unavailable -- the real
+source of truth for "what model to use" is the live models.list() query,
+which auto-adapts as Google ships new models or retires old ones. The
+model names below were updated 2026-09-03 after gemini-3.1-flash-image-
+preview and gemini-3-pro-image-preview (shutdown 2026-06-25 per
+https://ai.google.dev/gemini-api/docs/deprecations) were found to still
+appear in a live models.list() response as stale catalog entries while
+actually 404ing on generateContent calls via Vertex AI -- confirmed live.
+The non-"-preview" names below are the current stable replacements,
+confirmed working on both AI Studio and Vertex AI.
+
 Supported Models:
-- gemini-3.1-flash-image-preview: Fast, high-efficiency image model (Nano Banana 2) [RECOMMENDED]
-- gemini-3-pro-image-preview: Highest quality image model (Nano Banana Pro)
+- gemini-3.1-flash-image: Fast, high-efficiency image model (Nano Banana 2) [RECOMMENDED]
+- gemini-3-pro-image: Highest quality image model (Nano Banana Pro)
 - gemini-2.5-flash-image: Pure image model — no search-as-tool (Nano Banana) [quota fallback]
 - gemini-exp-1206: Previous experimental model (legacy)
 
 Model Selection Guide:
-- Use gemini-3.1-flash-image-preview (default) for best speed + accuracy balance
-- Use gemini-3-pro-image-preview for maximum quality on complex subjects
+- Use gemini-3.1-flash-image (default) for best speed + accuracy balance
+- Use gemini-3-pro-image for maximum quality on complex subjects
 - Use gemini-2.5-flash-image as quota fallback (pure image model; no tool/search support)
 - Use gemini-exp-1206 for legacy compatibility only
 
 Quota Cascade (try in order when rate-limited):
-1. gemini-3.1-flash-image-preview  (Nano Banana 2)   — primary   [thinking + search]
-2. gemini-3-pro-image-preview      (Nano Banana Pro) — secondary [thinking + search]
-3. gemini-2.5-flash-image          (Nano Banana)     — tertiary  [image-only; no search-as-tool]
+1. gemini-3.1-flash-image  (Nano Banana 2)   — primary   [thinking + search]
+2. gemini-3-pro-image      (Nano Banana Pro) — secondary [thinking + search]
+3. gemini-2.5-flash-image  (Nano Banana)     — tertiary  [image-only; no search-as-tool]
 """
 
 import dataclasses
@@ -190,8 +202,8 @@ class ModelProfile:
 
 # Model profile definitions
 MODEL_PROFILES: Dict[str, ModelProfile] = {
-    "gemini-3.1-flash-image-preview": ModelProfile(
-        model_name="gemini-3.1-flash-image-preview",
+    "gemini-3.1-flash-image": ModelProfile(
+        model_name="gemini-3.1-flash-image",
         display_name="Gemini 3.1 Flash Image (Nano Banana 2)",
         description=(
             "Google's high-efficiency image generation model with best speed/accuracy balance. "
@@ -251,8 +263,8 @@ MODEL_PROFILES: Dict[str, ModelProfile] = {
         ),
     ),
 
-    "gemini-3-pro-image-preview": ModelProfile(
-        model_name="gemini-3-pro-image-preview",
+    "gemini-3-pro-image": ModelProfile(
+        model_name="gemini-3-pro-image",
         display_name="Gemini 3 Pro Image (Nano Banana Pro)",
         description=(
             "Google's highest-quality image generation model with maximum reasoning depth. "
@@ -508,8 +520,8 @@ def get_optimal_config_for_model(
 RECOMMENDED_MODEL = get_recommended_model()
 
 # Model constants
-FLASH_MODEL = "gemini-3.1-flash-image-preview"              # Nano Banana 2 — fast + accurate (default)
-PRO_MODEL = "gemini-3-pro-image-preview"                    # Nano Banana Pro — maximum quality
+FLASH_MODEL = "gemini-3.1-flash-image"                      # Nano Banana 2 — fast + accurate (default)
+PRO_MODEL = "gemini-3-pro-image"                            # Nano Banana Pro — maximum quality
 NANO_BANANA_MODEL = "gemini-2.5-flash-image"                         # Nano Banana — quota fallback
 LEGACY_MODEL = "gemini-exp-1206"                            # Legacy compatibility
 

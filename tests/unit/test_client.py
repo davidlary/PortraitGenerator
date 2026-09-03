@@ -69,13 +69,16 @@ class TestPortraitClientInit:
         assert client.settings.gemini_model == "gemini-exp-1206"
 
     def test_init_default_model_is_flash(self, temp_output_dir):
-        """Test default model is gemini-3.1-flash-image-preview."""
+        """Test default model is gemini-3.1-flash-image (non-deprecated;
+        the "-preview" variant was deprecated 2026-06-25 and 404s on
+        Vertex AI generateContent calls despite still appearing in
+        models.list() -- confirmed live 2026-09-03)."""
         client = PortraitClient(
             api_key=TEST_API_KEY,
             output_dir=temp_output_dir,
         )
 
-        assert client.settings.gemini_model == "gemini-3.1-flash-image-preview"
+        assert client.settings.gemini_model == "gemini-3.1-flash-image"
 
 
 class TestPortraitClientGenerate:

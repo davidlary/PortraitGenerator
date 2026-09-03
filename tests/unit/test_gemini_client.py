@@ -54,9 +54,40 @@ class TestGeminiImageClientInit:
             GeminiImageClient(api_key="short")
 
     def test_init_default_model(self) -> None:
-        """Test default model is gemini-3.1-flash-image-preview (Nano Banana 2)."""
+        """Test default model resolves to gemini-3.1-flash-image (Nano
+        Banana 2) -- the auto (model=None) path defers to discovery, which
+        falls back to the static QUOTA_CASCADE's primary entry when a fake
+        API key can't actually list live models, as in this test."""
         client = GeminiImageClient(api_key="test_api_key_1234567890")
-        assert client.model == "gemini-3.1-flash-image-preview"
+        assert client.model == "gemini-3.1-flash-image"
+
+    def test_init_never_selects_a_known_deprecated_model(self) -> None:
+        """Regression test: gemini-3.1-flash-image-preview and
+        gemini-3-pro-image-preview were deprecated (shutdown 2026-06-25)
+        but still appeared in a live models.list() response as stale
+        catalog entries while actually 404ing on generateContent via
+        Vertex AI -- confirmed live 2026-09-03. Neither the auto-selected
+        primary model nor anything in the cascade should ever be one of
+        these known-dead IDs, regardless of what discovery or the static
+        fallback returns."""
+        from portrait_generator.utils.gemini_client import _KNOWN_DEPRECATED_MODELS
+
+        client = GeminiImageClient(api_key="test_api_key_1234567890")
+        assert client.model not in _KNOWN_DEPRECATED_MODELS
+        assert not (set(client._model_cascade) & _KNOWN_DEPRECATED_MODELS)
+
+    def test_init_explicit_deprecated_model_is_ignored(self) -> None:
+        """Explicitly requesting a known-deprecated model ID must not be
+        honored -- it should log a warning and fall back to the
+        auto-discovered/static primary model instead of pinning a model
+        that will 404 at generation time."""
+        from portrait_generator.utils.gemini_client import _KNOWN_DEPRECATED_MODELS
+
+        client = GeminiImageClient(
+            api_key="test_api_key_1234567890",
+            model="gemini-3.1-flash-image-preview",
+        )
+        assert client.model not in _KNOWN_DEPRECATED_MODELS
 
     def test_init_custom_thinking_level(self) -> None:
         """Test custom thinking level for accuracy tuning."""
