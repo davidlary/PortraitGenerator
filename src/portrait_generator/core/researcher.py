@@ -116,18 +116,19 @@ class BiographicalResearcher:
 
             # Cross-validate and enrich with multi-source ground truth cascade
             # (Wikipedia REST → Wikipedia Search → Wikidata → DBpedia → Gemini)
+            has_context = bool(context)
             try:
                 # Pass Gemini client to enable Tier 5 (AI web search fallback)
                 verifier = GroundTruthVerifier(gemini_client=self.gemini_client)
                 ground_truth = verifier.fetch(search_name)  # use bare name for external lookup
                 # Always run cross-validate to log conflicts (even at low confidence)
-                conflicts = verifier.cross_validate(subject_data, ground_truth)
+                conflicts = verifier.cross_validate(subject_data, ground_truth, has_context=has_context)
                 if conflicts:
                     logger.warning(
                         f"Ground truth conflicts for '{name}': {conflicts}"
                     )
                 subject_data = verifier.enrich_subject_data(
-                    subject_data, ground_truth
+                    subject_data, ground_truth, has_context=has_context
                 )
                 logger.info(
                     f"Ground truth enriched: gender={subject_data.gender}, "
@@ -150,8 +151,16 @@ class BiographicalResearcher:
                     f"birth={bio['birth_year']}, death={bio.get('death_year')}, "
                     f"gender={bio.get('gender')}"
                 )
-            else:
-                # Auto-save high-confidence ground truth discoveries for future runs
+            elif not has_context:
+                # Auto-save high-confidence ground truth discoveries for future runs.
+                # Skipped entirely when the caller supplied disambiguating context:
+                # this does its own bare-name fetch(), the same context-blind lookup
+                # that can resolve a common/reused name to the WRONG person (confirmed
+                # live 2026-09-04 -- see enrich_subject_data()'s has_context branch).
+                # Persisting that wrong answer to the shared verified_biographies.yaml
+                # would silently corrupt every future lookup of this name, contexted
+                # or not, so auto-save only runs for the context-free path where a
+                # bare-name lookup is exactly what was intended.
                 try:
                     verifier_check = GroundTruthVerifier(gemini_client=self.gemini_client)
                     gt = verifier_check.fetch(name)

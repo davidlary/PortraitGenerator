@@ -154,6 +154,36 @@ class TestGroundTruthVerifierCrossValidate:
         conflicts = verifier.cross_validate(data, gt)
         assert any("alive" in c.lower() or "death" in c.lower() for c in conflicts)
 
+    def test_large_mismatch_with_context_labelled_as_collision(self, verifier, subject_data):
+        """Regression test for a confirmed-live incident (2026-09-04): a
+        common/reused name ("Robert Smith") with disambiguating context
+        supplied to Gemini still had its correct answer overridden by a
+        bare-name ground-truth lookup that resolved to a different person.
+        A >10-year conflict when has_context=True should be labelled as a
+        likely ground-truth-side collision, not "Gemini was wrong"."""
+        gt = GroundTruthResult(
+            name="Alan Turing",
+            gender="male",
+            birth_year=1990,  # >10 years off subject_data's 1912
+            confidence=0.9,
+        )
+        conflicts = verifier.cross_validate(subject_data, gt, has_context=True)
+        assert any("collision" in c.lower() for c in conflicts)
+
+    def test_small_mismatch_with_context_still_labelled_as_mismatch(self, verifier, subject_data):
+        """A small (<=10 year) conflict is still a plain mismatch even with
+        context supplied -- the collision label is reserved for large,
+        "obviously a different person" discrepancies."""
+        gt = GroundTruthResult(
+            name="Alan Turing",
+            gender="male",
+            birth_year=1905,  # 7 years off, within the "not a collision" band
+            confidence=0.9,
+        )
+        conflicts = verifier.cross_validate(subject_data, gt, has_context=True)
+        assert any("Birth year mismatch" in c for c in conflicts)
+        assert not any("collision" in c.lower() for c in conflicts)
+
 
 class TestGroundTruthVerifierEnrich:
     """Tests for enrich_subject_data() — pure logic, no network."""
@@ -223,6 +253,48 @@ class TestGroundTruthVerifierEnrich:
         )
         enriched = verifier.enrich_subject_data(subject_data, gt)
         assert enriched is subject_data or enriched.birth_year == subject_data.birth_year
+
+    def test_context_suppresses_override_on_large_discrepancy(self, verifier, subject_data):
+        """Regression test for a confirmed-live incident (2026-09-04):
+        regenerating "Robert Smith" (correct dates 1689-1768) with explicit
+        disambiguating context still baked in the wrong "1959" birth year,
+        because this override trusted a bare-name ground-truth lookup that
+        had resolved to an unrelated, modern "Robert Smith" over Gemini's
+        correctly-contexted answer. When has_context=True and the gap is
+        large (>10 years), the override must be skipped."""
+        gt = GroundTruthResult(
+            name="Alan Turing",
+            gender="male",
+            birth_year=1990,  # wildly different -- looks like a different person
+            confidence=0.9,   # high confidence, would normally always override
+        )
+        enriched = verifier.enrich_subject_data(subject_data, gt, has_context=True)
+        assert enriched.birth_year == 1912  # original Gemini answer preserved
+
+    def test_without_context_large_discrepancy_still_overrides(self, verifier, subject_data):
+        """Same large discrepancy, but no context was supplied -- the
+        original "obviously wrong, override anyway" behavior must be
+        preserved for the plain (no-context) research path."""
+        gt = GroundTruthResult(
+            name="Alan Turing",
+            gender="male",
+            birth_year=1990,
+            confidence=0.9,
+        )
+        enriched = verifier.enrich_subject_data(subject_data, gt, has_context=False)
+        assert enriched.birth_year == 1990
+
+    def test_context_does_not_suppress_override_on_small_discrepancy(self, verifier, subject_data):
+        """A small (<=10 year) discrepancy with context supplied is still a
+        normal correction, not a suspected collision -- override proceeds."""
+        gt = GroundTruthResult(
+            name="Alan Turing",
+            gender="male",
+            birth_year=1913,  # 1 year off
+            confidence=0.9,
+        )
+        enriched = verifier.enrich_subject_data(subject_data, gt, has_context=True)
+        assert enriched.birth_year == 1913
 
 
 # ---------------------------------------------------------------------------

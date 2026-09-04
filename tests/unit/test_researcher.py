@@ -149,6 +149,182 @@ class TestResearchSubject:
 
         assert captured["context"] is None
 
+    def test_research_subject_passes_has_context_to_ground_truth(self, researcher, monkeypatch):
+        """Regression test for a confirmed-live incident (2026-09-04):
+        regenerating people with disambiguating context still had their
+        correct, context-aware Gemini answer silently overridden by a
+        bare-name ground-truth lookup that resolved to a different person
+        (e.g. "Robert Smith" got a modern namesake's 1959 birth year instead
+        of the 1689-1768 mathematician). cross_validate()/enrich_subject_data()
+        must be called with has_context=True whenever the caller supplied
+        context -- hermetic test, mocks GroundTruthVerifier entirely."""
+        import portrait_generator.core.researcher as researcher_module
+
+        captured = {}
+
+        def fake_create_prompt(name, context=None):
+            return "PROMPT"
+
+        def fake_query_gemini(prompt):
+            return (
+                "FULL NAME: Robert Smith\n"
+                "BIRTH YEAR: 1689\n"
+                "DEATH YEAR: 1768\n"
+                "ERA: 18th Century\n"
+                "APPEARANCE NOTES:\n- period attire\n"
+                "HISTORICAL CONTEXT: English mathematician, Plumian Professor.\n"
+            )
+
+        class FakeGroundTruthResult:
+            confidence = 0.0
+            birth_year = None
+            death_year = None
+            gender = "unknown"
+            source = "none"
+
+        class FakeVerifier:
+            def __init__(self, gemini_client=None):
+                pass
+
+            def fetch(self, name):
+                return FakeGroundTruthResult()
+
+            def cross_validate(self, subject_data, ground_truth, has_context=False):
+                captured["cross_validate_has_context"] = has_context
+                return []
+
+            def enrich_subject_data(self, subject_data, ground_truth, has_context=False):
+                captured["enrich_has_context"] = has_context
+                return subject_data
+
+        monkeypatch.setattr(researcher, "_create_research_prompt", fake_create_prompt)
+        monkeypatch.setattr(researcher, "_query_gemini", fake_query_gemini)
+        monkeypatch.setattr(researcher_module, "GroundTruthVerifier", FakeVerifier)
+
+        researcher.research_subject(
+            "Robert Smith",
+            context="English mathematician, Plumian Professor, 1689-1768",
+        )
+
+        assert captured["cross_validate_has_context"] is True
+        assert captured["enrich_has_context"] is True
+
+    def test_research_subject_skips_autosave_when_context_given(self, researcher, monkeypatch):
+        """Regression test for the auto-save half of the same incident: even
+        after the enrich-time fix, a SEPARATE bare-name fetch() at the
+        auto-save step could still persist a wrong-person's dates into the
+        shared, cross-project verified_biographies.yaml. That auto-save must
+        be skipped entirely whenever context was supplied -- context-driven
+        lookups should never write to the unscoped, bare-name-keyed store."""
+        import portrait_generator.core.researcher as researcher_module
+
+        save_calls = []
+
+        def fake_create_prompt(name, context=None):
+            return "PROMPT"
+
+        def fake_query_gemini(prompt):
+            return (
+                "FULL NAME: Robert Smith\n"
+                "BIRTH YEAR: 1689\n"
+                "DEATH YEAR: 1768\n"
+                "ERA: 18th Century\n"
+                "APPEARANCE NOTES:\n- period attire\n"
+                "HISTORICAL CONTEXT: English mathematician.\n"
+            )
+
+        class FakeGroundTruthResult:
+            confidence = 0.95
+            birth_year = 1959  # a DIFFERENT, wrong person's bare-name match
+            death_year = None
+            gender = "male"
+            source = "wikipedia"
+
+        class FakeVerifier:
+            def __init__(self, gemini_client=None):
+                pass
+
+            def fetch(self, name):
+                return FakeGroundTruthResult()
+
+            def cross_validate(self, subject_data, ground_truth, has_context=False):
+                return []
+
+            def enrich_subject_data(self, subject_data, ground_truth, has_context=False):
+                return subject_data
+
+        monkeypatch.setattr(researcher, "_create_research_prompt", fake_create_prompt)
+        monkeypatch.setattr(researcher, "_query_gemini", fake_query_gemini)
+        monkeypatch.setattr(researcher_module, "GroundTruthVerifier", FakeVerifier)
+        monkeypatch.setattr(researcher_module, "_load_verified_biographies", lambda: {})
+        monkeypatch.setattr(
+            researcher_module, "_save_verified_biography",
+            lambda **kwargs: save_calls.append(kwargs),
+        )
+
+        researcher.research_subject(
+            "Robert Smith",
+            context="English mathematician, Plumian Professor, 1689-1768",
+        )
+
+        assert save_calls == []
+
+    def test_research_subject_still_autosaves_without_context(self, researcher, monkeypatch):
+        """The context-free path (no disambiguation needed/supplied) must
+        keep its original auto-save behavior -- this fix only scopes the
+        skip to the has_context branch, it doesn't remove auto-save
+        entirely."""
+        import portrait_generator.core.researcher as researcher_module
+
+        save_calls = []
+
+        def fake_create_prompt(name, context=None):
+            return "PROMPT"
+
+        def fake_query_gemini(prompt):
+            return (
+                "FULL NAME: Albert Einstein\n"
+                "BIRTH YEAR: 1879\n"
+                "DEATH YEAR: 1955\n"
+                "ERA: 20th Century\n"
+                "APPEARANCE NOTES:\n- wild hair\n"
+                "HISTORICAL CONTEXT: Physicist.\n"
+            )
+
+        class FakeGroundTruthResult:
+            confidence = 0.95
+            birth_year = 1879
+            death_year = 1955
+            gender = "male"
+            source = "wikipedia"
+
+        class FakeVerifier:
+            def __init__(self, gemini_client=None):
+                pass
+
+            def fetch(self, name):
+                return FakeGroundTruthResult()
+
+            def cross_validate(self, subject_data, ground_truth, has_context=False):
+                return []
+
+            def enrich_subject_data(self, subject_data, ground_truth, has_context=False):
+                return subject_data
+
+        monkeypatch.setattr(researcher, "_create_research_prompt", fake_create_prompt)
+        monkeypatch.setattr(researcher, "_query_gemini", fake_query_gemini)
+        monkeypatch.setattr(researcher_module, "GroundTruthVerifier", FakeVerifier)
+        monkeypatch.setattr(researcher_module, "_load_verified_biographies", lambda: {})
+        monkeypatch.setattr(
+            researcher_module, "_save_verified_biography",
+            lambda **kwargs: save_calls.append(kwargs),
+        )
+
+        researcher.research_subject("Albert Einstein")
+
+        assert len(save_calls) == 1
+        assert save_calls[0]["name"] == "Albert Einstein"
+
     @_SKIP_NO_KEY
     def test_research_subject_success(self) -> None:
         """Test successful subject research with real API."""

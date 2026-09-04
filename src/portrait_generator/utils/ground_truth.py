@@ -159,8 +159,21 @@ class GroundTruthVerifier:
         )
         return result
 
-    def cross_validate(self, subject_data, ground_truth: GroundTruthResult) -> List[str]:
+    def cross_validate(
+        self, subject_data, ground_truth: GroundTruthResult, has_context: bool = False
+    ) -> List[str]:
         """Compare Gemini research output against ground-truth facts.
+
+        Args:
+            has_context: True if the caller supplied disambiguating context
+                (field/era/role/dates) to the Gemini research step. A large
+                birth-year conflict under this condition is reported as a
+                likely GROUND-TRUTH-SIDE collision, not a Gemini error --
+                fetch() is a bare-name lookup with no disambiguation ability,
+                so for a common/reused name it can resolve to a different
+                person than the one Gemini was told about. See
+                enrich_subject_data()'s matching has_context branch, which
+                this labelling is designed to explain.
 
         Returns:
             List of human-readable conflict descriptions (empty = no conflicts).
@@ -174,8 +187,13 @@ class GroundTruthVerifier:
         if ground_truth.birth_year and subject_data.birth_year:
             diff = abs(ground_truth.birth_year - subject_data.birth_year)
             if diff > 2:
+                label = (
+                    "likely ground-truth-side name collision (context was supplied)"
+                    if has_context and diff > 10
+                    else "Birth year mismatch"
+                )
                 conflicts.append(
-                    f"Birth year mismatch: Gemini says {subject_data.birth_year}, "
+                    f"{label}: Gemini says {subject_data.birth_year}, "
                     f"ground truth says {ground_truth.birth_year} (diff={diff}, "
                     f"source={ground_truth.source})"
                 )
@@ -209,7 +227,7 @@ class GroundTruthVerifier:
 
         return conflicts
 
-    def enrich_subject_data(self, subject_data, ground_truth: GroundTruthResult):
+    def enrich_subject_data(self, subject_data, ground_truth: GroundTruthResult, has_context: bool = False):
         """Return enriched SubjectData using ground-truth where more reliable.
 
         Override logic:
@@ -217,6 +235,21 @@ class GroundTruthVerifier:
           - Dates overridden if confidence >= 0.5 AND discrepancy > 10 years (obviously wrong)
           - Gender always overridden when ground truth is confident
           - Wikipedia photo URL always injected into reference_sources (for cascade Tier 3)
+
+        Args:
+            has_context: True if the caller supplied disambiguating context to
+                the Gemini research step. fetch() is a bare-name lookup with
+                no disambiguation input -- for a common/reused name (e.g.
+                "Robert Smith", "Michael Stein") it can silently resolve to a
+                DIFFERENT person than the one Gemini was told about. Confirmed
+                live 2026-09-04: regenerating several Codex figures with
+                correct disambiguating context still baked in wrong overlay
+                dates, because this override trusted the context-blind ground
+                truth over the context-aware Gemini answer. When has_context
+                is True and the discrepancy is large (>10 years -- the
+                "obviously wrong" threshold below), it is now treated as a
+                likely ground-truth-side collision and the override is
+                skipped, not applied.
         """
         if ground_truth.confidence < 0.5:
             return subject_data
@@ -236,6 +269,22 @@ class GroundTruthVerifier:
                         f"Gemini={subject_data.birth_year}, ground_truth={ground_truth.birth_year} "
                         f"(diff={year_diff} years, confidence={ground_truth.confidence:.2f})"
                     )
+            if should_override and has_context and subject_data.birth_year:
+                year_diff = abs(ground_truth.birth_year - subject_data.birth_year)
+                if year_diff > 10:
+                    # Caller gave disambiguating context and Gemini's answer
+                    # is wildly different from the bare-name ground truth --
+                    # trust the context-aware answer, since the ground-truth
+                    # cascade has no way to know it may have resolved to a
+                    # different same-named person.
+                    logger.warning(
+                        f"NOT overriding birth year for '{subject_data.name}': disambiguating "
+                        f"context was supplied and the {year_diff}-year discrepancy vs. the "
+                        f"bare-name ground truth (Gemini={subject_data.birth_year}, "
+                        f"ground_truth={ground_truth.birth_year}) looks like a ground-truth-side "
+                        f"name collision, not a Gemini error."
+                    )
+                    should_override = False
             if should_override:
                 updates["birth_year"] = ground_truth.birth_year
                 if ground_truth.death_year is not None:
