@@ -166,14 +166,17 @@ class GroundTruthVerifier:
 
         Args:
             has_context: True if the caller supplied disambiguating context
-                (field/era/role/dates) to the Gemini research step. A large
+                (field/era/role/dates) to the Gemini research step. ANY
                 birth-year conflict under this condition is reported as a
-                likely GROUND-TRUTH-SIDE collision, not a Gemini error --
-                fetch() is a bare-name lookup with no disambiguation ability,
-                so for a common/reused name it can resolve to a different
-                person than the one Gemini was told about. See
-                enrich_subject_data()'s matching has_context branch, which
-                this labelling is designed to explain.
+                likely GROUND-TRUTH-SIDE resolution mismatch, not a Gemini
+                error -- fetch() is a bare-name lookup with no disambiguation
+                ability, so for a common/reused OR merely incomplete name
+                (e.g. surname-only "Goldstine") it can resolve to a different
+                person than the one Gemini was told about, even by a small
+                margin (confirmed live 2026-09-05: a 7-year "Goldstine"
+                mismatch was still a wrong-person resolution, not a rounding
+                difference). See enrich_subject_data()'s matching has_context
+                branch, which this labelling is designed to explain.
 
         Returns:
             List of human-readable conflict descriptions (empty = no conflicts).
@@ -188,8 +191,8 @@ class GroundTruthVerifier:
             diff = abs(ground_truth.birth_year - subject_data.birth_year)
             if diff > 2:
                 label = (
-                    "likely ground-truth-side name collision (context was supplied)"
-                    if has_context and diff > 10
+                    "likely ground-truth-side name resolution mismatch (context was supplied)"
+                    if has_context
                     else "Birth year mismatch"
                 )
                 conflicts.append(
@@ -239,17 +242,25 @@ class GroundTruthVerifier:
         Args:
             has_context: True if the caller supplied disambiguating context to
                 the Gemini research step. fetch() is a bare-name lookup with
-                no disambiguation input -- for a common/reused name (e.g.
-                "Robert Smith", "Michael Stein") it can silently resolve to a
-                DIFFERENT person than the one Gemini was told about. Confirmed
-                live 2026-09-04: regenerating several Codex figures with
-                correct disambiguating context still baked in wrong overlay
-                dates, because this override trusted the context-blind ground
-                truth over the context-aware Gemini answer. When has_context
-                is True and the discrepancy is large (>10 years -- the
-                "obviously wrong" threshold below), it is now treated as a
-                likely ground-truth-side collision and the override is
-                skipped, not applied.
+                no disambiguation input -- for a common/reused, or even just
+                incomplete (e.g. surname-only "Goldstine" instead of "Herman
+                Goldstine"), name it can silently resolve to a DIFFERENT
+                person than the one Gemini was told about. Confirmed live
+                2026-09-04 and again 2026-09-05: regenerating Codex figures
+                with correct disambiguating context still baked in wrong
+                overlay dates, because ANY discrepancy -- not just large ones
+                -- was overridden whenever ground-truth confidence was merely
+                >=0.7, regardless of has_context (the initial 2026-09-04 fix
+                only guarded the separate moderate-confidence/>10-year
+                branch, missing this primary, more common path entirely;
+                Christopher Williams off-by-2 and "Goldstine" off-by-7 both
+                still failed under that incomplete fix). When has_context is
+                True, ANY nonzero discrepancy is now treated as the
+                context-aware Gemini answer being at least as trustworthy as
+                a context-blind lookup, and the override is skipped
+                entirely -- a caller who bothered to supply verified
+                disambiguating context has already done better identity
+                resolution than a bare-name API call ever can.
         """
         if ground_truth.confidence < 0.5:
             return subject_data
@@ -271,18 +282,14 @@ class GroundTruthVerifier:
                     )
             if should_override and has_context and subject_data.birth_year:
                 year_diff = abs(ground_truth.birth_year - subject_data.birth_year)
-                if year_diff > 10:
-                    # Caller gave disambiguating context and Gemini's answer
-                    # is wildly different from the bare-name ground truth --
-                    # trust the context-aware answer, since the ground-truth
-                    # cascade has no way to know it may have resolved to a
-                    # different same-named person.
+                if year_diff > 0:
                     logger.warning(
                         f"NOT overriding birth year for '{subject_data.name}': disambiguating "
-                        f"context was supplied and the {year_diff}-year discrepancy vs. the "
-                        f"bare-name ground truth (Gemini={subject_data.birth_year}, "
-                        f"ground_truth={ground_truth.birth_year}) looks like a ground-truth-side "
-                        f"name collision, not a Gemini error."
+                        f"context was supplied and the ground truth disagrees by {year_diff} "
+                        f"year(s) (Gemini={subject_data.birth_year}, "
+                        f"ground_truth={ground_truth.birth_year}) -- trusting the context-aware "
+                        f"answer over a bare-name lookup that cannot confirm it resolved to the "
+                        f"same person."
                     )
                     should_override = False
             if should_override:

@@ -154,13 +154,13 @@ class TestGroundTruthVerifierCrossValidate:
         conflicts = verifier.cross_validate(data, gt)
         assert any("alive" in c.lower() or "death" in c.lower() for c in conflicts)
 
-    def test_large_mismatch_with_context_labelled_as_collision(self, verifier, subject_data):
+    def test_large_mismatch_with_context_labelled_as_mismatch(self, verifier, subject_data):
         """Regression test for a confirmed-live incident (2026-09-04): a
         common/reused name ("Robert Smith") with disambiguating context
         supplied to Gemini still had its correct answer overridden by a
         bare-name ground-truth lookup that resolved to a different person.
-        A >10-year conflict when has_context=True should be labelled as a
-        likely ground-truth-side collision, not "Gemini was wrong"."""
+        A conflict when has_context=True should be labelled as a likely
+        ground-truth-side resolution mismatch, not "Gemini was wrong"."""
         gt = GroundTruthResult(
             name="Alan Turing",
             gender="male",
@@ -168,21 +168,23 @@ class TestGroundTruthVerifierCrossValidate:
             confidence=0.9,
         )
         conflicts = verifier.cross_validate(subject_data, gt, has_context=True)
-        assert any("collision" in c.lower() for c in conflicts)
+        assert any("ground-truth-side" in c.lower() for c in conflicts)
 
-    def test_small_mismatch_with_context_still_labelled_as_mismatch(self, verifier, subject_data):
-        """A small (<=10 year) conflict is still a plain mismatch even with
-        context supplied -- the collision label is reserved for large,
-        "obviously a different person" discrepancies."""
+    def test_small_mismatch_with_context_also_labelled_as_resolution_mismatch(self, verifier, subject_data):
+        """Regression test for a confirmed-live incident (2026-09-05): a
+        SMALL (7-year) conflict on an incomplete/surname-only name
+        ("Goldstine") was still a wrong-person ground-truth resolution, not
+        a rounding difference -- any nonzero conflict with context supplied
+        is now labelled as a likely ground-truth-side mismatch, not
+        "Gemini was wrong", regardless of magnitude."""
         gt = GroundTruthResult(
             name="Alan Turing",
             gender="male",
-            birth_year=1905,  # 7 years off, within the "not a collision" band
+            birth_year=1905,  # 7 years off
             confidence=0.9,
         )
         conflicts = verifier.cross_validate(subject_data, gt, has_context=True)
-        assert any("Birth year mismatch" in c for c in conflicts)
-        assert not any("collision" in c.lower() for c in conflicts)
+        assert any("ground-truth-side" in c.lower() for c in conflicts)
 
 
 class TestGroundTruthVerifierEnrich:
@@ -260,8 +262,8 @@ class TestGroundTruthVerifierEnrich:
         disambiguating context still baked in the wrong "1959" birth year,
         because this override trusted a bare-name ground-truth lookup that
         had resolved to an unrelated, modern "Robert Smith" over Gemini's
-        correctly-contexted answer. When has_context=True and the gap is
-        large (>10 years), the override must be skipped."""
+        correctly-contexted answer. When has_context=True, the override
+        must be skipped."""
         gt = GroundTruthResult(
             name="Alan Turing",
             gender="male",
@@ -284,16 +286,36 @@ class TestGroundTruthVerifierEnrich:
         enriched = verifier.enrich_subject_data(subject_data, gt, has_context=False)
         assert enriched.birth_year == 1990
 
-    def test_context_does_not_suppress_override_on_small_discrepancy(self, verifier, subject_data):
-        """A small (<=10 year) discrepancy with context supplied is still a
-        normal correction, not a suspected collision -- override proceeds."""
+    def test_context_suppresses_override_on_small_discrepancy_too(self, verifier, subject_data):
+        """Regression test for a confirmed-live incident (2026-09-05): a
+        SMALL (7-year) discrepancy on an incomplete/surname-only name
+        ("Goldstine") was still baked in as wrong -- the ground truth had
+        resolved to a different Goldstine, not merely rounded differently.
+        The initial 2026-09-04 fix only suppressed overrides for the
+        moderate-confidence + >10-year branch, missing the far more common
+        confidence>=0.7 primary branch entirely. ANY discrepancy with
+        has_context=True must now skip the override, not just large ones."""
+        gt = GroundTruthResult(
+            name="Alan Turing",
+            gender="male",
+            birth_year=1905,  # only 7 years off -- previously still overrode
+            confidence=0.9,
+        )
+        enriched = verifier.enrich_subject_data(subject_data, gt, has_context=True)
+        assert enriched.birth_year == 1912  # original Gemini answer preserved
+
+    def test_without_context_small_discrepancy_still_overrides(self, verifier, subject_data):
+        """The context-free path's existing behavior (any discrepancy
+        overrides at confidence>=0.7) must be unchanged -- this fix only
+        adds a has_context escape hatch, it doesn't change the no-context
+        default."""
         gt = GroundTruthResult(
             name="Alan Turing",
             gender="male",
             birth_year=1913,  # 1 year off
             confidence=0.9,
         )
-        enriched = verifier.enrich_subject_data(subject_data, gt, has_context=True)
+        enriched = verifier.enrich_subject_data(subject_data, gt, has_context=False)
         assert enriched.birth_year == 1913
 
 
