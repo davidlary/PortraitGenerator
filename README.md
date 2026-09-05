@@ -268,6 +268,8 @@ result = client.generate(
     "Richard Southwell",
     context="Tudor courtier under Henry VIII, 1502-1564",
 )
+# See "Context vs. ground-truth verification" below for why supplying
+# context also changes how Wikipedia/Wikidata disagreements are handled.
 
 # Batch generation (paintings by default)
 subjects = ["Alan Turing", "Grace Hopper", "Claude Shannon"]
@@ -277,6 +279,46 @@ results = client.generate_batch(subjects)
 status = client.check_status("Albert Einstein")
 print(f"Painting exists: {status['Painting']}")
 ```
+
+### Context vs. ground-truth verification
+
+When a caller supplies disambiguating `context` to `PortraitClient.generate()`
+(or `--context` on the CLI), that context flows into `BiographicalResearcher`
+and Gemini uses it to identify the correct specific person rather than
+whichever person a bare name most commonly refers to.
+
+Ground-truth cross-checking (`GroundTruthVerifier`, Wikipedia → Wikidata →
+DBpedia → Gemini cascade in `ground_truth.py`) runs afterward regardless —
+but its own lookup (`fetch()`) is always a **bare-name** lookup with no
+disambiguation input of its own. If that lookup's result disagrees with
+Gemini's context-aware research, the disagreement is now treated as a likely
+**ground-truth-side name-resolution mismatch**, not a Gemini error — and this
+holds for **any** nonzero discrepancy, not just large ones. `cross_validate()`
+and `enrich_subject_data()` both take a `has_context` flag for this reason:
+when `has_context=True`, `enrich_subject_data()` skips the date override
+entirely rather than trusting the context-blind ground-truth answer, because
+a bare-name lookup cannot verify it resolved to the *same* person as the
+disambiguated context.
+
+This closes a real gap left by an earlier, partial version of this fix: the
+first attempt (2026-09-04) only special-cased the moderate-confidence /
+>10-year-discrepancy override branch, so it still let *small* discrepancies
+through unguarded. Two confirmed-live incidents slipped through that
+incomplete fix before it was tightened (2026-09-05): a Christopher Williams
+regeneration still baked in a birth year off by 2 years, and a surname-only
+"Goldstine" lookup — which cannot distinguish Herman Goldstine from any other
+Goldstine Wikipedia happens to resolve the bare surname to — disagreed with
+the correct, context-aware answer by 7 years, and was still incorrectly
+allowed to override it under the old logic. Under the current logic, any
+nonzero disagreement while `has_context=True` is logged and skipped rather
+than applied.
+
+Practical implication: if you have independently verified dates for someone
+with a common/reused or otherwise ambiguous name, pass them via `context`
+(or pre-seed `verified_biographies.yaml`, which outranks both Gemini and
+ground truth) rather than relying on the ground-truth cascade to catch a
+disagreement — once you've supplied context, the cascade will defer to your
+context-aware result instead of silently overriding it.
 
 ### CLI Usage
 
