@@ -467,6 +467,12 @@ _LOCAL_REFERENCE_FILES: Dict[str, list] = {
     # John F.R. Kerr (1934-2019): Australian pathologist who coined "apoptosis"
     # Note: John Kerr the physicist (1824-1907) is a different person - use only local ref
     "John Kerr": ["JohnFRKerr.jpg"],
+    # Yoshikazu ("Yoshi") Sasaki (1927-2015): OU meteorology co-founder, introduced
+    # variational objective analysis in 1958. No automated-search tier (Wikidata/
+    # Wikipedia/Commons) has a photo of him; this is a real photo captioned "Yoshi
+    # Sasaki. Gil Jain" from a Sooner Magazine feature (oufoundation.org), confirmed
+    # by direct page inspection 2026-09-22.
+    "Yoshikazu Sasaki": ["YoshikazuSasaki.jpg"],
 }
 
 # ---------------------------------------------------------------------------
