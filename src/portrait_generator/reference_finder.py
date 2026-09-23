@@ -473,6 +473,28 @@ _LOCAL_REFERENCE_FILES: Dict[str, list] = {
     # Sasaki. Gil Jain" from a Sooner Magazine feature (oufoundation.org), confirmed
     # by direct page inspection 2026-09-22.
     "Yoshikazu Sasaki": ["YoshikazuSasaki.jpg"],
+    # IvyBee team (ivybee.com/team) + Walter Voit's father Eberhard Voit: 2026-09-22
+    # incident -- PortraitClient's own automated reference search reported
+    # reference_images_found=0 for this ENTIRE batch and fabricated wrong likenesses
+    # (wrong hair, wrong face, added glasses/beards that don't exist) despite every
+    # one of these people having a real, directly-linked bio photo on ivybee.com/team
+    # itself (a page the generator's own biographical research had already fetched
+    # for facts, but never checked for images). Registered here as ground truth so
+    # regenerating these people's portraits produces an accurate oil painting instead
+    # of a fabricated one.
+    "Walter Voit": ["WalterVoit.jpg"],
+    "Eberhard Voit": ["EberhardVoit.jpg"],
+    "Ellery Buchanan": ["ElleryBuchanan.jpg"],
+    "Dhruv Narayanan": ["DhruvNarayanan.jpg"],
+    "Eric Kildebeck": ["EricKildebeck.jpg"],
+    "Derek Buchanan": ["DerekBuchanan.png"],
+    "Joe Steininger": ["JoeSteininger.jpg"],
+    "Chris Friend": ["ChrisFriend.jpg"],
+    "Andrew Morrissey": ["AndrewMorrissey.jpg"],
+    "James Murphy": ["JamesMurphy.jpg"],
+    "Daniel Olivença": ["DanielOlivenca.jpg"],
+    "Kevin Ong": ["KevinOng.jpg"],
+    "Eric Parker": ["EricParker.jpg"],
 }
 
 # ---------------------------------------------------------------------------
