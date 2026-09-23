@@ -423,6 +423,13 @@ _LOCAL_REFERENCE_DIR = Path(__file__).parent.parent.parent / "ExampleReferenceIm
 # Mapping: canonical subject name → list of filenames in _LOCAL_REFERENCE_DIR
 # Files listed first = highest priority (prefer non-flipped originals)
 _LOCAL_REFERENCE_FILES: Dict[str, list] = {
+    "Michael Ryan Davis": ["Michael_Ryan_Davis.jpg"],
+    "Robert Hill (known as Robin Hill)": ["Robert_Hill__known_as_Robin_Hill.jpg"],
+    "Nikolai Sergeyevich Korotkov": ["Nikolai_Sergeyevich_Korotkov.jpg"],
+    "Nikolay Nikolayevich Semyonov": ["Nikolay_Nikolayevich_Semyonov.jpg"],
+    "Frank Lloyd Wright": ["Frank_Lloyd_Wright.jpg"],
+    "Eva Nogales": ["Eva_Nogales.jpg"],
+    "Blanca Rodríguez": ["Blanca_Rodríguez.jpg"],
     "Ruben Juanes": ["Ruben_Juanes.jpg"],
     "Allison Pugh": ["Allison_Pugh.jpg"],
     "Kenneth Austin Dill": ["Kenneth_Austin_Dill.png"],
@@ -548,6 +555,14 @@ _NAME_COLLISION_SUBJECTS: set = {
     # George Green, per Wikimedia Commons File:George_Green_(English_shipbuilder).jpg,
     # "a shipbuilder from Poplar") -- confirmed 2026-08-26 during Codex portrait batch work.
     "George Green",
+    # Blanca Rodríguez, Professor of Computational Medicine at Oxford (cardiac modeling,
+    # Virtual Assay software) collides with "Blanca Rodríguez de Pérez" (1926-2020), a
+    # former First Lady of Venezuela, on both Wikipedia and Commons. Tier 3/Tier 8 returned
+    # the First Lady's photo and ground-truth birth/death years (1926/2020, later mutated to
+    # a "2003-Present" fact-check artifact) instead of the Oxford scientist's -- confirmed
+    # 2026-09-23 during CODEX batch verification when the generated painting visibly did not
+    # match the scientist's real photo registered in ExampleReferenceImages/.
+    "Blanca Rodríguez",
 }
 
 
