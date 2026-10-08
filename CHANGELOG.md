@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.9.0] - 2026-10-08
+
+### Changed
+- **Model selection now comes from the shared image-model ladder** (private
+  package `image-model-ladder`, https://github.com/davidlary/ImageModelLadder,
+  checkout `~/Dropbox/Environments/Code/ImageModelLadder`; shared with
+  GraphicCreationSystem and CreateOpenStaxSlidesV2). `get_recommended_model()`,
+  `RECOMMENDED_MODEL`, `DEFAULT_MODEL`, `Settings.gemini_model`'s default and
+  `QUOTA_CASCADE` all derive from its measured record (today: production
+  `gemini-3-pro-image`, fallback `gemini-nano-banana-2.1`). The record is
+  probed (accepts `thinking_config`, renders native 4K), checked against the
+  live Vertex catalog and Google's lifecycle page, and refreshed daily.
+- `gemini-3.1-flash-image` (recommended since 2.2.0) was **deprecated by Google
+  on 2026-10-06**; it is no longer recommended and is blocked from selection
+  (profile kept for history). `gemini-2.5-flash-image` (rejects thinking) is
+  no longer a quota fallback: the cascade is thinking models only.
+- `GeminiImageClient` discovery keeps only models the shared ladder allows,
+  ordered shared ladder first; an explicit `model=` pin of a blocked model is
+  ignored with a warning (as deprecated `-preview` ids already were).
+
+### Added
+- `portrait_generator.config.model_ladder` (`shared_production_model`,
+  `shared_cascade`, `shared_allowed_models`, `shared_blocked_models`,
+  `enforce_shared_ladder`) and a `gemini-nano-banana-2.1` profile.
+- **Runtime policy gate**: `PortraitClient(...)` and `GeminiImageClient(...)`
+  raise `image_model_ladder.LadderPolicyError` (no generation) if the shared
+  ladder violates policy. Unit tests set `IMAGE_MODEL_LADDER_LIVE_CHECK=0`
+  (`tests/conftest.py`); the offline record check still runs.
+- `tests/unit/test_model_ladder.py`.
+
+### Fixed
+- `test_generate_image_api_error` / `test_validate_connection_failure` failed
+  whenever `GOOGLE_GENAI_USE_VERTEXAI` was set (Vertex ADC auth ignores the
+  deliberately invalid API key); they now force AI-Studio auth.
+
+### Compatibility
+- All public names in `config.model_configs` / `config.settings` are kept
+  (`FLASH_MODEL`, `PRO_MODEL`, `NANO_BANANA_MODEL`, `LEGACY_MODEL`,
+  `QUOTA_CASCADE`, `DEFAULT_MODEL`, `RECOMMENDED_MODEL`, `is_recommended`);
+  only the selected values changed. Requires the shared package: editable
+  install in the base-env venv (`ImageModelLadder/scripts/install.sh`) or the
+  Dropbox checkout path, which is used automatically as a fallback.
+
+---
+
 ## [2.8.0] - 2026-03-09
 
 ### Added

@@ -16,26 +16,35 @@ The non-"-preview" names below are the current stable replacements,
 confirmed working on both AI Studio and Vertex AI.
 
 Supported Models:
-- gemini-3.1-flash-image: Fast, high-efficiency image model (Nano Banana 2) [RECOMMENDED]
+- gemini-3.1-flash-image: Nano Banana 2 -- DEPRECATED by Google 2026-10-06 (profile kept for pins)
+- gemini-nano-banana-2.1: GA thinking successor; shared-ladder fallback rung
+  [the recommended model is the SHARED ladder's production rung -- see model_ladder.py]
 - gemini-3-pro-image: Highest quality image model (Nano Banana Pro)
 - gemini-2.5-flash-image: Pure image model — no search-as-tool (Nano Banana) [quota fallback]
 - gemini-exp-1206: Previous experimental model (legacy)
 
-Model Selection Guide:
-- Use gemini-3.1-flash-image (default) for best speed + accuracy balance
-- Use gemini-3-pro-image for maximum quality on complex subjects
-- Use gemini-2.5-flash-image as quota fallback (pure image model; no tool/search support)
-- Use gemini-exp-1206 for legacy compatibility only
+Model Selection Guide (since 2.9.0 the SHARED image-model ladder decides;
+see config/model_ladder.py and github.com/davidlary/ImageModelLadder):
+- The default and the quota cascade come from the shared ladder record:
+  gemini-3-pro-image (production) -> gemini-nano-banana-2.1 (fallback), both
+  thinking-capable, native 4K, catalogued and probed within 30 days.
+- gemini-3.1-flash-image was DEPRECATED by Google 2026-10-06; an explicit pin
+  to it (or to any holdlisted / non-thinking / deprecated model) is ignored
+  with a warning and the shared production model is used instead.
+- gemini-2.5-flash-image rejects thinking (400) and is holdlisted; never used.
+- gemini-exp-1206 is legacy compatibility only.
 
-Quota Cascade (try in order when rate-limited):
-1. gemini-3.1-flash-image  (Nano Banana 2)   — primary   [thinking + search]
-2. gemini-3-pro-image      (Nano Banana Pro) — secondary [thinking + search]
-3. gemini-2.5-flash-image  (Nano Banana)     — tertiary  [image-only; no search-as-tool]
+Quota Cascade (shared ladder, try in order when rate-limited):
+1. gemini-3-pro-image      (Nano Banana Pro) — primary   [thinking + search + 4K]
+2. gemini-nano-banana-2.1  (Nano Banana 2.1) — secondary [thinking + search + 4K]
 """
 
 import dataclasses
+import logging
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, field
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -214,7 +223,12 @@ MODEL_PROFILES: Dict[str, ModelProfile] = {
             "Optimized for high-volume, production workloads."
         ),
         release_date="2026-02",
-        is_recommended=True,
+        # DEPRECATED by Google 2026-10-06 (replacement: gemini-nano-banana-2.1,
+        # shared ladder record). Profile kept for explicit pins / history only;
+        # the shared ladder never selects it. Was is_recommended=True until
+        # 2026-10-08 -- seven months on a deprecated model is exactly the
+        # failure the runtime-enforced shared ladder now prevents.
+        is_recommended=False,
         capabilities=ModelCapabilities(
             google_search_grounding=True,
             image_search_grounding=True,
@@ -239,6 +253,61 @@ MODEL_PROFILES: Dict[str, ModelProfile] = {
                 "1:4", "4:1", "1:8", "8:1",  # New extended ratios
             ],
             typical_generation_time=22.0,  # ~50% faster than Pro
+            supports_batch=True,
+            accuracy_tier="high",
+        ),
+        generation=GenerationConfig(
+            enable_pre_generation_checks=True,
+            enable_iterative_refinement=True,
+            max_internal_iterations=3,
+            quality_threshold=0.90,
+            confidence_threshold=0.85,
+            enable_search_grounding=True,
+            enable_reference_images=True,
+            max_reference_images_to_use=5,
+            max_generation_attempts=2,
+            enable_smart_retry=True,
+        ),
+        evaluation=EvaluationConfig(
+            use_holistic_reasoning=True,
+            reasoning_passes=2,
+            autonomous_error_detection=True,
+            visual_coherence_checking=True,
+            enable_fact_checking=True,
+        ),
+    ),
+
+    "gemini-nano-banana-2.1": ModelProfile(
+        model_name="gemini-nano-banana-2.1",
+        display_name="Gemini Nano Banana 2.1",
+        description=(
+            "Google's GA successor to gemini-3.1-flash-image (which was deprecated "
+            "2026-10-06). Thinking model, native 4K, Google Search grounding, "
+            "multi-image reference. Probed 2026-10-07 by the shared image-model "
+            "ladder: accepts thinking_config, renders 4K. Quota fallback rung "
+            "behind gemini-3-pro-image in the shared ladder."
+        ),
+        release_date="2026-10",
+        is_recommended=False,
+        capabilities=ModelCapabilities(
+            google_search_grounding=True,
+            image_search_grounding=True,
+            multi_image_reference=True,
+            max_reference_images=14,
+            internal_reasoning=True,
+            thinking_mode=True,
+            physics_aware_synthesis=True,
+            native_text_rendering=True,
+            international_text_rendering=True,
+            iterative_refinement=True,
+            supported_resolutions=["512x512", "1024x1024", "2048x2048", "4096x4096"],
+            max_resolution="4096x4096",
+            supported_aspect_ratios=[
+                "1:1", "3:4", "4:3", "9:16", "16:9",
+                "2:3", "3:2", "4:5", "5:4", "21:9",
+                "1:4", "4:1", "1:8", "8:1",
+            ],
+            typical_generation_time=22.0,
             supports_batch=True,
             accuracy_tier="high",
         ),
@@ -438,21 +507,29 @@ def get_model_profile(model_name: str) -> ModelProfile:
             f"Available models: {available}"
         )
 
+    if model_name not in MODEL_PROFILES:
+        from .model_ladder import shared_cascade
+        if model_name in shared_cascade():  # a new shared rung without a profile yet
+            return dataclasses.replace(MODEL_PROFILES["gemini-3-pro-image"], model_name=model_name,
+                                       display_name=model_name, is_recommended=False)
     return MODEL_PROFILES[model_name]
 
 
 def get_recommended_model() -> str:
-    """Get the recommended model name.
+    """The production rung of the SHARED image-model ladder (measured:
+    thinking, native 4K, catalogued, not deprecated; see model_ladder.py).
 
-    Returns:
-        Name of the recommended model
+    ``is_recommended`` on a profile is no longer consulted for selection --
+    a hand-set flag is how a deprecated model stayed "recommended" for seven
+    months. If the shared production rung has no profile here, the Pro
+    profile is used as the capability template (same Gemini 3 family).
     """
-    for model_name, profile in MODEL_PROFILES.items():
-        if profile.is_recommended:
-            return model_name
-
-    # Fallback to first model if none marked as recommended
-    return list(MODEL_PROFILES.keys())[0]
+    from .model_ladder import shared_production_model
+    model = shared_production_model()
+    if model not in MODEL_PROFILES:
+        logger.warning(f"shared ladder production model {model!r} has no ModelProfile; "
+                       f"add one (using gemini-3-pro-image capabilities meanwhile)")
+    return model
 
 
 def list_available_models() -> List[str]:
@@ -516,17 +593,20 @@ def get_optimal_config_for_model(
     return dataclasses.replace(base_profile, generation=generation, evaluation=evaluation)
 
 
-# Export recommended model as constant
+# Export recommended model as constant (shared ladder production rung)
 RECOMMENDED_MODEL = get_recommended_model()
 
-# Model constants
-FLASH_MODEL = "gemini-3.1-flash-image"                      # Nano Banana 2 — fast + accurate (default)
-PRO_MODEL = "gemini-3-pro-image"                            # Nano Banana Pro — maximum quality
-NANO_BANANA_MODEL = "gemini-2.5-flash-image"                         # Nano Banana — quota fallback
-LEGACY_MODEL = "gemini-exp-1206"                            # Legacy compatibility
+# Model constants (names kept for backward compatibility; values are
+# historical ids -- selection is driven by the shared ladder, not by these)
+FLASH_MODEL = "gemini-3.1-flash-image"       # Nano Banana 2 -- DEPRECATED by Google 2026-10-06; never selected
+PRO_MODEL = "gemini-3-pro-image"             # Nano Banana Pro -- shared ladder production rung (2026-10-07 probe)
+NANO_BANANA_21_MODEL = "gemini-nano-banana-2.1"  # GA thinking fallback (replacement for FLASH_MODEL)
+NANO_BANANA_MODEL = "gemini-2.5-flash-image"  # Nano Banana -- rejects thinking (400); holdlisted, NEVER called
+LEGACY_MODEL = "gemini-exp-1206"             # Legacy compatibility
 
-# Quota cascade: try in order when rate-limited (each has its own daily quota bucket)
-QUOTA_CASCADE = [FLASH_MODEL, PRO_MODEL, NANO_BANANA_MODEL]
+# Quota cascade: the SHARED ladder (production + fallbacks), thinking models only.
+from .model_ladder import shared_cascade as _shared_cascade  # noqa: E402
+QUOTA_CASCADE = _shared_cascade()
 
-# Backwards compatibility alias
-DEFAULT_MODEL = FLASH_MODEL
+# Backwards compatibility alias (now the shared production rung, not FLASH_MODEL)
+DEFAULT_MODEL = RECOMMENDED_MODEL

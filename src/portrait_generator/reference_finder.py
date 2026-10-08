@@ -405,7 +405,7 @@ _CONFIRMED_URLS: Dict[str, Union[str, List[str]]] = {
 
 _HEADERS = {
     "User-Agent": (
-        "PortraitGenerator/2.8.0 "
+        "PortraitGenerator/2.9.0 "
         "(https://github.com/davidlary/PortraitGenerator; educational use)"
     )
 }
@@ -423,6 +423,9 @@ _LOCAL_REFERENCE_DIR = Path(__file__).parent.parent.parent / "ExampleReferenceIm
 # Mapping: canonical subject name → list of filenames in _LOCAL_REFERENCE_DIR
 # Files listed first = highest priority (prefer non-flipped originals)
 _LOCAL_REFERENCE_FILES: Dict[str, list] = {
+    "James Madison": ["James_Madison.jpg"],
+    "Sir Richard Timothy Hunt": ["Sir_Richard_Timothy_Hunt.jpg"],
+    "Sir Richard Timothy (Tim) Hunt": ["Sir_Richard_Timothy__Tim__Hunt.jpg"],
     "Michael Ryan Davis": ["Michael_Ryan_Davis.jpg"],
     "Robert Hill (known as Robin Hill)": ["Robert_Hill__known_as_Robin_Hill.jpg"],
     "Nikolai Sergeyevich Korotkov": ["Nikolai_Sergeyevich_Korotkov.jpg"],

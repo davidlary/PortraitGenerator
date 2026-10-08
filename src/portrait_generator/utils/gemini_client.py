@@ -51,6 +51,16 @@ _KNOWN_DEPRECATED_MODELS = frozenset(
 )
 
 
+def _blocked_models() -> frozenset:
+    """Static known-dead ids PLUS everything the SHARED ladder record blocks:
+    holdlisted, probed non-thinking (400 "thinking is not supported"), or
+    deprecated on Google's lifecycle page. Policy (2026-10-07): thinking
+    models only; a rung that rejects thinking is replaced, never run without
+    thinking."""
+    from ..config.model_ladder import shared_blocked_models
+    return _KNOWN_DEPRECATED_MODELS | shared_blocked_models()
+
+
 def _build_genai_client(api_key: str):
     """Constructs a google.genai Client, auto-detecting the right auth
     mode from the environment instead of always passing a plain API key.
@@ -237,6 +247,12 @@ class GeminiImageClient:
         self.enable_reasoning = enable_reasoning
         self.thinking_level = thinking_level
 
+        # LOAD-BEARING: the shared ladder policy gate runs before any model is
+        # chosen (raises LadderPolicyError -> no generation). Once per process.
+        from ..config.model_ladder import enforce_shared_ladder
+        enforce_shared_ladder()
+        _blocked = _blocked_models()
+
         try:
             import google.genai as genai
             from google.genai import types
@@ -252,7 +268,7 @@ class GeminiImageClient:
                 self._model_cascade: List[str] = self._discover_image_models()
             else:
                 self._model_cascade = [
-                    m for m in model_cascade if m not in _KNOWN_DEPRECATED_MODELS
+                    m for m in model_cascade if m not in _blocked
                 ]
 
             if model is None:
@@ -260,12 +276,11 @@ class GeminiImageClient:
                 # cascade) ranked first is primary -- never override it
                 # with a hardcoded name.
                 self._cascade_index: int = 0
-            elif model in _KNOWN_DEPRECATED_MODELS:
+            elif model in _blocked:
                 logger.warning(
-                    f"Requested model {model!r} is a known-deprecated ID "
-                    f"({sorted(_KNOWN_DEPRECATED_MODELS)}) -- ignoring the "
-                    f"explicit request and using the auto-discovered "
-                    f"primary model instead."
+                    f"Requested model {model!r} is blocked by the shared image-model "
+                    f"ladder (deprecated, holdlisted or non-thinking) -- ignoring the "
+                    f"explicit request and using the shared primary model instead."
                 )
                 self._cascade_index = 0
             elif model in self._model_cascade:
@@ -307,7 +322,9 @@ class GeminiImageClient:
           1. Thinking Flash models (Gemini 3.x Flash) — fastest, thinking + search
           2. Thinking Pro models  (Gemini 3.x Pro)   — highest quality, thinking + search
           3. Other Gemini 3.x image models           — thinking + search, unknown speed
-          4. Pure image-only models (2.5-flash-*)    — no search-as-tool, no thinking
+          4. Pure image-only models (2.5-flash-*)    — DROPPED since 2026-10-08
+             (shared ladder: thinking models only)
+        then filtered/ordered by the shared image-model ladder (model_ladder.py).
 
         Falls back silently to the static QUOTA_CASCADE from model_configs if the
         API call fails (no network, insufficient permissions, etc.).
@@ -351,7 +368,7 @@ class GeminiImageClient:
 
             # Skip known-deprecated IDs even if the live catalog still
             # lists them (see _KNOWN_DEPRECATED_MODELS docstring).
-            if name in _KNOWN_DEPRECATED_MODELS:
+            if name in _blocked_models():
                 continue
 
             # Classify using the same rules as _detect_capabilities()
@@ -370,7 +387,20 @@ class GeminiImageClient:
                 image_only.append(name)
             # else: unknown image model variant — skip
 
-        result = thinking_flash + thinking_pro + thinking_other + image_only
+        discovered = thinking_flash + thinking_pro + thinking_other + image_only
+
+        # Shared-ladder policy: only models the measured record allows (thinking,
+        # native 4K, not deprecated) may ever be called, ordered shared ladder
+        # first (production, then fallbacks), then any other allowed discovered
+        # thinking model. Pure image-only (non-thinking) models are dropped here
+        # unconditionally -- they are never a quota fallback any more.
+        from ..config.model_ladder import shared_allowed_models, shared_cascade
+        allowed = set(shared_allowed_models())
+        result: List[str] = [m for m in shared_cascade() if m in discovered or m in allowed]
+        result += [m for m in discovered if m in allowed and m not in result]
+        dropped = [m for m in discovered if m not in result]
+        if dropped:
+            logger.info(f"Discovery dropped {dropped} (not allowed by the shared image-model ladder)")
 
         if result:
             logger.info(

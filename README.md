@@ -160,7 +160,23 @@ names match more-famous people on Wikipedia).
 
 ---
 
-### NEW in 2.2.0: Flash Image Model (Nano Banana 2) as Default
+### NEW in 2.9.0: model selection comes from the shared image-model ladder
+
+Since 2026-10-08 the portrait model is **not chosen in this repo**. The
+production model, the quota-fallback cascade and the set of models that may be
+called at all come from the shared private package
+[`image-model-ladder`](https://github.com/davidlary/ImageModelLadder)
+(checkout `~/Dropbox/Environments/Code/ImageModelLadder`), whose record is
+probed (thinking + native 4K), checked against the live Vertex catalog and
+Google's lifecycle page, and refreshed daily. Today that is
+`gemini-3-pro-image` with `gemini-nano-banana-2.1` as fallback.
+`gemini-3.1-flash-image` (the 2.2.0–2.8.0 default) was deprecated by Google on
+2026-10-06 and is now blocked. `PortraitClient(...)` refuses to construct
+(`LadderPolicyError`) if the shared ladder violates policy. Inspect it with
+`image-model-ladder show` / `image-model-ladder check --live`. The section
+below is kept for history.
+
+### 2.2.0 (historical): Flash Image Model (Nano Banana 2) as Default
 
 - ⚡ **gemini-3.1-flash-image-preview**: New default model — ~22s vs ~45s (2x faster)
 - 🔍 **Image Search Grounding**: Text + image search grounding capability
@@ -885,7 +901,7 @@ Portrait Generator can be configured via environment variables:
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
 | `GOOGLE_API_KEY` | Google Gemini API key | — | **Yes** |
-| `GEMINI_MODEL` | Gemini model (auto-discovered at startup) | `gemini-3.1-flash-image-preview` | No |
+| `GEMINI_MODEL` | Gemini model (default: shared image-model ladder production rung; a blocked model is ignored) | `gemini-3-pro-image` | No |
 | `IMAGE_RESOLUTION` | Image size as `width,height` | `1024,1024` | No |
 | `OUTPUT_DIR` | Output directory for portraits | `./output` | No |
 | `LOG_LEVEL` | Logging level (`DEBUG`/`INFO`/`WARNING`) | `INFO` | No |

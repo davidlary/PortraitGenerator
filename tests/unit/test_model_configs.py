@@ -106,11 +106,13 @@ class TestModelProfile:
     """Tests for ModelProfile operations."""
 
     def test_get_model_profile_flash(self):
-        """Test getting gemini-3.1-flash-image profile (Nano Banana 2)."""
+        """gemini-3.1-flash-image profile (Nano Banana 2) is kept for pins
+        but is NOT recommended: Google deprecated it 2026-10-06 and the
+        shared ladder blocks it."""
         profile = get_model_profile("gemini-3.1-flash-image")
 
         assert profile.model_name == "gemini-3.1-flash-image"
-        assert profile.is_recommended is True
+        assert profile.is_recommended is False
         assert profile.capabilities.google_search_grounding is True
         assert profile.capabilities.image_search_grounding is True
         assert profile.capabilities.thinking_mode is True
@@ -170,18 +172,21 @@ class TestModelProfile:
             get_model_profile("invalid-model-name")
 
     def test_get_recommended_model(self):
-        """Test getting recommended model returns Flash (Nano Banana 2)."""
+        """The recommended model is the SHARED ladder's production rung
+        (measured thinking + 4K + not deprecated), never a hand-set flag."""
+        from portrait_generator.config.model_ladder import shared_production_model
         model = get_recommended_model()
 
-        # Flash is now recommended for best speed+accuracy balance
-        assert model == "gemini-3.1-flash-image"
+        assert model == shared_production_model()
+        assert model != "gemini-3.1-flash-image"  # deprecated by Google 2026-10-06
 
     def test_list_available_models(self):
         """Test listing available models."""
         models = list_available_models()
 
-        assert len(models) >= 3
-        assert "gemini-3.1-flash-image" in models
+        assert len(models) >= 4
+        assert "gemini-3.1-flash-image" in models  # profile kept (deprecated, never selected)
+        assert "gemini-nano-banana-2.1" in models
         assert "gemini-3-pro-image" in models
         assert "gemini-exp-1206" in models
 

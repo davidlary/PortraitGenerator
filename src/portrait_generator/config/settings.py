@@ -7,7 +7,7 @@ from typing import Tuple, Optional
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from .model_configs import FLASH_MODEL
+from .model_configs import DEFAULT_MODEL
 
 
 class Settings(BaseSettings):
@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     google_api_key: str = Field(..., description="Google Gemini API key")
 
     # Gemini Model Configuration.
-    # Single source of truth is model_configs.FLASH_MODEL -- set it there
+    # Single source of truth is the SHARED image-model ladder (model_configs.DEFAULT_MODEL)
     # (or override per-run via the GEMINI_MODEL env var, since Settings is
     # a pydantic BaseSettings that reads matching env vars automatically)
     # rather than hardcoding the model name a second time here. This is
@@ -32,8 +32,8 @@ class Settings(BaseSettings):
     # rather than a hardcoded literal -- this field only matters for
     # callers that explicitly want a pinned, reproducible model choice.
     gemini_model: str = Field(
-        default=FLASH_MODEL,
-        description=f"Gemini model for image generation (default: {FLASH_MODEL}, "
+        default=DEFAULT_MODEL,
+        description=f"Gemini model for image generation (default: {DEFAULT_MODEL}, "
         f"override via GEMINI_MODEL env var)",
     )
 

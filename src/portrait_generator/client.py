@@ -51,6 +51,12 @@ class PortraitClient:
         Raises:
             ValueError: If API key is invalid or missing.
         """
+        # LOAD-BEARING (2026-10-08): refuse to construct if the shared
+        # image-model ladder violates policy (non-thinking / deprecated /
+        # stale-unprobed rung). Raises image_model_ladder.LadderPolicyError.
+        from .config.model_ladder import enforce_shared_ladder
+        enforce_shared_ladder()
+
         # Build settings with overrides
         settings_kwargs = {}
 

@@ -54,12 +54,24 @@ class TestGeminiImageClientInit:
             GeminiImageClient(api_key="short")
 
     def test_init_default_model(self) -> None:
-        """Test default model resolves to gemini-3.1-flash-image (Nano
-        Banana 2) -- the auto (model=None) path defers to discovery, which
-        falls back to the static QUOTA_CASCADE's primary entry when a fake
-        API key can't actually list live models, as in this test."""
+        """Default model is the SHARED ladder's production rung -- the auto
+        (model=None) path defers to discovery, which falls back to the
+        shared cascade's primary entry when a fake API key can't actually
+        list live models, as in this test."""
+        from portrait_generator.config.model_ladder import shared_production_model
         client = GeminiImageClient(api_key="test_api_key_1234567890")
-        assert client.model == "gemini-3.1-flash-image"
+        assert client.model == shared_production_model()
+        assert client.model == "gemini-3-pro-image"
+
+    def test_init_blocked_pin_falls_back_to_shared_production(self) -> None:
+        """A pin to a model the shared ladder blocks (gemini-3.1-flash-image
+        was deprecated by Google 2026-10-06) is ignored with a warning and
+        the shared production model is used -- never the blocked model."""
+        from portrait_generator.config.model_ladder import shared_production_model
+        for pin in ("gemini-3.1-flash-image", "gemini-3.1-flash-image-preview",
+                    "gemini-2.5-flash-image"):
+            client = GeminiImageClient(api_key="test_api_key_1234567890", model=pin)
+            assert client.model == shared_production_model(), pin
 
     def test_init_never_selects_a_known_deprecated_model(self) -> None:
         """Regression test: gemini-3.1-flash-image-preview and
@@ -113,11 +125,14 @@ class TestGeminiImageClientInit:
         assert client.thinking_level == "low"
 
     def test_init_flash_capabilities_detected(self) -> None:
-        """Test Flash model capabilities are detected at init."""
+        """Flash-family capabilities are detected at init. The shared
+        ladder's fallback rung gemini-nano-banana-2.1 is the GA successor of
+        the (now deprecated, hence blocked) gemini-3.1-flash-image family."""
         client = GeminiImageClient(
             api_key="test_api_key_1234567890",
-            model="gemini-3.1-flash-image-preview"
+            model="gemini-nano-banana-2.1"
         )
+        assert client.model == "gemini-nano-banana-2.1"
         assert client.supports_image_grounding is True
         assert client.supports_extended_aspect_ratios is True
         assert client.supports_batch is True
@@ -176,7 +191,7 @@ class TestGenerateImage:
         """Test Flash model accepts extended aspect ratios."""
         flash_client = GeminiImageClient(
             api_key="test_api_key_1234567890",
-            model="gemini-3.1-flash-image-preview"
+            model="gemini-nano-banana-2.1"
         )
         extended_ratios = ["1:4", "4:1", "1:8", "8:1", "2:3", "3:2"]
         for ratio in extended_ratios:
@@ -269,8 +284,14 @@ class TestGenerateImage:
         pass  # API behavior tested in e2e; unit tests validate error-handling code paths
 
     @_SKIP_NO_KEY
-    def test_generate_image_api_error(self) -> None:
-        """Test error handling for API failures - invalid key raises RuntimeError."""
+    def test_generate_image_api_error(self, monkeypatch) -> None:
+        """Test error handling for API failures - invalid key raises RuntimeError.
+
+        Force AI-Studio (API-key) auth: under GOOGLE_GENAI_USE_VERTEXAI the
+        client resolves ADC credentials and IGNORES the api_key, so the
+        "invalid key" would silently authenticate (pre-existing failure,
+        fixed 2026-10-08)."""
+        monkeypatch.delenv("GOOGLE_GENAI_USE_VERTEXAI", raising=False)
         # A malformed (but correctly-length) key to trigger real API auth failure
         bad_client = GeminiImageClient(api_key="AIzaSy_INVALID_KEY_FOR_TESTING_1234")
         with pytest.raises(RuntimeError, match="Image generation failed"):
@@ -288,8 +309,10 @@ class TestValidateConnection:
         assert result is True
 
     @_SKIP_NO_KEY
-    def test_validate_connection_failure(self) -> None:
-        """Test connection validation returns False for invalid key."""
+    def test_validate_connection_failure(self, monkeypatch) -> None:
+        """Test connection validation returns False for invalid key
+        (AI-Studio auth forced; see test_generate_image_api_error)."""
+        monkeypatch.delenv("GOOGLE_GENAI_USE_VERTEXAI", raising=False)
         client = GeminiImageClient(api_key="AIzaSy_INVALID_KEY_FOR_TESTING_1234")
         result = client.validate_connection()
         assert result is False
@@ -312,10 +335,11 @@ class TestGetModelInfo:
         assert "image_generation" in info["capabilities"]
 
     def test_get_model_info_flash_capabilities(self) -> None:
-        """Test Flash model (Nano Banana 2) reports correct capabilities."""
+        """Flash-family model (Nano Banana 2.1, shared-ladder fallback rung)
+        reports correct capabilities."""
         client = GeminiImageClient(
             api_key="test_api_key_1234567890",
-            model="gemini-3.1-flash-image-preview"
+            model="gemini-nano-banana-2.1"
         )
 
         info = client.get_model_info()
