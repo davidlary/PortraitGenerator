@@ -252,3 +252,27 @@ def coerce_lifespan(lifespan: Any) -> Optional[Lifespan]:
     raise TypeError(
         f"lifespan must be a Lifespan, a mapping or None, got {type(lifespan).__name__}"
     )
+
+
+_TRAILING_PAREN_RE = re.compile(r"\s*\([^()]*\)\s*$")
+
+
+def caption_display_name(name: str) -> str:
+    """Return the name as it must be drawn on the caption bar.
+
+    Strips every trailing parenthetical group: lifespan disambiguation
+    suffixes ("Mike Fisher (1962-Present)"), alias/birth-name notes
+    ('Robert Charles Geary ("Roy" Geary)', "bell hooks (born Gloria Jean
+    Watkins)") and expansions ("Richard C. Thompson (Richard Charles
+    Thompson)").  The full name is still used for research and filenames;
+    only the caption shows the bare display name.  Never returns an empty
+    string: a name that is nothing but parentheses is returned unchanged.
+    """
+    cleaned = name
+    while True:
+        new = _TRAILING_PAREN_RE.sub("", cleaned)
+        if new == cleaned:
+            break
+        cleaned = new
+    cleaned = cleaned.strip()
+    return cleaned or name.strip()

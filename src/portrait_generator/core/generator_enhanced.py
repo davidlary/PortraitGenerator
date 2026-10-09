@@ -17,7 +17,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from PIL import Image
 
 from ..api.models import PortraitResult, SubjectData, EvaluationResult
-from ..lifespan import Lifespan, coerce_lifespan
+from ..lifespan import Lifespan, caption_display_name, coerce_lifespan
 from ..utils.caption_check import CaptionMismatchError, caption_gate
 from ..utils.image_utils import convert_to_bw, convert_to_sepia
 from ..reference_finder import ReferenceImageFinder
@@ -430,11 +430,7 @@ class EnhancedPortraitGenerator:
                     # The full canonical name (with lifespan) is preserved in subject_data.name
                     # and used for the filename; the overlay shows only the human-readable name.
                     logger.debug("Adding title overlay...")
-                    _display_name = re.sub(
-                        r'\s*\(\d{4}-(?:Present|\d{4})\)\s*$',
-                        '',
-                        subject_data.name,
-                    ).strip() or subject_data.name
+                    _display_name = caption_display_name(subject_data.name)
                     final_image = self.overlay_engine.add_overlay(
                         styled_image,
                         name=_display_name,

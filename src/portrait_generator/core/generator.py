@@ -8,7 +8,7 @@ from typing import Dict, List, Optional
 from PIL import Image
 
 from ..api.models import PortraitResult, SubjectData, EvaluationResult
-from ..lifespan import Lifespan, coerce_lifespan
+from ..lifespan import Lifespan, caption_display_name, coerce_lifespan
 from ..utils.caption_check import CaptionMismatchError, caption_gate
 from ..utils.image_utils import convert_to_bw, convert_to_sepia
 from .researcher import BiographicalResearcher
@@ -262,9 +262,10 @@ class PortraitGenerator:
 
             # Add overlay
             logger.debug("Adding title overlay...")
+            _display_name = caption_display_name(subject_data.name)
             final_image = self.overlay_engine.add_overlay(
                 styled_image,
-                name=subject_data.name,
+                name=_display_name,
                 years=subject_data.display_years,
             )
 
@@ -272,7 +273,7 @@ class PortraitGenerator:
             # only when the caller supplied a verified lifespan.
             caption_result = caption_gate(
                 final_image,
-                subject_data.name,
+                _display_name,
                 subject_data.display_years,
                 enforce=subject_data.lifespan_source == "caller",
                 label=style,
@@ -287,7 +288,7 @@ class PortraitGenerator:
             PortraitVerifier.write_sidecar(
                 image_path,
                 subject_data,
-                caption_name=subject_data.name,
+                caption_name=_display_name,
                 caption_check=caption_result,
             )
 

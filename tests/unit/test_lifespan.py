@@ -210,3 +210,14 @@ class TestSubjectDataDisplay:
         sd = _subject(birth_year_estimated=True, death_year=2001)
         assert sd.display_years == "d. 2001"
         assert sd.display_birth_year is None
+
+
+def test_caption_display_name_strips_trailing_parentheticals():
+    from portrait_generator.lifespan import caption_display_name
+
+    assert caption_display_name("Mike Fisher (1962-Present)") == "Mike Fisher"
+    assert caption_display_name('Robert Charles Geary ("Roy" Geary)') == "Robert Charles Geary"
+    assert caption_display_name("bell hooks (born Gloria Jean Watkins)") == "bell hooks"
+    assert caption_display_name("Richard C. Thompson (Richard Charles Thompson) (1963-Present)") == "Richard C. Thompson"
+    assert caption_display_name("Arthur A. Few") == "Arthur A. Few"
+    assert caption_display_name("(odd)") == "(odd)"

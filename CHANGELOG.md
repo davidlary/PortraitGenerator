@@ -44,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `portrait_generator.lifespan.plausible_year()` shared by the researcher and
   `Lifespan.validate()` (-5000 <= year <= current year).
 
+- Caption name line: `lifespan.caption_display_name()` strips every trailing parenthetical group (alias, birth-name, expansion, lifespan suffix) before the overlay, so `Robert Charles Geary ("Roy" Geary)` is captioned `Robert Charles Geary`; the same display name is recorded as the sidecar `caption_name` and checked by the caption gate (both generators).
 ### Fixed (root causes)
 - **The 1975 placeholder was printed as a real birth year.** When research
   could not extract a birth year (e.g. `BIRTH YEAR: Not publicly available`) the
