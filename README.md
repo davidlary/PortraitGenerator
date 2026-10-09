@@ -160,6 +160,43 @@ names match more-famous people on Wikipedia).
 
 ---
 
+### NEW in 2.10.0: caller-supplied lifespan, caption gate, tonal variants
+
+**Verified years drive the caption.** If you verify birth/death years yourself,
+pass them in; they become the only source of the caption's years line:
+
+```python
+from portrait_generator import PortraitClient
+from portrait_generator.lifespan import Lifespan
+
+client = PortraitClient()
+client.generate("Arthur A. Few", lifespan=Lifespan(1939, 2022))           # "1939-2022"
+client.generate("Some Scientist", lifespan={"birth_year": 1960,
+                                            "death_year": "living"})      # "1960-Present"
+client.generate("Unknown Birth", lifespan=Lifespan(None, 2022))            # "d. 2022"
+client.generate("Nothing Known", lifespan=Lifespan(None, None))            # name only, no years line
+```
+
+`Lifespan.validate()` (run before research) rejects implausible years, death
+before birth, and lifespans over 125 years. A `None` year is never replaced by
+an estimate in any caption or prompt.
+
+**Caption gate.** Each portrait's caption bar is OCR'd with tesseract before it
+is saved (`portrait_generator.utils.caption_check.verify_caption`). With a caller
+lifespan, a wrong name or years fails that style with an error starting
+`CAPTION-MISMATCH:`; without one it is only logged. The result is recorded in
+the sidecar as `caption_check` alongside `caption_name`, `caption_years` and
+`lifespan_source`. Install the engine with `brew install tesseract` (or set
+`TESSERACT_CMD`); without it the check reports `status: "unavailable"`.
+
+**Tonal variants.** BW and Sepia are derived from a finished painting (OKLab
+tone mapping, JPEG q95, ICC profile preserved), never generated separately:
+
+```bash
+python -m portrait_generator.utils.tonal_variants Arthur_A_Few-Painting-1.png [--styles BW,Sepia] [--overwrite]
+# -> Arthur_A_Few-BW-1.jpg, Arthur_A_Few-Sepia-1.jpg
+```
+
 ### NEW in 2.9.0: model selection comes from the shared image-model ladder
 
 Since 2026-10-08 the portrait model is **not chosen in this repo**. The

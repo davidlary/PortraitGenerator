@@ -8,10 +8,13 @@ from typing import Dict, List, Optional
 from PIL import Image
 
 from ..api.models import PortraitResult, SubjectData, EvaluationResult
+from ..lifespan import Lifespan, coerce_lifespan
+from ..utils.caption_check import CaptionMismatchError, caption_gate
 from ..utils.image_utils import convert_to_bw, convert_to_sepia
 from .researcher import BiographicalResearcher
 from .overlay import TitleOverlayEngine
 from .evaluator import QualityEvaluator
+from .portrait_verifier import PortraitVerifier
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +64,7 @@ class PortraitGenerator:
         force_regenerate: bool = False,
         styles: Optional[List[str]] = None,
         context: Optional[str] = None,
+        lifespan: Optional[Lifespan] = None,
     ) -> PortraitResult:
         """
         Generate portrait(s) for a subject.
@@ -73,6 +77,11 @@ class PortraitGenerator:
                      person (field, era, role, dates) -- see
                      BiographicalResearcher.research_subject()'s docstring
                      for why this matters for common/reused names.
+            lifespan: Optional caller-verified Lifespan (or mapping for
+                     ``Lifespan.from_record``); see
+                     ``EnhancedPortraitGenerator.generate_portrait``. Caption
+                     years come solely from it and a caption OCR mismatch
+                     fails the style with ``CAPTION-MISMATCH:``.
 
         Returns:
             PortraitResult with all generated files and evaluations
@@ -92,6 +101,8 @@ class PortraitGenerator:
             if invalid:
                 raise ValueError(f"Invalid styles: {invalid}")
 
+        lifespan = coerce_lifespan(lifespan)
+
         logger.info(f"=== Generating portraits for: {subject_name} ===")
         logger.info(f"Styles: {styles}")
 
@@ -102,8 +113,12 @@ class PortraitGenerator:
             # Step 1: Research subject
             logger.info("Step 1: Researching subject...")
             subject_data = self.researcher.research_subject(subject_name, context=context)
+            if lifespan is not None:
+                subject_data = lifespan.apply_to(subject_data)
             logger.info(
-                f"Research complete: {subject_data.name} ({subject_data.formatted_years})"
+                f"Research complete: {subject_data.name} "
+                f"({subject_data.display_years or 'no years line'}; "
+                f"lifespan_source={subject_data.lifespan_source})"
             )
 
             # Step 2: Generate portraits for each style
@@ -139,7 +154,10 @@ class PortraitGenerator:
                     )
 
                 except Exception as e:
-                    error_msg = f"Failed to generate {style} portrait: {e}"
+                    if isinstance(e, CaptionMismatchError):
+                        error_msg = str(e)  # starts with "CAPTION-MISMATCH:"
+                    else:
+                        error_msg = f"Failed to generate {style} portrait: {e}"
                     logger.error(error_msg, exc_info=True)
                     errors.append(error_msg)
 
@@ -247,15 +265,36 @@ class PortraitGenerator:
             final_image = self.overlay_engine.add_overlay(
                 styled_image,
                 name=subject_data.name,
-                years=subject_data.formatted_years,
+                years=subject_data.display_years,
+            )
+
+            # Caption gate (2.10.0): OCR the bar before saving; hard failure
+            # only when the caller supplied a verified lifespan.
+            caption_result = caption_gate(
+                final_image,
+                subject_data.name,
+                subject_data.display_years,
+                enforce=subject_data.lifespan_source == "caller",
+                label=style,
             )
 
             # Save image
             final_image.save(image_path, "PNG", quality=95)
             logger.info(f"Saved image: {image_path}")
 
+            # Sidecar (2.10.0: the basic generator writes one too, so the
+            # caption check result and lifespan source are always recorded)
+            PortraitVerifier.write_sidecar(
+                image_path,
+                subject_data,
+                caption_name=subject_data.name,
+                caption_check=caption_result,
+            )
+
             return image_path, prompt_path
 
+        except CaptionMismatchError:
+            raise  # keep the "CAPTION-MISMATCH:" prefix intact
         except Exception as e:
             logger.error(f"Failed to generate {style} version: {e}", exc_info=True)
             raise RuntimeError(f"Failed to generate {style} version: {e}") from e

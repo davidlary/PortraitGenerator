@@ -17,6 +17,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from PIL import Image
 
 from ..api.models import PortraitResult, SubjectData, EvaluationResult
+from ..lifespan import Lifespan, coerce_lifespan
+from ..utils.caption_check import CaptionMismatchError, caption_gate
 from ..utils.image_utils import convert_to_bw, convert_to_sepia
 from ..reference_finder import ReferenceImageFinder
 from ..prompt_builder import PromptBuilder, PromptContext
@@ -27,6 +29,7 @@ from .evaluator import QualityEvaluator
 from .portrait_verifier import PortraitVerifier
 
 logger = logging.getLogger(__name__)
+
 
 
 class EnhancedPortraitGenerator:
@@ -136,6 +139,7 @@ class EnhancedPortraitGenerator:
         force_regenerate: bool = False,
         styles: Optional[List[str]] = None,
         context: Optional[str] = None,
+        lifespan: Optional[Lifespan] = None,
     ) -> PortraitResult:
         """Generate portrait(s) for a subject with advanced features.
 
@@ -149,6 +153,14 @@ class EnhancedPortraitGenerator:
                      against a common/reused name resolving to the wrong
                      individual. See that method's docstring for the
                      confirmed-live incident this addresses.
+            lifespan: Optional caller-verified :class:`~portrait_generator.lifespan.Lifespan`
+                     (or a mapping accepted by ``Lifespan.from_record``). When
+                     given, research still runs (identity, era, appearance,
+                     age estimate) but the caption's years come solely from
+                     ``lifespan.caption_years()`` and a caption OCR mismatch
+                     fails the style with an error starting ``CAPTION-MISMATCH:``.
+                     When None (default) behaviour is 2.9.0's, plus a
+                     non-fatal caption check recorded in the sidecar.
 
         Returns:
             PortraitResult with all generated files and evaluations
@@ -168,6 +180,8 @@ class EnhancedPortraitGenerator:
             if invalid:
                 raise ValueError(f"Invalid styles: {invalid}")
 
+        lifespan = coerce_lifespan(lifespan)
+
         logger.info(f"=== Generating portraits for: {subject_name} ===")
         logger.info(f"Styles: {styles}")
         logger.info(f"Advanced features: {self._supports_advanced_features()}")
@@ -179,8 +193,12 @@ class EnhancedPortraitGenerator:
             # Step 1: Research subject
             logger.info("Step 1: Researching subject...")
             subject_data = self.researcher.research_subject(subject_name, context=context)
+            if lifespan is not None:
+                subject_data = lifespan.apply_to(subject_data)
             logger.info(
-                f"Research complete: {subject_data.name} ({subject_data.formatted_years})"
+                f"Research complete: {subject_data.name} "
+                f"({subject_data.display_years or 'no years line'}; "
+                f"lifespan_source={subject_data.lifespan_source})"
             )
 
             # Step 2: Find reference images (if supported)
@@ -230,7 +248,10 @@ class EnhancedPortraitGenerator:
                     return style, str(file_path), str(prompt_path), evaluation, None
 
                 except Exception as e:
-                    error_msg = f"Failed to generate {style} portrait: {e}"
+                    if isinstance(e, CaptionMismatchError):
+                        error_msg = str(e)  # starts with "CAPTION-MISMATCH:"
+                    else:
+                        error_msg = f"Failed to generate {style} portrait: {e}"
                     logger.error(f"  [{index+1}/{len(styles)}] {error_msg}", exc_info=True)
 
                     # Create failed evaluation
@@ -417,7 +438,17 @@ class EnhancedPortraitGenerator:
                     final_image = self.overlay_engine.add_overlay(
                         styled_image,
                         name=_display_name,
-                        years=subject_data.formatted_years,
+                        years=subject_data.display_years,
+                    )
+
+                    # Caption gate (2.10.0): OCR the bar BEFORE saving. Hard
+                    # failure (CaptionMismatchError) only with a caller lifespan.
+                    caption_result = caption_gate(
+                        final_image,
+                        _display_name,
+                        subject_data.display_years,
+                        enforce=subject_data.lifespan_source == "caller",
+                        label=style,
                     )
 
                     # Save image
@@ -425,7 +456,12 @@ class EnhancedPortraitGenerator:
                     logger.info(f"Saved image: {image_path}")
 
                     # Write sidecar metadata for deterministic verification
-                    PortraitVerifier.write_sidecar(image_path, subject_data)
+                    PortraitVerifier.write_sidecar(
+                        image_path,
+                        subject_data,
+                        caption_name=_display_name,
+                        caption_check=caption_result,
+                    )
 
                     # Post-generation verification
                     enable_verify = (
@@ -478,6 +514,11 @@ class EnhancedPortraitGenerator:
 
                     return image_path, prompt_path
 
+                except CaptionMismatchError:
+                    # The caption is drawn deterministically from the caller's
+                    # lifespan; regenerating the painting cannot fix it and
+                    # would only spend generation credits.
+                    raise
                 except Exception as e:
                     logger.warning(f"Attempt {attempt + 1} failed: {e}")
 
@@ -492,6 +533,8 @@ class EnhancedPortraitGenerator:
 
             raise RuntimeError(f"All {max_attempts} generation attempts failed")
 
+        except CaptionMismatchError:
+            raise  # keep the "CAPTION-MISMATCH:" prefix intact
         except Exception as e:
             logger.error(f"Failed to generate {style} version: {e}", exc_info=True)
             raise RuntimeError(f"Failed to generate {style} version: {e}") from e

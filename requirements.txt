@@ -3,7 +3,9 @@
 
 # AI and Image Generation
 google-genai>=1.0.0,<2.0.0          # Google Gemini API client
-pillow>=11.0.0,<12.0.0               # Image processing
+pillow>=11,<13                       # Image processing
+numpy>=1.26                          # Tonal variants (BW/Sepia colour science)
+pytesseract>=0.3.10                  # Caption OCR gate (needs the tesseract binary)
 
 # Web Framework (for REST API)
 fastapi>=0.100.0,<1.0.0              # FastAPI web framework

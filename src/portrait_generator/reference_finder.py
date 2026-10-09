@@ -405,7 +405,7 @@ _CONFIRMED_URLS: Dict[str, Union[str, List[str]]] = {
 
 _HEADERS = {
     "User-Agent": (
-        "PortraitGenerator/2.9.0 "
+        "PortraitGenerator/2.10.0 "
         "(https://github.com/davidlary/PortraitGenerator; educational use)"
     )
 }

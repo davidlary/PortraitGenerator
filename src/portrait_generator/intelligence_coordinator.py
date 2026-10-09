@@ -160,6 +160,8 @@ class IntelligenceCoordinator:
         subject_name: str,
         force_regenerate: bool = False,
         styles: Optional[list] = None,
+        context: Optional[str] = None,
+        lifespan=None,
     ):
         """Generate portrait using coordinated pipeline.
 
@@ -167,6 +169,8 @@ class IntelligenceCoordinator:
             subject_name: Name of subject
             force_regenerate: Force regeneration even if exists
             styles: List of styles to generate
+            context: Optional disambiguating context (forwarded when given)
+            lifespan: Optional caller-verified Lifespan (forwarded when given; 2.10.0)
 
         Returns:
             PortraitResult
@@ -176,10 +180,16 @@ class IntelligenceCoordinator:
             f"(enhanced={'Yes' if self._should_use_enhanced_generator() else 'No'})"
         )
 
+        kwargs = {}
+        if context is not None:
+            kwargs["context"] = context
+        if lifespan is not None:
+            kwargs["lifespan"] = lifespan  # caller-verified Lifespan (2.10.0)
         return self.generator.generate_portrait(
             subject_name=subject_name,
             force_regenerate=force_regenerate,
             styles=styles,
+            **kwargs,
         )
 
     def generate_batch(

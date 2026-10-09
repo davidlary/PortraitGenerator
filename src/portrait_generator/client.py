@@ -5,12 +5,15 @@ This module provides a simple Python API for generating portraits programmatical
 
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 from .intelligence_coordinator import IntelligenceCoordinator
 from .api.models import PortraitResult
 from .config.settings import get_settings, Settings
 from .config.model_configs import get_recommended_model
+
+if TYPE_CHECKING:
+    from .lifespan import Lifespan
 
 logger = logging.getLogger(__name__)
 
@@ -93,6 +96,7 @@ class PortraitClient:
         force_regenerate: bool = False,
         styles: Optional[List[str]] = None,
         context: Optional[str] = None,
+        lifespan: Optional["Lifespan"] = None,
     ) -> PortraitResult:
         """
         Generate portraits for a subject.
@@ -111,6 +115,16 @@ class PortraitClient:
                      E.g. context="numerical analyst, Oxford, 1918-1992"
                      for "Leslie Fox", or context="Tudor courtier under
                      Henry VIII, 1502-1564" for "Richard Southwell".
+            lifespan: Optional caller-verified
+                     :class:`portrait_generator.lifespan.Lifespan` (or a
+                     mapping accepted by ``Lifespan.from_record``). Since
+                     2.10.0. When given, the caption's years line comes
+                     solely from ``lifespan.caption_years()`` (None -> no
+                     years line), the sidecar records
+                     ``lifespan_source="caller"``, and a tesseract caption
+                     OCR mismatch fails that style (``result.success`` False,
+                     error starting ``CAPTION-MISMATCH:``). Default None =
+                     2.9.0 behaviour (research years, non-fatal caption check).
 
         Returns:
             PortraitResult with generated files and metadata
@@ -130,12 +144,24 @@ class PortraitClient:
             ...     "Richard Southwell",
             ...     context="Tudor courtier under Henry VIII, 1502-1564",
             ... )
+
+            >>> # Caption years from an independently verified record
+            >>> from portrait_generator.lifespan import Lifespan
+            >>> result = client.generate(
+            ...     "Arthur A. Few", lifespan=Lifespan(1939, 2022),
+            ... )
         """
+        kwargs = {}
+        if lifespan is not None:
+            # Only forwarded when given, so generator doubles/subclasses with
+            # the 2.9.0 signature keep working when no lifespan is used.
+            kwargs["lifespan"] = lifespan
         return self.generator.generate_portrait(
             subject_name=subject_name,
             force_regenerate=force_regenerate,
             styles=styles,
             context=context,
+            **kwargs,
         )
 
     def generate_batch(

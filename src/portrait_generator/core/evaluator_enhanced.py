@@ -303,7 +303,7 @@ class EnhancedQualityEvaluator:
         Returns:
             Evaluation prompt
         """
-        prompt = f"""Evaluate this {style} portrait of {subject_data.name} ({subject_data.formatted_years}).
+        prompt = f"""Evaluate this {style} portrait of {subject_data.name} ({subject_data.display_years or "years unknown"}).
 
 EVALUATION CRITERIA:
 1. Overall Quality (0.0-1.0):

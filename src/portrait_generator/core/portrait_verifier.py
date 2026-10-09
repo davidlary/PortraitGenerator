@@ -143,7 +143,19 @@ class PortraitVerifier:
                 return result
 
         # --- Check 3: Overlay date OCR (Vision) ---
-        if self._has_vision and subject_data.birth_year:
+        caption_owned = (
+            getattr(subject_data, "lifespan_source", "research") == "caller"
+            or getattr(subject_data, "birth_year_estimated", False)
+        )
+        if caption_owned:
+            # Since 2.10.0: with a caller Lifespan (or an estimated birth year)
+            # the caption may legitimately read "b. 1939" / "d. 2022" / nothing,
+            # which this birth-year comparison cannot express; the deterministic
+            # tesseract caption gate (utils.caption_check) already verified it.
+            result.warnings.append(
+                "Vision date OCR skipped (caption verified by the tesseract caption gate)"
+            )
+        elif self._has_vision and subject_data.birth_year:
             date_ok, date_msg = self.verify_overlay_dates(
                 pil_image,
                 subject_data.birth_year,
@@ -485,7 +497,12 @@ class PortraitVerifier:
     # ------------------------------------------------------------------ #
 
     @staticmethod
-    def write_sidecar(portrait_path: Path, subject_data: SubjectData) -> None:
+    def write_sidecar(
+        portrait_path: Path,
+        subject_data: SubjectData,
+        caption_name: Optional[str] = None,
+        caption_check: Optional[Dict[str, Any]] = None,
+    ) -> None:
         """Write a JSON sidecar file alongside the portrait.
 
         The sidecar records the exact SubjectData used for generation so that
@@ -494,9 +511,20 @@ class PortraitVerifier:
         detect if two portraits share the same SubjectData (a proxy for the
         caching bug).
 
+        Since 2.10.0 it also records what the caption bar says and how that
+        was checked: ``caption_name`` (the name line drawn), ``caption_years``
+        (``subject_data.display_years``; None = no years line),
+        ``lifespan_source`` (``"caller"`` | ``"research"``) and
+        ``caption_check`` (``{"status": "ok"|"mismatch"|"unavailable",
+        "observed_text", "observed_years", "reason"}``, or None when the
+        caller did not run the check). All 2.9.0 keys are unchanged.
+
         Args:
             portrait_path: Path to the generated portrait PNG/JPEG.
             subject_data: SubjectData used to generate the portrait.
+            caption_name: Name line drawn on the caption (defaults to
+                ``subject_data.name``).
+            caption_check: Result of ``caption_check.caption_gate`` (or None).
         """
         payload: Dict[str, Any] = {
             "name": subject_data.name,
@@ -508,6 +536,10 @@ class PortraitVerifier:
             "subject_hash": hashlib.md5(
                 f"{subject_data.name}:{subject_data.birth_year}:{subject_data.death_year}".encode()
             ).hexdigest(),
+            "caption_name": caption_name if caption_name is not None else subject_data.name,
+            "caption_years": getattr(subject_data, "display_years", subject_data.formatted_years),
+            "lifespan_source": getattr(subject_data, "lifespan_source", "research"),
+            "caption_check": caption_check,
         }
         sidecar_path = portrait_path.with_suffix(".meta.json")
         sidecar_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")

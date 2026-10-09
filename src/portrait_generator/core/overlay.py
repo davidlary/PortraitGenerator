@@ -36,7 +36,7 @@ class TitleOverlayEngine:
         self,
         image: Image.Image,
         name: str,
-        years: str,
+        years: Optional[str],
         bar_opacity: float = DEFAULT_BAR_OPACITY,
         bar_height_ratio: float = DEFAULT_BAR_HEIGHT_RATIO,
     ) -> Image.Image:
@@ -46,7 +46,12 @@ class TitleOverlayEngine:
         Args:
             image: PIL Image to add overlay to
             name: Subject name to display
-            years: Years to display (e.g., "1912-1954")
+            years: Years to display (e.g., "1912-1954"). ``None`` means no
+                verifiable years are known: the bar and the name are still
+                drawn, the years line is omitted and the name block is
+                vertically centred in the bar (since 2.10.0). An empty or
+                whitespace-only string is still an error, so a caller bug can
+                never silently drop the years line.
             bar_opacity: Opacity of bar (0.0-1.0)
             bar_height_ratio: Bar height as ratio of image height
 
@@ -62,7 +67,7 @@ class TitleOverlayEngine:
         if not name or not name.strip():
             raise ValueError("Name cannot be empty")
 
-        if not years or not years.strip():
+        if years is not None and not years.strip():
             raise ValueError("Years cannot be empty")
 
         if not 0.0 <= bar_opacity <= 1.0:
@@ -105,16 +110,20 @@ class TitleOverlayEngine:
 
         name_sample_bbox = draw.textbbox((0, 0), name_lines[0], font=name_font)
         line_h = name_sample_bbox[3] - name_sample_bbox[1]
-        years_bbox = draw.textbbox((0, 0), years, font=years_font)
-        years_h = years_bbox[3] - years_bbox[1]
-        years_w = years_bbox[2] - years_bbox[0]
+        if years is not None:
+            years_bbox = draw.textbbox((0, 0), years, font=years_font)
+            years_h = years_bbox[3] - years_bbox[1]
+            years_w = years_bbox[2] - years_bbox[0]
+            years_block_h = _YEARS_GAP + years_h
+        else:
+            years_w = 0
+            years_block_h = 0  # no years line: name block alone is centred
 
         num_lines = len(name_lines)
         total_text_h = (
             line_h * num_lines
             + _LINE_GAP * (num_lines - 1)
-            + _YEARS_GAP
-            + years_h
+            + years_block_h
         )
 
         # Expand bar height if text block needs more space; cap at 35% of image
@@ -150,15 +159,16 @@ class TitleOverlayEngine:
             if i < num_lines - 1:
                 y += _LINE_GAP
 
-        # Draw years below name block
-        years_y = y + _YEARS_GAP
-        years_x = (width - years_w) // 2
-        draw.text(
-            (years_x, years_y),
-            years,
-            font=years_font,
-            fill=(*self.DEFAULT_YEARS_COLOR, 255),
-        )
+        # Draw years below name block (omitted when years is None)
+        if years is not None:
+            years_y = y + _YEARS_GAP
+            years_x = (width - years_w) // 2
+            draw.text(
+                (years_x, years_y),
+                years,
+                font=years_font,
+                fill=(*self.DEFAULT_YEARS_COLOR, 255),
+            )
 
         # Composite overlay onto image
         result = Image.alpha_composite(image, overlay)

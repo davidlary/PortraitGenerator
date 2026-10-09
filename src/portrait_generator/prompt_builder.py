@@ -142,13 +142,22 @@ class PromptBuilder:
             portrait_year = data.birth_year + portrait_age_target
         portrait_age = portrait_year - data.birth_year
 
+        # Since 2.10.0 every printed year comes from display_years /
+        # display_birth_year: the caller's verified lifespan when supplied,
+        # never a research placeholder. birth_year itself may still be an
+        # estimate used only for the age arithmetic above.
+        display_years = getattr(data, "display_years", data.formatted_years)
+        display_birth = getattr(data, "display_birth_year", data.birth_year)
+        age_known = not getattr(data, "birth_year_estimated", False)
+
         section = f"""Generate a historically accurate {context.style} portrait of {data.name}.
 
 SUBJECT INFORMATION:
 - Full Name: {data.name}
 - Historical Era: {data.era}
-- Lifespan: {data.formatted_years}
-- Birth Year: {data.birth_year}"""
+- Lifespan: {display_years or "unknown"}"""
+        if display_birth is not None:
+            section += f"\n- Birth Year: {display_birth}"
 
         if data.death_year:
             section += f"\n- Death Year: {data.death_year}"
@@ -160,8 +169,13 @@ SUBJECT INFORMATION:
                 "hair style, and skin appearance as shown in the reference image(s). "
                 "Do not substitute a different or older calculated age."
             )
-        else:
+        elif age_known:
             section += f"\n- Approximate age at portrait time: {portrait_age} years old"
+        else:
+            section += (
+                "\n- Age at portrait time: approximate age unknown (birth year not "
+                "verifiable) -- depict the subject at a plausible professional prime"
+            )
 
         # Gender — inject explicitly so AI cannot default to stereotypes
         if gender != "unknown":
@@ -328,7 +342,7 @@ The image should be pure portrait with no overlaid text.
 
 The following text will be added programmatically after generation:
 - Name: {data.name}
-- Years: {data.formatted_years}
+- Years: {getattr(data, "display_years", data.formatted_years) or "(none: no years line)"}
 
 Your task is ONLY to generate the portrait image without any text elements."""
 
@@ -400,6 +414,8 @@ DEPTH & PERSPECTIVE:
             Fact-checking section text
         """
         data = context.subject_data
+        display_birth = getattr(data, "display_birth_year", data.birth_year)
+        birth_or_era = display_birth if display_birth is not None else data.era
 
         return f"""FACT-CHECKING REQUIREMENTS:
 Use Google Search grounding to verify:
@@ -407,7 +423,7 @@ Use Google Search grounding to verify:
 1. Historical accuracy of {data.name}'s appearance
 2. Appropriate clothing styles for {data.era}
 3. Hairstyles and grooming conventions of the period
-4. Cultural and regional context for {data.birth_year}
+4. Cultural and regional context for {birth_or_era}
 5. Any known photographic references
 
 Cross-reference multiple sources to ensure:
@@ -468,7 +484,7 @@ or historical archive."""
         sections = [
             f"Generate a {style} portrait of {subject_data.name}.",
             f"Era: {subject_data.era}",
-            f"Years: {subject_data.formatted_years}",
+            f"Years: {getattr(subject_data, 'display_years', subject_data.formatted_years) or 'unknown'}",
             self._build_composition_section(context),
             self._build_style_section(context),
             self._build_quality_section(context),

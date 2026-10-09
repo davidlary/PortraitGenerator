@@ -1,9 +1,11 @@
 """API request and response models."""
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Literal, Optional
 from pathlib import Path
 
 from pydantic import BaseModel, Field, field_validator
+
+from ..lifespan import format_year
 
 
 class PortraitRequest(BaseModel):
@@ -67,16 +69,72 @@ class SubjectData(BaseModel):
         default="unknown",
         description="Subject's gender: 'male', 'female', or 'unknown'",
     )
+    caption_years: Optional[str] = Field(
+        default=None,
+        description=(
+            "Years line of the caption when supplied by the caller "
+            "(Lifespan.caption_years(); None = no years line). Only used when "
+            "lifespan_source == 'caller'. Since 2.10.0."
+        ),
+    )
+    lifespan_source: Literal["research", "caller"] = Field(
+        default="research",
+        description=(
+            "'caller' when a verified Lifespan was passed to generate(); "
+            "'research' when the years come from auto-research. Since 2.10.0."
+        ),
+    )
+    birth_year_estimated: bool = Field(
+        default=False,
+        description=(
+            "True when birth_year is a placeholder estimate (research could not "
+            "extract a plausible year). An estimated birth year may feed age "
+            "arithmetic but never any text or caption. Since 2.10.0."
+        ),
+    )
 
     @property
     def formatted_years(self) -> str:
         """Get formatted year range (e.g., '1879-1955', '460 BCE-370 BCE', or '1947-Present')."""
-        def _fmt(y: int) -> str:
-            return f"{abs(y)} BCE" if y < 0 else str(y)
-
         if self.death_year is not None:
-            return f"{_fmt(self.birth_year)}-{_fmt(self.death_year)}"
-        return f"{_fmt(self.birth_year)}-Present"
+            return f"{format_year(self.birth_year)}-{format_year(self.death_year)}"
+        return f"{format_year(self.birth_year)}-Present"
+
+    @property
+    def display_years(self) -> Optional[str]:
+        """The years text that may be shown anywhere (caption, prompts, logs).
+
+        * ``lifespan_source == "caller"`` -> ``caption_years`` (may be None).
+        * research with an estimated birth year -> ``"d. YYYY"`` when a death
+          year is known, else None (the placeholder never reaches text).
+        * otherwise -> :attr:`formatted_years` (2.9.0 behaviour).
+
+        ``None`` means: draw no years line.
+        """
+        if self.lifespan_source == "caller":
+            return self.caption_years
+        if self.birth_year_estimated:
+            if self.death_year is not None:
+                return f"d. {format_year(self.death_year)}"
+            return None
+        return self.formatted_years
+
+    @property
+    def display_birth_year(self) -> Optional[int]:
+        """Birth year that may be printed in text (prompts), or None.
+
+        None when the birth year is a research placeholder, or when a caller
+        lifespan did not supply a birth year (its caption then has no birth
+        part: ``"d. 2022"`` or no years line); in that case ``birth_year``
+        holds the researched value for age arithmetic only.
+        """
+        if self.birth_year_estimated:
+            return None
+        if self.lifespan_source == "caller":
+            caption = self.caption_years
+            if caption is None or caption.startswith("d. "):
+                return None
+        return self.birth_year
 
 
 class EvaluationResult(BaseModel):

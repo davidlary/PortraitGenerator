@@ -33,7 +33,7 @@ _FEMALE_IDS = {_WIKIDATA_FEMALE, _WIKIDATA_TRANS_FEMALE}
 _MALE_IDS = {_WIKIDATA_MALE, _WIKIDATA_TRANS_MALE}
 
 _HEADERS = {
-    "User-Agent": "PortraitGenerator/2.9.0 (https://github.com/davidlary/PortraitGenerator; educational use)"
+    "User-Agent": "PortraitGenerator/2.10.0 (https://github.com/davidlary/PortraitGenerator; educational use)"
 }
 _TIMEOUT = 12  # seconds
 
@@ -294,6 +294,10 @@ class GroundTruthVerifier:
                     should_override = False
             if should_override:
                 updates["birth_year"] = ground_truth.birth_year
+                # A real ground-truth year replaces any research placeholder
+                # (SubjectData.birth_year_estimated, since 2.10.0).
+                if getattr(subject_data, "birth_year_estimated", False):
+                    updates["birth_year_estimated"] = False
                 if ground_truth.death_year is not None:
                     updates["death_year"] = ground_truth.death_year
                 elif subject_data.death_year is not None and not ground_truth.death_year:

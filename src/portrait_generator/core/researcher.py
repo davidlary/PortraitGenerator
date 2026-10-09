@@ -8,12 +8,32 @@ from typing import Optional
 import yaml
 
 from ..api.models import SubjectData
+from ..lifespan import plausible_year
 from ..utils.ground_truth import GroundTruthVerifier
 
 logger = logging.getLogger(__name__)
 
 # Path to human-curated biographical data file
 _BIO_YAML_PATH = Path(__file__).parent.parent / "data" / "verified_biographies.yaml"
+
+# Placeholder birth year used ONLY when research cannot extract a plausible
+# year. It keeps SubjectData.birth_year (a required int) populated for
+# age-at-portrait arithmetic; SubjectData.birth_year_estimated is set True so
+# it never reaches a caption, prompt text or the verified-biographies YAML.
+# Root cause fixed in 2.10.0: before, this placeholder was printed verbatim
+# ("1975-Present") on 246 of 3,385 Portraits-repo captions.
+ESTIMATED_BIRTH_YEAR_PLACEHOLDER = 1975
+
+# BIRTH YEAR value: a 3-4 digit year (CE or BCE), or a 1-2 digit year ONLY
+# when explicitly marked BCE/BC (e.g. "69 BCE", Cleopatra). Never an ordinal
+# ("20th century" must not yield 20, the 2.9.0 bug behind 64 captions such as
+# "Karl F. MacDorman | 20-Present").
+_BIRTH_YEAR_RE = re.compile(
+    r"BIRTH YEAR[:\s]*\**[^\n\d]*?"
+    r"(?:(?P<year>\d{3,4})(?!\d|\s*(?:st|nd|rd|th)\b)"
+    r"|(?P<bce_year>\d{1,2})(?=\s*BCE?\b))",
+    re.IGNORECASE,
+)
 
 
 def _load_verified_biographies() -> dict:
@@ -24,8 +44,32 @@ def _load_verified_biographies() -> dict:
     return {}
 
 
-def _save_verified_biography(name: str, birth_year: int, death_year, gender: str, notes: str = "") -> None:
-    """Persist a new verified biography entry to the YAML file."""
+def _save_verified_biography(
+    name: str,
+    birth_year: int,
+    death_year,
+    gender: str,
+    notes: str = "",
+    birth_year_estimated: bool = False,
+) -> bool:
+    """Persist a new verified biography entry to the YAML file.
+
+    Refuses (logs a WARNING, returns False) an estimated or implausible birth
+    year: the YAML is the highest-authority override, so persisting a
+    placeholder there would make it permanent (2.10.0 root-cause fix).
+    Returns True when the entry was written.
+    """
+    if birth_year_estimated or not plausible_year(birth_year):
+        logger.warning(
+            f"Not persisting biography for '{name}': birth_year={birth_year!r} is "
+            f"{'an estimate' if birth_year_estimated else 'implausible'}"
+        )
+        return False
+    if death_year is not None and not plausible_year(death_year):
+        logger.warning(
+            f"Not persisting biography for '{name}': death_year={death_year!r} is implausible"
+        )
+        return False
     data = _load_verified_biographies()
     entry = {"birth_year": birth_year, "death_year": death_year, "gender": gender}
     if notes:
@@ -35,6 +79,7 @@ def _save_verified_biography(name: str, birth_year: int, death_year, gender: str
     with open(_BIO_YAML_PATH, "w", encoding="utf-8") as f:
         yaml.dump(data, f, default_flow_style=False, allow_unicode=True, sort_keys=True)
     logger.info(f"Saved verified biography for '{name}' to {_BIO_YAML_PATH.name}")
+    return True
 
 
 class BiographicalResearcher:
@@ -145,6 +190,7 @@ class BiographicalResearcher:
                 bio = verified[name]
                 subject_data.birth_year = bio["birth_year"]
                 subject_data.death_year = bio.get("death_year")
+                subject_data.birth_year_estimated = False
                 subject_data.gender = bio.get("gender", subject_data.gender)
                 logger.info(
                     f"Applied verified biography for '{name}': "
@@ -171,13 +217,17 @@ class BiographicalResearcher:
                             death_year=gt.death_year,
                             gender=subject_data.gender,
                             notes=f"Auto-saved: confidence={gt.confidence:.2f}, source={gt.source}",
+                            birth_year_estimated=False,  # a fetched ground-truth value, never the placeholder
                         )
-                except Exception:
-                    pass  # Auto-save is best-effort only
+                except Exception as save_err:
+                    # Auto-save is best-effort, but never silent.
+                    logger.warning(f"Auto-save of verified biography for '{name}' failed: {save_err}")
 
             logger.info(
                 f"Research complete: {subject_data.name} "
-                f"({subject_data.formatted_years}, gender={subject_data.gender})"
+                f"({subject_data.display_years or 'years unknown'}, "
+                f"birth_year_estimated={subject_data.birth_year_estimated}, "
+                f"gender={subject_data.gender})"
             )
 
             return subject_data
@@ -356,11 +406,11 @@ Be historically accurate and specific.
         try:
             # Extract birth year - lenient pattern handles "c. 460 BCE", "~1912", "circa 1098", etc.
             # Uses [^\n\d]*? to skip non-digit prefixes like "c.", "approximately", "~"
-            birth_match = re.search(
-                r"BIRTH YEAR[:\s]*\**[^\n\d]*?(\d+)", response, re.IGNORECASE
-            )
+            birth_year_estimated = False
+            birth_year = None
+            birth_match = _BIRTH_YEAR_RE.search(response)
             if birth_match:
-                birth_year = int(birth_match.group(1))
+                birth_year = int(birth_match.group("year") or birth_match.group("bce_year"))
                 # Check for BCE context in the 30 chars after "BIRTH YEAR:" label
                 ctx_start = birth_match.start()
                 ctx_end = min(len(response), birth_match.end() + 20)
@@ -368,17 +418,29 @@ Be historically accurate and specific.
                 if re.search(r"\bBCE?\b", birth_context, re.IGNORECASE):
                     birth_year = -birth_year
                     logger.debug(f"Detected BCE birth year for {name}: {birth_year}")
-            else:
-                # No year extractable - use placeholder; ground truth cascade will correct
+                if not plausible_year(birth_year):
+                    logger.warning(
+                        f"Implausible birth year {birth_year} extracted for '{name}'; "
+                        f"treating as not extractable"
+                    )
+                    birth_year = None
+            if birth_year is None:
+                # No plausible year extractable: placeholder kept ONLY for age
+                # arithmetic; birth_year_estimated keeps it out of every text.
                 if "not publicly available" in response.lower() or "not available" in response.lower() or "information not available" in response.lower():
-                    logger.warning(f"Birth year not publicly available for {name}, using estimate: 1975")
+                    logger.warning(
+                        f"Birth year not publicly available for {name}; using placeholder "
+                        f"{ESTIMATED_BIRTH_YEAR_PLACEHOLDER} (birth_year_estimated=True, never captioned)"
+                    )
                 else:
                     logger.warning(
-                        f"Could not extract birth year for '{name}' from Gemini response "
-                        f"(no digit found after BIRTH YEAR label); using estimate 1975 — "
-                        f"ground truth cascade will correct if actual year is known"
+                        f"Could not extract a plausible birth year for '{name}' from Gemini "
+                        f"response; using placeholder {ESTIMATED_BIRTH_YEAR_PLACEHOLDER} "
+                        f"(birth_year_estimated=True, never captioned); ground truth cascade "
+                        f"may still supply the real year"
                     )
-                birth_year = 1975
+                birth_year = ESTIMATED_BIRTH_YEAR_PLACEHOLDER
+                birth_year_estimated = True
 
             # Extract death year - strict pattern to avoid matching embedded numbers
             # (e.g., "Not applicable, born in 1933" must NOT match 1933 as death year)
@@ -404,12 +466,19 @@ Be historically accurate and specific.
                         logger.debug(f"Detected BCE death year for {name}: {death_year}")
                 # "Present", "living", "alive", "n/a", "not applicable" → leave as None
 
-            # Safety: if using the 1975 fallback birth year and death year precedes it,
+            if death_year is not None and not plausible_year(death_year):
+                logger.warning(
+                    f"Implausible death year {death_year} extracted for '{name}'; clearing"
+                )
+                death_year = None
+
+            # Safety: if using the placeholder birth year and death year precedes it,
             # the death year was likely extracted from surrounding text, not the actual
             # death date. Ground truth cascade will correct both years.
-            if birth_year == 1975 and death_year is not None and death_year < birth_year:
+            if birth_year_estimated and death_year is not None and death_year < birth_year:
                 logger.warning(
-                    f"Death year {death_year} precedes fallback birth year 1975 for '{name}'; "
+                    f"Death year {death_year} precedes placeholder birth year "
+                    f"{ESTIMATED_BIRTH_YEAR_PLACEHOLDER} for '{name}'; "
                     f"clearing (ground truth will correct)"
                 )
                 death_year = None
@@ -491,6 +560,7 @@ Be historically accurate and specific.
                 historical_context=historical_context,
                 reference_sources=reference_sources[:3],  # Limit to 3
                 gender=gender,
+                birth_year_estimated=birth_year_estimated,
             )
 
             # Validate
@@ -520,7 +590,9 @@ Be historically accurate and specific.
             "era": subject_data.era,
             "birth_year": subject_data.birth_year,
             "death_year": subject_data.death_year or "Present",
-            "years": subject_data.formatted_years,
+            # display_years (2.10.0): caller lifespan or research years, never
+            # an estimated placeholder; "unknown" when no years are verifiable.
+            "years": subject_data.display_years or "unknown",
             "appearance": ", ".join(subject_data.appearance_notes),
             "context": subject_data.historical_context,
         }

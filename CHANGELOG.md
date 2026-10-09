@@ -7,6 +7,81 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.10.0] - 2026-10-09
+
+### Added
+- **Caller-supplied lifespan drives the caption.** `PortraitClient.generate(...,
+  lifespan=...)`, `EnhancedPortraitGenerator.generate_portrait(..., lifespan=...)`,
+  `PortraitGenerator.generate_portrait(..., lifespan=...)` and
+  `IntelligenceCoordinator.generate_portrait(..., lifespan=...)` accept a
+  `portrait_generator.lifespan.Lifespan(birth_year, death_year, still_alive=None)`
+  or a mapping (`Lifespan.from_record`). When given, it is the **sole** source of
+  the caption's years line: `"1939-2022"`, `"1939-Present"`, `"b. 1939"`,
+  `"d. 2022"`, or no years line at all when neither year is verifiable. Research
+  still runs for identity, era, appearance and the age estimate. The lifespan is
+  validated before research starts (`ValueError`: implausible year, death before
+  birth, lifespan > 125 years, `still_alive` with a death year).
+- **Tesseract caption gate** (`portrait_generator.utils.caption_check`): every
+  generated portrait's caption bar is OCR'd before it is saved (bottom 17/26/36 %
+  crops, inverted, LANCZOS x2 then x3 when word confidence < 70) and compared
+  with the intended name (difflib >= 0.75 after accent/case folding) and years
+  (exact after whitespace/dash normalisation; `None` means no year token may be
+  present). With a caller lifespan a mismatch fails that style with an error
+  starting `CAPTION-MISMATCH:` (no regeneration retry; the caption is
+  deterministic). Without one it is logged and recorded only. No OCR engine ->
+  WARNING and `caption_check.status = "unavailable"` (never a silent pass).
+- **`portrait_generator.utils.tonal_variants`**: OKLab-based BW and Sepia
+  variants derived from a `-Painting-N` master, always written as JPEG q95
+  (4:4:4 for Sepia, source ICC profile copied, `.part` + atomic rename) as
+  `<base>-BW-<N>.jpg` / `<base>-Sepia-<N>.jpg`. CLI:
+  `python -m portrait_generator.utils.tonal_variants <painting>... [--styles BW,Sepia] [--overwrite] [--mix luminance|yellow|orange|red]`.
+- Sidecar (`*.meta.json`) keys `caption_name`, `caption_years`,
+  `lifespan_source` (`"caller"`/`"research"`) and `caption_check`
+  (`{status, observed_text, observed_years, reason}`); all 2.9.0 keys unchanged.
+- `SubjectData.caption_years`, `.lifespan_source`, `.birth_year_estimated`,
+  and properties `.display_years` / `.display_birth_year` (what every caption,
+  prompt and log path now prints).
+- `portrait_generator.lifespan.plausible_year()` shared by the researcher and
+  `Lifespan.validate()` (-5000 <= year <= current year).
+
+### Fixed (root causes)
+- **The 1975 placeholder was printed as a real birth year.** When research
+  could not extract a birth year (e.g. `BIRTH YEAR: Not publicly available`) the
+  researcher set `birth_year=1975` and that placeholder reached the caption
+  (`"1975-Present"`), the prompts, and could be auto-saved into
+  `verified_biographies.yaml`. It is now flagged `birth_year_estimated=True`:
+  the caption shows no years (or `"d. YYYY"`), prompts say "approximate age
+  unknown", and `_save_verified_biography` refuses estimated or implausible
+  years (WARNING, returns False). Auto-save failures are now logged, not
+  swallowed.
+- **`BIRTH YEAR: 20th century` produced birth year 20.** The birth regex took
+  any `\d+`; it now requires 3-4 digits not followed by an ordinal suffix
+  (1-2 digits only with an explicit BCE marker, e.g. `69 BCE`), and the result
+  must pass `plausible_year()`.
+
+### Changed
+- `image_utils.convert_to_bw` / `convert_to_sepia` keep their signatures and
+  return types but delegate to `tonal_variants.to_bw` / `to_sepia` (OKLab tone
+  mapping instead of a plain grayscale + RGB tint); `convert_to_sepia` no
+  longer mutates its input.
+- `TitleOverlayEngine.add_overlay(..., years=None)` draws the name only,
+  vertically centred in the bar (an empty/whitespace string is still rejected).
+- The basic `PortraitGenerator` now writes a sidecar too.
+- `PortraitVerifier.run_full_verification` skips the Gemini Vision overlay-date
+  check (with a warning) when `lifespan_source == "caller"` or the birth year is
+  estimated: the caption is owned by the caption gate there.
+- Dependencies: `pillow>=11,<13`, `numpy>=1.26`, `pytesseract>=0.3.10`
+  (the `tesseract` binary is optional: without it the gate reports
+  `unavailable`).
+
+### Backward compatibility
+- Without `lifespan=` behaviour matches 2.9.0 except that estimated birth years
+  are no longer printed, a non-fatal caption check is recorded, and sidecars
+  carry the new keys. Existing callers and fakes without a `lifespan`
+  parameter keep working (`PortraitClient` only forwards it when given).
+
+---
+
 ## [2.9.0] - 2026-10-08
 
 ### Changed

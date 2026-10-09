@@ -5,19 +5,39 @@ from typing import Optional, Tuple
 
 from PIL import Image, ImageEnhance, ImageFilter
 
+from .tonal_variants import BWParams
+from .tonal_variants import to_bw as _tv_to_bw
+from .tonal_variants import to_sepia as _tv_to_sepia
+
 logger = logging.getLogger(__name__)
+
+
+# convert_to_bw's ``enhance_contrast`` (a 2.9.0-era ImageEnhance factor where
+# 1.0 = no change and the generators pass 1.2) is mapped onto the tonal
+# S-curve weight of tonal_variants.BWParams so that the generators' default
+# (1.2) reproduces the tuned house look exactly: weight = (factor - 1) * k with
+# k derived from the house default, never hard-coded separately.
+_BW_DEFAULT_ENHANCE_CONTRAST = 1.2
+_BW_CONTRAST_PER_UNIT = BWParams().contrast / (_BW_DEFAULT_ENHANCE_CONTRAST - 1.0)
 
 
 def convert_to_bw(image: Image.Image, enhance_contrast: float = 1.2) -> Image.Image:
     """
-    Convert image to black and white with enhanced contrast.
+    Convert image to black and white with balanced tone.
+
+    Since 2.10.0 this delegates to :func:`portrait_generator.utils.tonal_variants.to_bw`
+    (linear-light luminance mix + conservative levels stretch + mild S-curve)
+    instead of the gamma-space ``convert("L")`` + global contrast multiplier.
 
     Args:
         image: PIL Image to convert
-        enhance_contrast: Contrast enhancement factor (1.0 = no change)
+        enhance_contrast: Contrast factor (1.0 = no S-curve, 1.2 = the tuned
+            house look used by the generators, larger = stronger S-curve,
+            capped at a full smoothstep; values below 1.0 additionally
+            flatten contrast with ``ImageEnhance.Contrast`` as before)
 
     Returns:
-        Black and white PIL Image
+        Black and white PIL Image in RGB mode (R == G == B), as before
 
     Raises:
         ValueError: If image is None or enhance_contrast is invalid
@@ -30,16 +50,11 @@ def convert_to_bw(image: Image.Image, enhance_contrast: float = 1.2) -> Image.Im
 
     logger.debug(f"Converting to BW with contrast={enhance_contrast}")
 
-    # Convert to grayscale
-    bw_image = image.convert("L")
+    weight = min(1.0, max(0.0, (enhance_contrast - 1.0) * _BW_CONTRAST_PER_UNIT))
+    bw_image = _tv_to_bw(image, BWParams(contrast=weight)).convert("RGB")
 
-    # Convert back to RGB mode for consistency
-    bw_image = bw_image.convert("RGB")
-
-    # Enhance contrast if requested
-    if enhance_contrast != 1.0:
-        enhancer = ImageEnhance.Contrast(bw_image)
-        bw_image = enhancer.enhance(enhance_contrast)
+    if enhance_contrast < 1.0:
+        bw_image = ImageEnhance.Contrast(bw_image).enhance(enhance_contrast)
 
     logger.info(f"Converted to BW: {bw_image.size} {bw_image.mode}")
 
@@ -52,12 +67,18 @@ def convert_to_sepia(
     """
     Convert image to sepia tone.
 
+    Since 2.10.0 this delegates to :func:`portrait_generator.utils.tonal_variants.to_sepia`
+    (split-toned OKLCH sepia built on the balanced B&W plane) instead of the
+    clipping per-pixel "sepia matrix". The input image is no longer modified
+    in place.
+
     Args:
         image: PIL Image to convert
-        intensity: Sepia intensity (0.0 = grayscale, 1.0 = full sepia)
+        intensity: Sepia intensity (0.0 = the balanced B&W rendition,
+            1.0 = full sepia; linear blend in between)
 
     Returns:
-        Sepia-toned PIL Image
+        Sepia-toned PIL Image (RGB)
 
     Raises:
         ValueError: If image is None or intensity is out of range
@@ -70,44 +91,14 @@ def convert_to_sepia(
 
     logger.debug(f"Converting to sepia with intensity={intensity}")
 
-    # Ensure RGB mode
-    if image.mode != "RGB":
-        image = image.convert("RGB")
+    sepia = _tv_to_sepia(image)
+    if intensity < 1.0:
+        gray = _tv_to_bw(image).convert("RGB")
+        sepia = Image.blend(gray, sepia, intensity)
 
-    # Get pixel data
-    pixels = image.load()
-    width, height = image.size
+    logger.info(f"Converted to sepia: {sepia.size} {sepia.mode}")
 
-    # Sepia matrix coefficients
-    for y in range(height):
-        for x in range(width):
-            r, g, b = pixels[x, y]
-
-            # Convert to grayscale first (intensity 0.0 = grayscale)
-            gray = int(0.299 * r + 0.587 * g + 0.114 * b)
-
-            # Calculate sepia values
-            tr = int(0.393 * gray + 0.769 * gray + 0.189 * gray)
-            tg = int(0.349 * gray + 0.686 * gray + 0.168 * gray)
-            tb = int(0.272 * gray + 0.534 * gray + 0.131 * gray)
-
-            # Clamp to 0-255
-            tr = min(255, tr)
-            tg = min(255, tg)
-            tb = min(255, tb)
-
-            # Blend between grayscale (0.0) and sepia (1.0) based on intensity
-            if intensity < 1.0:
-                # Blend from grayscale to sepia
-                tr = int(gray + (tr - gray) * intensity)
-                tg = int(gray + (tg - gray) * intensity)
-                tb = int(gray + (tb - gray) * intensity)
-
-            pixels[x, y] = (tr, tg, tb)
-
-    logger.info(f"Converted to sepia: {image.size} {image.mode}")
-
-    return image
+    return sepia
 
 
 def enhance_image(

@@ -39,7 +39,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="Portrait Generator API",
         description="AI-powered historical portrait generation with Google Gemini (default: gemini-3.1-flash-image)",
-        version="2.9.0",
+        version="2.10.0",
         lifespan=lifespan,
     )
 

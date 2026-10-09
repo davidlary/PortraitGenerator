@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "portrait-generator"
-version = "2.9.0"
+version = "2.10.0"
 description = "AI-powered historical portrait generation using Google Gemini"
 readme = "README.md"
 license = {text = "MIT"}
@@ -44,7 +44,9 @@ classifiers = [
 requires-python = ">=3.10"
 dependencies = [
     "google-genai>=1.0.0,<2.0.0",
-    "pillow>=11.0.0,<12.0.0",
+    "pillow>=11,<13",
+    "numpy>=1.26",
+    "pytesseract>=0.3.10",
     "fastapi>=0.100.0,<1.0.0",
     "uvicorn[standard]>=0.27.0,<1.0.0",
     "pydantic>=2.6.0,<3.0.0",
